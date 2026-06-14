@@ -14,29 +14,15 @@ export type ScheduleItemSerialized = {
 	endsAt: string;
 	durationMinutes: number | null;
 	location: string | null;
-	status: "upcoming" | "ongoing" | "completed";
+	status: "ongoing" | "upcoming" | "completed";
 };
 
 function formatDuration(minutes: number | null): string {
 	if (!minutes) return "";
-	if (minutes < 60) return `${minutes} min`;
+	if (minutes < 60) return `${minutes}m`;
 	const h = Math.floor(minutes / 60);
 	const m = minutes % 60;
-	return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
-}
-
-function getRelativeLabel(isoDate: string, todayIso: string): string {
-	const diff = Math.round(
-		(new Date(isoDate).setHours(0, 0, 0, 0) - new Date(todayIso).setHours(0, 0, 0, 0)) / 86400000
-	);
-	if (diff === 0) return "Today";
-	if (diff === 1) return "Tomorrow";
-	if (diff > 1) return `In ${diff} days`;
-	return `${Math.abs(diff)} days ago`;
-}
-
-function toDateKey(iso: string): string {
-	return iso.slice(0, 10);
+	return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 function getTodayIso(): string {
@@ -54,7 +40,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 	const grouped = useMemo(() => {
 		const map: Record<string, ScheduleItemSerialized[]> = {};
 		for (const a of items) {
-			const key = toDateKey(a.startsAt);
+			const key = a.startsAt.slice(0, 10);
 			if (!map[key]) map[key] = [];
 			map[key].push(a);
 		}
@@ -62,7 +48,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 	}, [items]);
 
 	const activeDates = useMemo(
-		() => Object.keys(grouped).filter((d) => d >= todayIso).sort().slice(0, 7),
+		() => Object.keys(grouped).filter((d) => d >= todayIso).sort().slice(0, 14),
 		[grouped, todayIso]
 	);
 
@@ -72,7 +58,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 			return {
 				iso,
 				isToday: iso === todayIso,
-				monthDay: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+				day: d.getDate(),
 				weekday: d.toLocaleDateString("en-US", { weekday: "short" }),
 				count: grouped[iso]?.length ?? 0,
 			};
@@ -115,58 +101,55 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 	}, [activeDates]);
 
 	return (
-		<div className="mx-auto max-w-6xl pb-8">
-			<div className="pt-4 pb-6 mb-6 space-y-4">
-				<header className="flex flex-col gap-0.5">
-					<h1 className="flex items-center gap-2 text-[22px] font-normal text-[#202124]">
-						<CalendarDays className="text-[#1a73e8]" size={24} />
-						Schedule
-					</h1>
-					<p className="text-sm text-[#5f6368]">
-						{activeDates.length > 0
-							? `Your next ${activeDates.length} assessment day${activeDates.length !== 1 ? "s" : ""}, at a glance.`
-							: "No upcoming assessments scheduled."}
-					</p>
-				</header>
+		<div className="mx-auto max-w-6xl space-y-8 pb-12">
+			<header className="flex flex-col gap-1">
+				<h1 className="flex items-center gap-3 text-3xl font-black text-slate-900 tracking-tight">
+					<CalendarDays className="text-discord-blurple" size={32} strokeWidth={2.5} />
+					Schedule
+				</h1>
+				<p className="text-slate-500 font-medium">
+					{activeDates.length > 0
+						? `Stay ahead of your next ${activeDates.length} assessment days.`
+						: "Your schedule is currently clear."}
+				</p>
+			</header>
 
-				{pills.length > 0 && (
-					<div className="flex flex-wrap gap-2">
-						{pills.map((p) => (
-							<button
-								key={p.iso}
-								onClick={() => handlePillClick(p.iso)}
-								className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all border ${
-									activePill === p.iso
-										? "bg-[#1a73e8] border-[#1a73e8] text-white shadow-sm"
-										: p.isToday
-										? "bg-[#e8f0fe] border-[#c5d8fd] text-[#1a73e8]"
-										: "bg-white border-[#dadce0] text-[#5f6368] hover:border-[#bdc1c6] hover:text-[#202124]"
-								}`}
-							>
-								<span>{p.isToday ? "Today" : `${p.monthDay} · ${p.weekday}`}</span>
-								<span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-									activePill === p.iso
-										? "bg-white/20 text-white"
-										: p.isToday
-										? "bg-[#c5d8fd] text-[#1a73e8]"
-										: "bg-[#f8f9fa] text-[#5f6368]"
-								}`}>
-									{p.count}
-								</span>
-							</button>
-						))}
-					</div>
-				)}
-			</div>
+			{pills.length > 0 && (
+				<div className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar">
+					{pills.map((p) => (
+						<button
+							key={p.iso}
+							onClick={() => handlePillClick(p.iso)}
+							className={`flex flex-col items-center min-w-[64px] gap-1 rounded-2xl p-3 transition-all active:scale-95 ${
+								activePill === p.iso
+									? "bg-discord-blurple text-white shadow-xl shadow-discord-blurple/20"
+									: p.isToday
+									? "bg-discord-blurple/10 text-discord-blurple"
+									: "bg-white text-slate-500 hover:bg-slate-50"
+							}`}
+						>
+							<span className="text-[10px] font-black uppercase tracking-widest leading-none">{p.weekday}</span>
+							<span className="text-xl font-black leading-none mt-1">{p.day}</span>
+							{p.count > 0 && (
+								<div className={`w-1 h-1 rounded-full mt-1.5 ${activePill === p.iso ? "bg-white" : "bg-discord-blurple"}`} />
+							)}
+						</button>
+					))}
+				</div>
+			)}
 
 			{activeDates.length === 0 ? (
-				<div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-[#dadce0] bg-white py-20 text-center shadow-sm">
-					<CalendarDays size={28} className="text-[#bdc1c6] mb-3" />
-					<p className="text-sm font-medium text-[#5f6368]">No upcoming assessments</p>
-					<p className="text-xs text-[#80868b] mt-1">Check back later for new assessments.</p>
+				<div className="discord-card py-24 flex flex-col items-center justify-center text-center">
+					<div className="bg-slate-100 p-6 rounded-full mb-4">
+						<CalendarDays size={40} className="text-slate-300" strokeWidth={3} />
+					</div>
+					<h3 className="text-xl font-black text-slate-900">No assessments found</h3>
+					<p className="mt-1 text-slate-500 font-bold max-w-xs">
+						Check back later when assessments have been scheduled for you.
+					</p>
 				</div>
 			) : (
-				<div className="space-y-8">
+				<div className="space-y-12">
 					{activeDates.map((date) => {
 						const dayItems = grouped[date];
 						const isToday = date === todayIso;
@@ -176,23 +159,28 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 								key={date}
 								data-date={date}
 								ref={(el) => { sectionRefs.current[date] = el; }}
+								className="space-y-4"
 							>
-								<div className="flex items-center gap-3 mb-3">
-									<div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-										isToday ? "bg-[#1a73e8] text-white" : "bg-[#f8f9fa] text-[#5f6368]"
+								<div className="flex items-center gap-4 sticky top-0 bg-white/80 backdrop-blur py-2 z-10 -mx-4 px-4 sm:mx-0 sm:px-0">
+									<div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-black transition-all ${
+										isToday ? "bg-discord-blurple text-white shadow-lg shadow-discord-blurple/20" : "bg-slate-100 text-slate-500"
 									}`}>
 										{d.getDate()}
 									</div>
-									<div className="flex items-baseline gap-2">
-										<span className="text-sm font-medium text-[#202124]">
-											{isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+									<div className="flex flex-col">
+										<span className="text-sm font-black text-slate-900 uppercase tracking-tight">
+											{isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "long" })}
 										</span>
-										<span className="text-xs text-[#80868b]">{getRelativeLabel(date, todayIso)}</span>
+										<span className="text-xs font-bold text-slate-400">
+											{d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+										</span>
 									</div>
-									<div className="flex-1 h-px bg-[#dadce0]" />
-									<span className="text-xs text-[#80868b]">{dayItems.length} assessment{dayItems.length !== 1 ? "s" : ""}</span>
+									<div className="flex-1 h-px bg-slate-100" />
+									<span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg">
+										{dayItems.length}
+									</span>
 								</div>
-								<div className="pl-11 space-y-2">
+								<div className="grid gap-3">
 									{dayItems.map((a) => (
 										<AssessmentCard
 											key={a.id}
@@ -227,36 +215,40 @@ function AssessmentCard({
 		<button
 			type="button"
 			onClick={onClick}
-			className="w-full text-left bg-white rounded-lg border border-[#dadce0] hover:border-[#1a73e8] hover:shadow-sm transition-all"
+			className="discord-card w-full text-left p-4 flex items-center gap-5 transition-all hover:border-discord-blurple/30 hover:bg-slate-50/50 group active:scale-[0.99]"
 		>
-			<div className="flex items-center gap-4 px-4 py-3">
-				<div className="flex-1 min-w-0">
-					<p className="text-sm font-medium text-[#202124] truncate">{a.title}</p>
-					<p className="text-xs text-[#80868b] truncate mt-0.5">
-						<span className="font-medium text-[#5f6368]">{a.courseCode}</span>
-						{" · "}{a.courseTitle}
-					</p>
-				</div>
-
-				{isOngoing && (
-					<span className="shrink-0 flex items-center gap-1 rounded-full bg-[#fce8e6] border border-[#f5c6c2] px-2.5 py-0.5 text-[10px] font-bold text-[#c5221f] uppercase tracking-wider">
-						<span className="h-1.5 w-1.5 rounded-full bg-[#ea4335] animate-pulse" />
-						Live
-					</span>
-				)}
-
-				<div className="hidden sm:flex items-center gap-4 shrink-0 text-xs text-[#80868b]">
-					<span className="flex items-center gap-1">
-						<Clock size={11} />
-						{time}{a.durationMinutes ? ` · ${formatDuration(a.durationMinutes)}` : ""}
-					</span>
-					{a.location && (
-						<span className="flex items-center gap-1">
-							<MapPin size={11} />
-							{a.location}
+			<div className="flex-1 min-w-0">
+				<div className="flex items-center gap-2 mb-1">
+					<p className="text-xs font-bold text-slate-400 uppercase tracking-tight truncate">{a.courseCode}</p>
+					{isOngoing && (
+						<span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#FEE7E9] text-[10px] font-black text-[#F23F42] uppercase tracking-widest">
+							<span className="h-1.5 w-1.5 rounded-full bg-[#F23F42] animate-pulse" />
+							Live
 						</span>
 					)}
 				</div>
+				<p className="text-lg font-black text-slate-900 truncate group-hover:text-discord-blurple transition-colors">{a.title}</p>
+			</div>
+
+			<div className="flex flex-col items-end gap-2 shrink-0">
+				<div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
+					<div className="flex items-center gap-1.5">
+						<Clock size={14} className="text-slate-400" strokeWidth={2.5} />
+						{time}
+					</div>
+					{a.durationMinutes && (
+						<>
+							<div className="w-1 h-1 rounded-full bg-slate-300" />
+							<span>{formatDuration(a.durationMinutes)}</span>
+						</>
+					)}
+				</div>
+				{a.location && (
+					<div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+						<MapPin size={12} strokeWidth={2.5} />
+						{a.location}
+					</div>
+				)}
 			</div>
 		</button>
 	);

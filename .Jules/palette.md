@@ -1,3 +1,3 @@
-## 2025-05-14 - [Discord-inspired Student UI]
-**Learning:** Moving navigation from a top bar to a slim, icon-centric sidebar significantly improves the "app-like" feel of a complex dashboard. Using rounded "squircle" hover effects and vertical pills provides clear interactive feedback similar to modern social apps.
-**Action:** Consider a multi-panel layout with rounded main content areas for complex dashboards to improve visual hierarchy.
+## 2025-05-14 - [Total Student UI Overhaul]
+**Learning:** A successful "style transition" (e.g., to Discord-inspired) must penetrate beyond the layout and navbar. Every page content element—cards, buttons, typography, progress bars, and status badges—must be systematically updated to the new design language to avoid a fragmented user experience.
+**Action:** When re-theming, perform a full sweep of all functional views to ensure stylistic cohesion.

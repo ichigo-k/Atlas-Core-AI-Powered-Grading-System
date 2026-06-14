@@ -189,6 +189,30 @@ h6 {}
   @apply rounded-[16px] bg-discord-blurple text-white;
 }
 
+.discord-card {
+  @apply rounded-lg bg-white border border-[#E3E5E8] shadow-sm overflow-hidden;
+}
+
+.discord-header {
+  @apply text-[#060607] font-bold text-xl tracking-tight;
+}
+
+.discord-subtext {
+  @apply text-[#4E5058] text-sm leading-tight;
+}
+
+.discord-pill {
+  @apply rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Progress bar */
 .progress-bar {
   height: 6px;

@@ -15,9 +15,9 @@ import {
 import LiveBanner from "./LiveBanner";
 
 const typeStyles: Record<string, { bg: string; text: string }> = {
-	EXAM:       { bg: "#fce8e6", text: "#d93025" },
-	QUIZ:       { bg: "#fef7e0", text: "#e37400" },
-	ASSIGNMENT: { bg: "#e6f4ea", text: "#1e8e3e" },
+	EXAM:       { bg: "#FEE7E9", text: "#F23F42" }, // Discord-like Red
+	QUIZ:       { bg: "#FFF4E5", text: "#F0B132" }, // Discord-like Yellow
+	ASSIGNMENT: { bg: "#E6F4EA", text: "#23A559" }, // Discord-like Green
 };
 
 export default async function StudentDashboardPage() {
@@ -40,77 +40,78 @@ export default async function StudentDashboardPage() {
 	const ongoingItems = upcomingAssessments.filter(a => a.status === "ongoing");
 
 	return (
-		<div className="mx-auto max-w-6xl space-y-6 pb-8">
-			<header className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
-				<div>
-					<h1 className="text-2xl font-normal text-[#202124]">
-						Welcome back, <span className="text-[#1a73e8]">{displayName}</span>
-					</h1>
-					<p className="mt-1 text-sm text-[#5f6368]">
-						Here's what's happening with your courses today.
-					</p>
-				</div>
+		<div className="mx-auto max-w-6xl space-y-8 pb-12">
+			<header className="flex flex-col gap-1">
+				<h1 className="text-3xl font-black text-slate-900 tracking-tight">
+					Welcome back, <span className="text-discord-blurple">{displayName}</span>
+				</h1>
+				<p className="text-slate-500 font-medium">
+					Here's what's happening with your courses today.
+				</p>
 			</header>
 
 			{ongoingItems.length > 0 && <LiveBanner items={ongoingItems} />}
 
 			{isEmpty ? (
-				<div className="rounded-lg border border-[#dadce0] bg-white px-6 py-16 flex flex-col items-center gap-3 text-center shadow-sm">
-					<BookOpen size={40} className="text-[#dadce0]" />
-					<p className="text-lg font-medium text-[#202124]">No assessments yet</p>
-					<p className="text-sm text-[#5f6368]">
+				<div className="discord-card px-6 py-20 flex flex-col items-center gap-4 text-center">
+					<div className="bg-slate-100 p-6 rounded-full">
+						<BookOpen size={48} className="text-slate-300" />
+					</div>
+					<p className="text-xl font-bold text-slate-900">No assessments yet</p>
+					<p className="max-w-xs text-slate-500 font-medium">
 						You haven't been assigned to a class yet, or no assessments have been scheduled.
 					</p>
 				</div>
 			) : (
 				<>
-					<section className="rounded-lg border border-[#dadce0] bg-white px-6 py-4 grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#dadce0] shadow-sm">
+					<section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 						{[
-							{ label: "Upcoming", value: upcomingCount, icon: Calendar },
-							{ label: "Live now", value: ongoingCount, icon: AlertCircle },
-							{ label: "Completed", value: completedCount, icon: CheckCircle2 },
-							{ label: "Avg. score", value: averageScore != null ? `${averageScore.toFixed(2)}%` : "—", icon: TrendingUp },
-						].map((item, i) => (
-							<div key={item.label} className={`flex items-center gap-3 px-5 first:pl-0 last:pr-0 ${i >= 2 ? "mt-4 sm:mt-0 border-t sm:border-t-0 border-[#dadce0] pt-4 sm:pt-0" : ""}`}>
-								<item.icon size={16} className="text-[#5f6368] shrink-0" />
+							{ label: "Upcoming", value: upcomingCount, icon: Calendar, color: "text-discord-blurple" },
+							{ label: "Live now", value: ongoingCount, icon: AlertCircle, color: "text-[#F23F42]" },
+							{ label: "Completed", value: completedCount, icon: CheckCircle2, color: "text-[#23A559]" },
+							{ label: "Avg. score", value: averageScore != null ? `${averageScore.toFixed(2)}%` : "—", icon: TrendingUp, color: "text-[#F0B132]" },
+						].map((item) => (
+							<div key={item.label} className="discord-card p-5 flex items-center gap-4 transition-all hover:border-discord-blurple/30 hover:bg-slate-50/50">
+								<div className={`p-2.5 rounded-xl bg-slate-100 ${item.color}`}>
+									<item.icon size={24} strokeWidth={2.5} />
+								</div>
 								<div>
-									<p className="text-xs text-[#5f6368] font-medium tracking-wide">{item.label}</p>
-									<p className="text-xl font-normal text-[#202124]">{item.value}</p>
+									<p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-none mb-1.5">{item.label}</p>
+									<p className="text-2xl font-black text-slate-900 leading-none">{item.value}</p>
 								</div>
 							</div>
 						))}
 					</section>
 
-					<div className="grid gap-6 xl:grid-cols-2">
-						<section className="flex flex-col gap-4">
-							<div className="px-1">
-								<h2 className="flex items-center gap-2 text-lg font-medium text-[#202124]">
-									<Calendar className="text-[#1a73e8]" size={20} />
-									Upcoming This Week
-								</h2>
-							</div>
-							<div className="rounded-lg border border-[#dadce0] bg-white overflow-hidden shadow-sm">
+					<div className="grid gap-8 lg:grid-cols-5">
+						<section className="lg:col-span-3 space-y-4">
+							<h2 className="flex items-center gap-2.5 text-lg font-black text-slate-900 uppercase tracking-tight px-1">
+								<Calendar className="text-discord-blurple" size={20} strokeWidth={3} />
+								Upcoming This Week
+							</h2>
+							<div className="discord-card divide-y divide-slate-100">
 								{upcomingAssessments.length === 0 ? (
-									<p className="p-6 text-sm text-slate-400 text-center">No upcoming assessments.</p>
+									<div className="p-12 text-center">
+										<p className="text-slate-400 font-bold italic">No upcoming assessments.</p>
+									</div>
 								) : (
-									upcomingAssessments.map((assessment, i) => (
+									upcomingAssessments.map((assessment) => (
 										<div
 											key={assessment.id}
-											className={`p-4 transition-colors hover:bg-[#f8f9fa] ${i !== 0 ? "border-t border-[#dadce0]" : ""}`}
+											className="p-5 transition-all hover:bg-slate-50/80 group"
 										>
-											<div className="flex items-start justify-between gap-3">
-												<div className="space-y-1">
-													<h3 className="font-medium text-[#202124]">{assessment.title}</h3>
-													<div className="flex flex-col gap-1 text-sm text-[#5f6368] sm:flex-row sm:items-center">
-														<span className="font-medium text-[#5f6368]">{assessment.courseTitle}</span>
-														<span className="hidden h-1 w-1 rounded-full bg-[#dadce0] sm:block"></span>
-														<span className="flex items-center gap-1.5">
-															<Clock size={14} />
-															{assessment.startsAt.toLocaleDateString()}
+											<div className="flex items-center justify-between gap-4">
+												<div className="space-y-1.5 min-w-0">
+													<h3 className="font-bold text-slate-900 text-lg group-hover:text-discord-blurple transition-colors truncate">{assessment.title}</h3>
+													<div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 font-bold">
+														<span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{assessment.courseTitle}</span>
+														<span className="flex items-center gap-1.5 ml-1">
+															<Clock size={14} strokeWidth={2.5} />
+															{assessment.startsAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
 														</span>
 													</div>
 												</div>
-												<span className="flex-shrink-0 rounded-full border border-[#dadce0] px-3 py-1 text-[11px] font-medium text-[#5f6368] uppercase tracking-wider">
+												<span className="flex-shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-black text-slate-600 uppercase tracking-widest">
 													{assessment.status}
 												</span>
 											</div>
@@ -120,53 +121,55 @@ export default async function StudentDashboardPage() {
 							</div>
 						</section>
 
-						<section className="flex flex-col gap-4">
+						<section className="lg:col-span-2 space-y-4">
 							<div className="flex items-center justify-between px-1">
-								<h2 className="flex items-center gap-2 text-lg font-medium text-[#202124]">
-									<Award className="text-[#1a73e8]" size={20} />
+								<h2 className="flex items-center gap-2.5 text-lg font-black text-slate-900 uppercase tracking-tight">
+									<Award className="text-discord-blurple" size={20} strokeWidth={3} />
 									Recent Results
 								</h2>
 								<Link
 									href="/student/assessments"
-									className="flex items-center gap-1 text-sm font-medium text-[#1a73e8] hover:text-[#174ea6] transition-colors"
+									className="group flex items-center gap-1 text-[11px] font-black text-discord-blurple uppercase tracking-widest hover:translate-x-1 transition-all"
 								>
 									View all
-									<ArrowRight size={14} />
+									<ArrowRight size={14} strokeWidth={3} />
 								</Link>
 							</div>
-							<div className="rounded-lg overflow-hidden bg-white border border-[#dadce0] shadow-sm">
+							<div className="discord-card divide-y divide-slate-100">
 								{recentResults.length === 0 ? (
-									<p className="p-6 text-sm text-slate-400 text-center">No results yet.</p>
+									<div className="p-12 text-center">
+										<p className="text-slate-400 font-bold italic">No results yet.</p>
+									</div>
 								) : (
-									recentResults.map((result, i) => {
+									recentResults.map((result) => {
 										const type = result.type.toUpperCase() as keyof typeof typeStyles;
 										const style = typeStyles[type] ?? { bg: "#F1F5F9", text: "#475569" };
 										const score = result.score ?? 0;
-										const barColor = score >= 70 ? "#22c55e" : score >= 50 ? "#f59e0b" : score >= 20 ? "#f97316" : "#ef4444";
+										const barColor = score >= 70 ? "#23A559" : score >= 50 ? "#F0B132" : score >= 20 ? "#F97316" : "#F23F42";
 										return (
 											<div
 												key={result.id}
-												className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-[#f8f9fa] ${i !== 0 ? "border-t border-[#dadce0]" : ""}`}
+												className="p-5 flex flex-col gap-4 transition-all hover:bg-slate-50/80 group"
 											>
-												<div className="min-w-0 flex-1">
-													<p className="font-medium text-[#202124] truncate text-sm">{result.title}</p>
-													<p className="text-xs text-[#5f6368] mt-0.5 truncate">{result.courseTitle}</p>
-												</div>
-												<div className="flex items-center gap-4 shrink-0">
-													<span
-														className="rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-center"
-														style={{ background: style.bg, color: style.text }}
-													>
-														{result.type}
-													</span>
-													<div className="flex items-center gap-2 w-28">
-														<div className="h-1.5 flex-1 rounded-full bg-[#f1f3f4]">
-															<div className="h-1.5 rounded-full" style={{ width: `${Math.min(score, 100)}%`, background: barColor }} />
-														</div>
-														<p className="text-sm font-medium text-[#202124] whitespace-nowrap w-12 text-right">
-															{result.score.toFixed(2)}%
-														</p>
+												<div className="min-w-0">
+													<div className="flex items-center gap-2 mb-1">
+														<span
+															className="rounded px-2 py-0.5 text-[10px] font-black uppercase tracking-widest"
+															style={{ background: style.bg, color: style.text }}
+														>
+															{result.type}
+														</span>
+														<p className="text-xs font-bold text-slate-400 uppercase tracking-tight truncate">{result.courseTitle}</p>
 													</div>
+													<p className="font-bold text-slate-900 group-hover:text-discord-blurple transition-colors truncate">{result.title}</p>
+												</div>
+												<div className="flex items-center gap-3">
+													<div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden">
+														<div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min(score, 100)}%`, background: barColor }} />
+													</div>
+													<p className="text-sm font-black text-slate-900 tabular-nums">
+														{result.score.toFixed(1)}%
+													</p>
 												</div>
 											</div>
 										);
