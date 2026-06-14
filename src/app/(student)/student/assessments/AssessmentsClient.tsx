@@ -11,11 +11,12 @@ import {
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+
 function gradeColor(pct: number): string {
-	if (pct >= 70) return "#34a853";   // green
-	if (pct >= 50) return "#fbbc04";   // yellow
-	if (pct >= 20) return "#f97316";   // orange
-	return "#ea4335";                  // red
+	if (pct >= 70) return "#23A559";   // Discord green
+	if (pct >= 50) return "#F0B132";   // Discord yellow
+	if (pct >= 20) return "#F97316";   // Discord orange
+	return "#F23F42";                  // Discord red
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,13 +24,13 @@ function gradeColor(pct: number): string {
 type SerializedAssessmentRow = {
 	id: number;
 	title: string;
-	type: string; // 'EXAM' | 'QUIZ' | 'ASSIGNMENT'
+	type: string;
 	status: "upcoming" | "ongoing" | "completed";
 	courseTitle: string;
 	courseCode: string;
 	courseId: number;
-	startsAt: string; // ISO string (serialized from Date)
-	endsAt: string;   // ISO string (serialized from Date)
+	startsAt: string;
+	endsAt: string;
 	durationMinutes: number | null;
 	totalMarks: number;
 	maxAttempts: number;
@@ -46,15 +47,11 @@ interface Props {
 	courses: Course[];
 }
 
-// ─── Type badge styles (uppercase keys matching DB enum) ─────────────────────
-
 const typeStyles: Record<string, { bg: string; text: string }> = {
-	EXAM: { bg: "#fce8e6", text: "#d93025" },
-	QUIZ: { bg: "#fef7e0", text: "#e37400" },
-	ASSIGNMENT: { bg: "#e6f4ea", text: "#1e8e3e" },
+	EXAM: { bg: "#FEE7E9", text: "#F23F42" },
+	QUIZ: { bg: "#FFF4E5", text: "#F0B132" },
+	ASSIGNMENT: { bg: "#E6F4EA", text: "#23A559" },
 };
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
 
 const tabs = [
 	{ key: "ongoing", label: "Live", icon: Clock3 },
@@ -64,8 +61,6 @@ const tabs = [
 
 type VisibleTab = (typeof tabs)[number]["key"];
 type TypeFilter = "all" | "EXAM" | "QUIZ" | "ASSIGNMENT";
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AssessmentsClient({ assessments, courses }: Props) {
 	const [activeTab, setActiveTab] = useState<VisibleTab>("ongoing");
@@ -101,7 +96,6 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 		});
 	}, [assessments, activeTab, courseFilter, typeFilter, search]);
 
-	// Reset to page 1 when filters change
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [activeTab, courseFilter, typeFilter, search]);
@@ -115,20 +109,20 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 	const hasActiveFilters = courseFilter !== "all" || typeFilter !== "all";
 
 	return (
-		<div className="mx-auto max-w-6xl space-y-8 pb-8">
+		<div className="mx-auto max-w-6xl space-y-8 pb-12">
 			<header className="flex flex-col gap-1">
-				<h1 className="flex items-center gap-2 text-2xl font-normal text-[#202124]">
-					<FileText className="text-[#1a73e8]" size={28} />
+				<h1 className="flex items-center gap-3 text-3xl font-black text-slate-900 tracking-tight">
+					<FileText className="text-discord-blurple" size={32} strokeWidth={2.5} />
 					Assessments
 				</h1>
-				<p className="text-sm text-[#5f6368]">
-					Track everything in one place, from countdowns to live tests and completed results.
+				<p className="text-slate-500 font-medium">
+					Track everything in one place, from live tests to completed results.
 				</p>
 			</header>
 
 			<div className="flex flex-col gap-6">
 				{/* Tabs */}
-				<div className="flex items-center gap-8 border-b border-[#dadce0]">
+				<div className="flex items-center gap-8 border-b border-slate-200">
 					{tabs.map(({ key, label }) => {
 						const active = activeTab === key;
 						return (
@@ -136,22 +130,22 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 								type="button"
 								key={key}
 								onClick={() => setActiveTab(key)}
-								className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-colors ${active
-										? "text-[#1a73e8] font-medium"
-										: "text-[#5f6368] font-medium hover:text-[#202124]"
+								className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-all ${active
+										? "text-discord-blurple font-black"
+										: "text-slate-500 font-bold hover:text-slate-900"
 									}`}
 							>
 								{label}
 								<span
-									className={`flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${active
-											? "bg-[#e8f0fe] text-[#1a73e8]"
-											: "border border-[#dadce0] text-[#5f6368] bg-[#f8f9fa] group-hover:border-[#bdc1c6]"
+									className={`flex items-center justify-center rounded-lg px-2 py-0.5 text-[11px] font-black transition-all ${active
+											? "bg-discord-blurple/10 text-discord-blurple"
+											: "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
 										}`}
 								>
 									{counts[key]}
 								</span>
 								{active && (
-									<span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1a73e8] rounded-t-full" />
+									<span className="absolute bottom-0 left-0 right-0 h-[3px] bg-discord-blurple rounded-t-full" />
 								)}
 							</button>
 						);
@@ -162,15 +156,16 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center relative z-20">
 					<div className="relative flex-1 group">
 						<Search
-							className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5f6368] transition-colors group-focus-within:text-[#1a73e8]"
-							size={16}
+							className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-discord-blurple"
+							size={18}
+							strokeWidth={2.5}
 						/>
 						<input
 							type="text"
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
-							placeholder="Search by title, course, or course code..."
-							className="w-full rounded-full border border-[#dadce0] bg-white py-3 pl-10 pr-4 text-sm text-[#202124] outline-none transition-all focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+							placeholder="Search assessments..."
+							className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm font-bold text-slate-900 outline-none transition-all focus:border-discord-blurple focus:ring-4 focus:ring-discord-blurple/5 placeholder:text-slate-400 shadow-sm"
 						/>
 					</div>
 
@@ -178,47 +173,45 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 						<button
 							type="button"
 							onClick={() => setShowFilters(!showFilters)}
-							className="relative flex w-full items-center justify-center sm:w-auto gap-2 rounded-full border border-[#dadce0] bg-white px-5 py-3 text-[11px] font-medium uppercase tracking-widest text-[#202124] hover:bg-[#f8f9fa] transition-colors"
+							className="relative flex w-full items-center justify-center sm:w-auto gap-2.5 rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-95"
 						>
-							<Filter size={14} strokeWidth={2.5} />
+							<Filter size={16} strokeWidth={3} />
 							Filter
 							{hasActiveFilters && (
-								<span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center">
-									<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1a73e8] opacity-50" />
-									<span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#1a73e8] ring-2 ring-white" />
+								<span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center">
+									<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-discord-blurple opacity-50" />
+									<span className="relative inline-flex h-3 w-3 rounded-full bg-discord-blurple ring-2 ring-white" />
 								</span>
 							)}
 						</button>
 
 						{showFilters && (
 							<>
-								{/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
 								<div className="fixed inset-0 z-10" onClick={() => setShowFilters(false)} />
-								<div className="absolute right-0 top-full mt-2 w-full sm:w-[320px] rounded-lg border border-[#dadce0] bg-white p-5 shadow-lg z-20 flex flex-col gap-6 origin-top-right animate-in fade-in zoom-in-95 duration-200">
-									{/* Course filter */}
+								<div className="absolute right-0 top-full mt-3 w-full sm:w-[340px] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl z-20 flex flex-col gap-8 origin-top-right animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
 									<div>
-										<label className="mb-3 block text-xs font-medium uppercase tracking-wider text-[#5f6368]">
-											Course
+										<label className="mb-4 block text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
+											Filter by Course
 										</label>
 										<div className="flex flex-wrap gap-2">
 											<button
 												type="button"
 												onClick={() => setCourseFilter("all")}
-												className={`rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${courseFilter === "all"
-														? "bg-[#1a73e8] text-white"
-														: "bg-[#f8f9fa] text-[#5f6368] hover:bg-[#e8eaed]"
+												className={`rounded-lg px-4 py-2 text-xs font-black uppercase tracking-wider transition-all ${courseFilter === "all"
+														? "bg-discord-blurple text-white shadow-lg shadow-discord-blurple/20"
+														: "bg-slate-100 text-slate-500 hover:bg-slate-200"
 													}`}
 											>
-												All courses
+												All
 											</button>
 											{courses.map((course) => (
 												<button
 													type="button"
 													key={course.id}
 													onClick={() => setCourseFilter(course.id)}
-													className={`rounded-full border px-4 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${courseFilter === course.id
-															? "border-[#1a73e8] bg-[#e8f0fe] text-[#1a73e8]"
-															: "border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f8f9fa]"
+													className={`rounded-lg border-2 px-4 py-2 text-xs font-black uppercase tracking-wider transition-all ${courseFilter === course.id
+															? "border-discord-blurple bg-discord-blurple/5 text-discord-blurple"
+															: "border-slate-100 bg-white text-slate-500 hover:border-slate-200"
 														}`}
 												>
 													{course.code}
@@ -227,10 +220,9 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 										</div>
 									</div>
 
-									{/* Type filter */}
 									<div>
-										<label className="mb-3 block text-xs font-medium uppercase tracking-wider text-[#5f6368]">
-											Assessment Type
+										<label className="mb-4 block text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
+											Filter by Type
 										</label>
 										<div className="flex flex-wrap gap-2">
 											{(["all", "EXAM", "QUIZ", "ASSIGNMENT"] as TypeFilter[]).map((type) => (
@@ -238,9 +230,9 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 													type="button"
 													key={type}
 													onClick={() => setTypeFilter(type)}
-													className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${typeFilter === type
-															? "bg-[#e8f0fe] text-[#1a73e8] border border-[#1a73e8]"
-															: "bg-white text-[#5f6368] hover:bg-[#f8f9fa] border border-[#dadce0]"
+													className={`rounded-lg px-4 py-2 text-xs font-black uppercase tracking-wider transition-all ${typeFilter === type
+															? "bg-slate-900 text-white shadow-lg"
+															: "bg-slate-100 text-slate-500 hover:bg-slate-200"
 														}`}
 												>
 													{type === "all" ? "All types" : type}
@@ -255,15 +247,14 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 				</div>
 			</div>
 
-			{/* Empty state */}
 			{filteredAssessments.length === 0 ? (
-				<div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-[#dadce0] bg-white py-16 text-center shadow-sm">
-					<div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8f9fa] text-[#5f6368]">
-						<Search size={24} />
+				<div className="discord-card py-24 flex flex-col items-center justify-center text-center">
+					<div className="bg-slate-100 p-6 rounded-full mb-4">
+						<Search size={40} className="text-slate-300" strokeWidth={3} />
 					</div>
-					<h3 className="mt-4 text-base font-medium text-[#202124]">No assessments found</h3>
-					<p className="mt-1 text-sm text-[#5f6368] max-w-sm">
-						We couldn't find any assessments matching your current filters. Try adjusting your search term or selected course.
+					<h3 className="text-xl font-black text-slate-900">No assessments found</h3>
+					<p className="mt-1 text-slate-500 font-bold max-w-xs">
+						Try adjusting your filters or search terms to find what you're looking for.
 					</p>
 					<button
 						type="button"
@@ -272,118 +263,114 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 							setCourseFilter("all");
 							setTypeFilter("all");
 						}}
-						className="mt-5 rounded-full bg-[#1a73e8] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#174ea6]"
+						className="mt-8 rounded-xl bg-discord-blurple px-8 py-3 text-sm font-black text-white transition-all hover:shadow-xl hover:shadow-discord-blurple/20 active:scale-95"
 					>
 						Clear all filters
 					</button>
 				</div>
 			) : (
-				<div className="rounded-lg border border-[#dadce0] bg-white overflow-hidden shadow-sm">
-					{paginatedAssessments.map((assessment, i) => {
+				<div className="discord-card divide-y divide-slate-100">
+					{paginatedAssessments.map((assessment) => {
 						const isCompleted = assessment.status === "completed";
 						const isOngoing = assessment.status === "ongoing";
 						const style = typeStyles[assessment.type] ?? { bg: "#F1F5F9", text: "#475569" };
 						const rawScore = assessment.latestAttempt?.score ?? null;
-						// Unsubmitted completed assessments count as 0
 						const score = isCompleted ? (rawScore ?? 0) : rawScore;
-						const grade = isCompleted
-							? (rawScore === null ? "F" : (assessment.latestAttempt?.grade ?? null))
-							: (assessment.latestAttempt?.grade ?? null);
-						const barColor = gradeColor(score ?? 0);
+						const gradeColorVal = gradeColor(score ?? 0);
 
 						return (
 							<div
 								key={assessment.id}
-								className={`flex flex-col gap-3 px-6 py-5 transition-colors hover:bg-[#f8f9fa] sm:flex-row sm:items-center sm:justify-between ${i !== 0 ? "border-t border-[#dadce0]" : ""}`}
+								className="flex flex-col gap-6 p-6 transition-all hover:bg-slate-50/80 group sm:flex-row sm:items-center sm:justify-between"
 							>
 								<div className="min-w-0 flex-1">
-									<div className="flex flex-wrap items-center gap-2">
-										<p className="font-medium text-[#202124]">{assessment.title}</p>
+									<div className="flex flex-wrap items-center gap-2.5 mb-2">
+										<h3 className="text-lg font-black text-slate-900 group-hover:text-discord-blurple transition-colors">{assessment.title}</h3>
 										<span
-											className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+											className="rounded px-2 py-0.5 text-[10px] font-black uppercase tracking-widest"
 											style={{ background: style.bg, color: style.text }}
 										>
 											{assessment.type}
 										</span>
 									</div>
-									<p className="mt-0.5 text-xs text-[#5f6368]">
-										<span className="font-medium text-[#5f6368]">{assessment.courseCode}</span>
-										{" · "}{assessment.courseTitle}
+									<p className="text-xs font-bold text-slate-500 mb-4 flex items-center gap-2">
+										<span className="text-slate-900 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">{assessment.courseCode}</span>
+										<span className="w-1 h-1 rounded-full bg-slate-300" />
+										{assessment.courseTitle}
 									</p>
-									<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5f6368]">
-										<span className="flex items-center gap-1">
-											<CalendarDays size={14} className="text-[#5f6368]" />
-											{new Date(assessment.startsAt).toLocaleDateString("en-GB")}
+									<div className="flex flex-wrap gap-x-5 gap-y-2">
+										<div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+											<CalendarDays size={16} className="text-slate-400" strokeWidth={2.5} />
+											{new Date(assessment.startsAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
 											{" – "}
-											{new Date(assessment.endsAt).toLocaleDateString("en-GB")}
-										</span>
+											{new Date(assessment.endsAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+										</div>
 										{assessment.durationMinutes != null && (
-											<span className="flex items-center gap-1">
-												<Clock3 size={14} className="text-[#5f6368]" />
-												{assessment.durationMinutes} min
-											</span>
+											<div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+												<Clock3 size={16} className="text-slate-400" strokeWidth={2.5} />
+												{assessment.durationMinutes} minutes
+											</div>
 										)}
 									</div>
 								</div>
 
-								<div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end sm:gap-2">
+								<div className="flex shrink-0 items-center gap-4 sm:flex-col sm:items-end">
 									{isCompleted ? (
-										<>
-											<div className="flex flex-col items-end">
-												<p className="text-sm font-medium" style={{ color: barColor }}>
-													{score}%
+										<div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+											<div className="flex items-center gap-3">
+												<p className="text-lg font-black tabular-nums" style={{ color: gradeColorVal }}>
+													{score?.toFixed(1)}%
 												</p>
-												<div className="mt-1 h-1.5 w-20 rounded-full bg-[#f1f3f4]">
+												<div className="h-2 w-24 rounded-full bg-slate-100 overflow-hidden">
 													<div
-														className="h-1.5 rounded-full"
-														style={{ width: `${Math.min(score ?? 0, 100)}%`, background: barColor }}
+														className="h-full rounded-full transition-all duration-1000 ease-out"
+														style={{ width: `${Math.min(score ?? 0, 100)}%`, background: gradeColorVal }}
 													/>
 												</div>
 											</div>
 											{assessment.resultsReleased && rawScore != null && (
 												<Link
 													href={`/student/assessments/${assessment.id}/review`}
-													className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium bg-[#f8f9fa] border border-[#dadce0] text-[#1a73e8] hover:bg-[#f1f3f4] transition-colors"
+													className="flex items-center gap-2 rounded-lg px-4 py-2 text-[11px] font-black uppercase tracking-widest bg-white border-2 border-slate-100 text-discord-blurple hover:border-discord-blurple hover:bg-discord-blurple/5 transition-all active:scale-95 shadow-sm"
 												>
 													Review Answers
-													<ArrowRight size={12} />
+													<ArrowRight size={14} strokeWidth={3} />
 												</Link>
 											)}
-										</>
+										</div>
 									) : (
-										<>
+										<div className="flex flex-col items-end gap-3 w-full sm:w-auto">
 											<Link
 												href={`/student/assessments/${assessment.id}`}
-												className={`flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-medium transition-colors ${isOngoing
-														? "bg-[#34a853] text-white hover:bg-[#1e8e3e]"
-														: "bg-[#1a73e8] text-white hover:bg-[#174ea6]"
+												className={`flex items-center justify-center gap-2 w-full sm:w-auto rounded-xl px-8 py-3 text-sm font-black transition-all active:scale-95 shadow-lg shadow-black/5 ${isOngoing
+														? "bg-[#23A559] text-white hover:bg-[#1e8e3e] shadow-[#23A559]/20"
+														: "bg-discord-blurple text-white hover:bg-[#4752c4] shadow-discord-blurple/20"
 													}`}
 											>
-												{isOngoing ? "Start" : "View Details"}
-												<ArrowRight size={14} />
+												{isOngoing ? "Take Assessment" : "View Details"}
+												<ArrowRight size={16} strokeWidth={3} />
 											</Link>
-											<p className="text-xs text-[#5f6368]">
-												{isOngoing ? "Open now" : new Date(assessment.startsAt).toLocaleDateString("en-GB")}
+											<p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+												{isOngoing ? "Available Now" : `Starts ${new Date(assessment.startsAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
 											</p>
-										</>
+										</div>
 									)}
 								</div>
 							</div>
 						);
 					})}
 
-					{/* Pagination Controls */}
 					{totalPages > 1 && (
-						<div className="flex items-center justify-between border-t border-[#dadce0] bg-[#f8f9fa] px-6 py-4">
-							<span className="text-xs font-medium text-[#5f6368]">
-								Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredAssessments.length)} of {filteredAssessments.length}
+						<div className="flex flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between bg-slate-50/50">
+							<span className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">
+								Page {currentPage} of {totalPages}
 							</span>
-							<div className="flex items-center gap-2">
+							<div className="flex items-center gap-3">
 								<button
 									type="button"
 									onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
 									disabled={currentPage === 1}
-									className="rounded-full border border-[#dadce0] bg-white px-4 py-1.5 text-xs font-medium text-[#5f6368] hover:bg-[#f8f9fa] disabled:opacity-50 transition-colors"
+									className="flex-1 sm:flex-none rounded-xl border-2 border-slate-200 bg-white px-6 py-2.5 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 transition-all active:scale-95"
 								>
 									Previous
 								</button>
@@ -391,7 +378,7 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 									type="button"
 									onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
 									disabled={currentPage === totalPages}
-									className="rounded-full border border-[#dadce0] bg-white px-4 py-1.5 text-xs font-medium text-[#5f6368] hover:bg-[#f8f9fa] disabled:opacity-50 transition-colors"
+									className="flex-1 sm:flex-none rounded-xl border-2 border-slate-200 bg-white px-6 py-2.5 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 transition-all active:scale-95"
 								>
 									Next
 								</button>

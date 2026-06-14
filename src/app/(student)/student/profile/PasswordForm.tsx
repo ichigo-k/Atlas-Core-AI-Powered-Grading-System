@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Lock, ShieldCheck, KeyRound } from "lucide-react"
 
 export default function PasswordForm() {
   const [form, setForm] = useState({ current: "", next: "", confirm: "" })
@@ -27,75 +28,69 @@ export default function PasswordForm() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-[#dadce0] overflow-hidden">
+    <div className="discord-card">
 
       {/* Header */}
-      <div className="px-6 pt-5 pb-4 border-b border-[#dadce0]">
+      <div className="px-6 py-5 bg-slate-50/50 border-b border-slate-100">
         <div className="flex items-center gap-2 mb-0.5">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[#202124]" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          <h2 className="text-sm font-medium text-[#202124]">Access Credentials</h2>
+          <KeyRound className="text-slate-900" size={16} strokeWidth={2.5} />
+          <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">Access Credentials</h2>
         </div>
-        <p className="text-xs text-[#5f6368]">Update your password. Current password is required to save any changes.</p>
+        <p className="text-[11px] text-slate-500 font-bold">Update your password to keep your account secure.</p>
       </div>
 
       {/* Body — two columns */}
-      <form onSubmit={handleSubmit} className="p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <form onSubmit={handleSubmit} className="p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
 
           {/* Left col */}
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* Warning box */}
-            <div className="flex items-start gap-3 rounded-lg p-4 border border-[#dadce0] bg-[#f8f9fa]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[#5f6368] flex-shrink-0 mt-0.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              <p className="text-sm text-[#5f6368]">
-                You must verify your current password to save <strong className="font-medium text-[#202124]">any</strong> changes.
+            <div className="flex items-start gap-4 rounded-xl p-4 border border-slate-100 bg-slate-50/50">
+              <ShieldCheck className="text-slate-400 flex-shrink-0" size={20} strokeWidth={2.5} />
+              <p className="text-sm text-slate-500 font-medium">
+                You must verify your current password to save <strong className="font-black text-slate-900">any</strong> changes.
               </p>
             </div>
 
             {/* Current password */}
             <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2 text-[#5f6368]">
-                Current Password <span className="text-[#ea4335]">*</span>
+              <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-400">
+                Current Password <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#80868b]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-                </svg>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-discord-blurple" size={16} strokeWidth={2.5} />
                 <input
                   type="password"
                   placeholder="Enter current password"
                   value={form.current}
                   onChange={(e) => setForm((p) => ({ ...p, current: e.target.value }))}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-[#dadce0] text-[#202124] outline-none transition-all focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                  className="w-full pl-12 pr-4 py-3 text-sm font-bold rounded-xl border border-slate-200 text-slate-900 outline-none transition-all focus:border-discord-blurple focus:ring-4 focus:ring-discord-blurple/5 placeholder:text-slate-400"
                 />
               </div>
             </div>
           </div>
 
           {/* Right col */}
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* New password */}
             <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2 text-[#5f6368]">
+              <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-400">
                 New Password
               </label>
               <input
                 type="password"
-                placeholder="Leave blank to keep unchanged"
+                placeholder="Minimum 8 characters"
                 value={form.next}
                 onChange={(e) => setForm((p) => ({ ...p, next: e.target.value }))}
-                className="w-full px-4 py-2.5 text-sm rounded-lg border border-[#dadce0] text-[#202124] outline-none transition-all focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full px-4 py-3 text-sm font-bold rounded-xl border border-slate-200 text-slate-900 outline-none transition-all focus:border-discord-blurple focus:ring-4 focus:ring-discord-blurple/5 placeholder:text-slate-400"
               />
             </div>
 
             {/* Confirm password */}
             <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2 text-[#5f6368]">
+              <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-400">
                 Confirm New Password
               </label>
               <input
@@ -103,30 +98,32 @@ export default function PasswordForm() {
                 placeholder="Repeat new password"
                 value={form.confirm}
                 onChange={(e) => setForm((p) => ({ ...p, confirm: e.target.value }))}
-                className="w-full px-4 py-2.5 text-sm rounded-lg border border-[#dadce0] text-[#202124] outline-none transition-all focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full px-4 py-3 text-sm font-bold rounded-xl border border-slate-200 text-slate-900 outline-none transition-all focus:border-discord-blurple focus:ring-4 focus:ring-discord-blurple/5 placeholder:text-slate-400"
               />
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#dadce0]">
-          {status !== "idle" ? (
-            <p
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg ${
-                status === "success" ? "bg-[#e6f4ea] text-[#137333]" :
-                status === "error" ? "bg-[#fce8e6] text-[#c5221f]" :
-                "bg-[#e8f0fe] text-[#1a73e8]"
-              }`}
-            >
-              {status === "loading" ? "Updating password..." : message}
-            </p>
-          ) : <span />}
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-8 pt-6 border-t border-slate-50 gap-4">
+          <div className="flex-1">
+            {status !== "idle" && (
+              <p
+                className={`text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all animate-in fade-in slide-in-from-left-2 ${
+                  status === "success" ? "bg-[#E6F4EA] text-[#23A559]" :
+                  status === "error" ? "bg-[#FEE7E9] text-[#F23F42]" :
+                  "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {status === "loading" ? "Processing update..." : message}
+              </p>
+            )}
+          </div>
 
           <button
             type="submit"
             disabled={status === "loading"}
-            className="px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-all bg-[#1a73e8] hover:bg-[#1557b0] disabled:opacity-60"
+            className="w-full sm:w-auto px-10 py-3 rounded-xl text-sm font-black text-white transition-all bg-discord-blurple hover:bg-[#4752c4] hover:shadow-xl hover:shadow-discord-blurple/20 disabled:opacity-60 active:scale-95"
           >
             {status === "loading" ? "Saving..." : "Save Changes"}
           </button>
