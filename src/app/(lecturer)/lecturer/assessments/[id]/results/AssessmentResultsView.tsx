@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useMemo, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ClipboardList, ArrowUpDown, Send, Eye, EyeOff, Download, ShieldAlert } from "lucide-react"
+import { ArrowLeft, ClipboardList, ArrowUpDown, Send, Eye, EyeOff, Download, ShieldAlert, ChevronRight } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import {
@@ -252,12 +252,12 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
       else if (sortKey === "status") {
         const statusOrder = { GRADED: 0, SUBMITTED: 1, undefined: 2 }
         cmp = (statusOrder[subA?.status as keyof typeof statusOrder] ?? 2) -
-              (statusOrder[subB?.status as keyof typeof statusOrder] ?? 2)
+          (statusOrder[subB?.status as keyof typeof statusOrder] ?? 2)
       }
       else if (sortKey === "score") cmp = (subA?.score ?? -1) - (subB?.score ?? -1)
       else if (sortKey === "submittedAt") {
         cmp = (subA?.submittedAt ? new Date(subA.submittedAt).getTime() : 0) -
-              (subB?.submittedAt ? new Date(subB.submittedAt).getTime() : 0)
+          (subB?.submittedAt ? new Date(subB.submittedAt).getTime() : 0)
       }
 
       return sortDir === "asc" ? cmp : -cmp
@@ -463,20 +463,19 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
         <div className="flex items-center gap-3 flex-wrap">
           {/* Grading progress pill */}
           {gradingStatus !== "NOT_GRADED" && (
-            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-              gradingStatus === "GRADED"
+            <div className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${gradingStatus === "GRADED"
                 ? "bg-green-50 border-green-200 text-green-700"
                 : "bg-amber-50 border-amber-200 text-amber-700"
-            }`}>
+              }`}>
               {gradingStatus === "GRADING" && (
                 <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
               )}
               {gradingStatus === "GRADED" && (
                 <span className="h-2 w-2 rounded-full bg-green-500" />
               )}
-              {gradingStatus === "GRADING" ? "Grading in progress…" : "Grading complete"}
-              <span className="font-normal opacity-70">
-                {gradedCount} / {submittedCount} graded
+              {gradingStatus === "GRADING" ? "Grading" : "Graded"}
+              <span className="font-medium opacity-70 ml-1">
+                {gradedCount}/{submittedCount}
               </span>
             </div>
           )}
@@ -494,7 +493,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
               type="button"
               onClick={handleStartGrading}
               disabled={isGrading}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#002388] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0B4DBB] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50"
             >
               {isGrading ? (
                 <>
@@ -504,7 +503,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
               ) : (
                 <>
                   <Send size={14} />
-                  Grade Assessment
+                  Grade
                 </>
               )}
             </button>
@@ -516,7 +515,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
               type="button"
               onClick={handleStartGrading}
               disabled={isGrading}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#002388] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0B4DBB] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50"
             >
               {isGrading ? (
                 <>
@@ -526,7 +525,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
               ) : (
                 <>
                   <Send size={14} />
-                  Grade Assessment
+                  Grade
                 </>
               )}
             </button>
@@ -545,7 +544,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
               type="button"
               onClick={handleReleaseResults}
               disabled={isReleasing}
-              className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50"
             >
               {isReleasing ? (
                 <>
@@ -555,7 +554,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
               ) : (
                 <>
                   <Eye size={14} />
-                  Release Results
+                  Release
                 </>
               )}
             </button>
@@ -567,17 +566,17 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
               type="button"
               onClick={handleUnreleaseResults}
               disabled={isUnreleasing}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all active:scale-95 disabled:opacity-50"
             >
               {isUnreleasing ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-400 border-t-transparent" />
-                  Un-releasing…
+                  Hiding…
                 </>
               ) : (
                 <>
                   <EyeOff size={14} />
-                  Un-release Results
+                  Hide
                 </>
               )}
             </button>
@@ -585,9 +584,9 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
 
           {/* Released badge */}
           {resultsReleased && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
               <span className="h-2 w-2 rounded-full bg-green-500" />
-              Results released to students
+              Released
             </span>
           )}
 
@@ -596,10 +595,10 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
             <button
               type="button"
               onClick={() => setShowExportDialog(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
             >
               <Download size={14} />
-              Export Marks
+              Export
             </button>
           )}
         </div>
@@ -796,24 +795,33 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
                         <span className="text-xs text-slate-400 italic">Pending</span>
                       )}
                     </td>
-                    {/* Sub-task 10.3: Per-attempt re-grade button */}
+                    {/* Actions */}
                     <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                       {sub ? (
-                        <button
-                          type="button"
-                          onClick={() => handleRegrade(sub.attemptId)}
-                          disabled={regradingAttemptId === sub.attemptId}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
-                        >
-                          {regradingAttemptId === sub.attemptId ? (
-                            <>
-                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
-                              Grading…
-                            </>
-                          ) : (
-                            "Re-grade"
-                          )}
-                        </button>
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleRegrade(sub.attemptId)}
+                            disabled={regradingAttemptId === sub.attemptId}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50"
+                          >
+                            {regradingAttemptId === sub.attemptId ? (
+                              <>
+                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+                                Grading…
+                              </>
+                            ) : (
+                              "Re-grade"
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/lecturer/assessments/${data.id}/results/attempts/${sub.attemptId}`)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95"
+                          >
+                            Review <ChevronRight size={14} className="opacity-70" />
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-slate-300">—</span>
                       )}

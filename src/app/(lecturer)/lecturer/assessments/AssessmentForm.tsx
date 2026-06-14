@@ -34,6 +34,7 @@ function initStep1(): Step1State {
     accessPassword: "",
     shuffleQuestions: false,
     shuffleOptions: false,
+    proctoringEnabled: false,
   }
 }
 
@@ -109,6 +110,7 @@ function buildPayload(
     accessPassword: s1.passwordProtected ? s1.accessPassword : null,
     shuffleQuestions: s1.shuffleQuestions,
     shuffleOptions: s1.shuffleOptions,
+    proctoringEnabled: s1.proctoringEnabled,
     isLocationBound: s2.isLocationBound,
     location: s2.isLocationBound ? s2.location : null,
     totalMarks: Number(s4.totalMarks),

@@ -181,15 +181,18 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       id: "actions",
       header: () => null,
       cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => router.push(`/lecturer/grades/${row.original.id}`)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#002388]"
-          title="View student grades"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex justify-end pr-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              router.push(`/lecturer/grades/${row.original.id}`)
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95"
+          >
+            Profile <ChevronRight size={14} className="opacity-70" />
+          </button>
+        </div>
       ),
       enableSorting: false,
       enableHiding: false,

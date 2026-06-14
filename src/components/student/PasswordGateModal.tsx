@@ -2,19 +2,21 @@
 
 import { useState, useTransition } from "react"
 import { createPortal } from "react-dom"
-import { LockKeyhole, Loader2 } from "lucide-react"
+import { LockKeyhole, Loader2, X } from "lucide-react"
 import { createOrResumeAttempt } from "@/lib/assessment-actions"
 
 interface PasswordGateModalProps {
   assessmentId: number
   passwordProtected: boolean
   onSuccess: (attemptId: number) => void
+  onClose?: () => void
 }
 
 export default function PasswordGateModal({
   assessmentId,
   passwordProtected,
   onSuccess,
+  onClose,
 }: PasswordGateModalProps) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -46,14 +48,27 @@ export default function PasswordGateModal({
       <div className="w-full max-w-sm rounded-xl bg-white border border-[#e5e7eb] shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="px-6 py-5 border-b border-[#e5e7eb]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f3f4f6]">
-              <LockKeyhole size={17} className="text-[#374151]" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f3f4f6]">
+                <LockKeyhole size={17} className="text-[#374151]" />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-semibold text-[#111827]">Assessment password</h2>
+                <p className="text-xs text-[#6b7280] mt-0.5">Enter the password to begin</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-[15px] font-semibold text-[#111827]">Assessment password</h2>
-              <p className="text-xs text-[#6b7280] mt-0.5">Enter the password to begin</p>
-            </div>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isPending}
+                aria-label="Close"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:text-[#374151] hover:bg-[#f3f4f6] transition-colors disabled:opacity-40"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
 

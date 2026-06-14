@@ -16,6 +16,7 @@ import { format } from "date-fns"
 import type { AssessmentWithDetails } from "@/lib/assessment-types"
 import EditSettingsModal from "./EditSettingsModal"
 import ReopenAssessmentButton from "./ReopenAssessmentButton"
+import ProctoringTab from "./ProctoringTab"
 
 const typeBadge: Record<string, string> = {
   EXAM: "bg-red-50 text-red-700 border-red-200",
@@ -58,9 +59,10 @@ function MetaRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 interface Props {
   assessment: AssessmentWithDetails
+  userId: number
 }
 
-export default function AssessmentDetailView({ assessment }: Props) {
+export default function AssessmentDetailView({ assessment, userId }: Props) {
   const totalQuestions = assessment.sections.reduce((acc, s) => acc + s.questions.length, 0)
   const status = statusBadge[assessment.status] ?? statusBadge.DRAFT
 
@@ -233,6 +235,11 @@ export default function AssessmentDetailView({ assessment }: Props) {
             </tfoot>
           </table>
         </div>
+      )}
+
+      {/* Proctoring */}
+      {assessment.proctoringEnabled && (
+        <ProctoringTab assessmentId={assessment.id} userId={userId} />
       )}
     </div>
   )

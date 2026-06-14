@@ -27,6 +27,8 @@ export default async function StudentSchedulePage() {
 		durationMinutes: a.durationMinutes,
 		location: a.location,
 		status: a.status,
+		passwordProtected: a.passwordProtected,
+		proctoringEnabled: a.proctoringEnabled,
 	}));
 
 	return <ScheduleClient items={items} />;

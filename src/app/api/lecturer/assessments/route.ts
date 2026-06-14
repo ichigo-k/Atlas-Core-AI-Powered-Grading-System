@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
           shuffleOptions: body.shuffleOptions,
           isLocationBound: body.isLocationBound,
           location: body.isLocationBound ? body.location : null,
+          proctoringEnabled: body.proctoringEnabled ?? false,
         },
       })
 

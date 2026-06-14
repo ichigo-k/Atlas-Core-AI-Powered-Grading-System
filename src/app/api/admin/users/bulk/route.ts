@@ -9,9 +9,11 @@ import ExcelJS from "exceljs";
 
 type RowError = { row: number; field: string; message: string };
 
+const VALID_TITLES = ["Dr.", "Prof.", "Mr.", "Mrs.", "Ms."] as const;
+
 const REQUIRED_FIELDS: Record<string, string[]> = {
-  STUDENT: ["email", "name", "program"],
-  LECTURER: ["email", "name", "department", "title"],
+  STUDENT: ["email", "name", "indexnumber", "program"],
+  LECTURER: ["email", "name", "faculty", "title"],
   ADMIN: ["email", "name"],
 };
 
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   const rows: Record<string, string>[] = [];
   let headers: string[] = [];
-  
+
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) {
       headers = (row.values as string[]).map(h => typeof h === "string" ? h.toLowerCase().trim() : "");
@@ -84,10 +86,21 @@ export async function POST(request: NextRequest) {
 
   // Pre-fetch classes if role is STUDENT
   const classMap = new Map<string, number>();
+  const programMap = new Map<string, number>();
+  const facultyMap = new Map<string, number>();
   if (role === "STUDENT") {
+    const programs = await prisma.program.findMany({ orderBy: { name: "asc" } });
     const classes = await prisma.class.findMany({ where: { isGraduated: false } });
+    for (const program of programs) {
+      programMap.set(program.name.toLowerCase(), program.id);
+    }
     for (const c of classes) {
       classMap.set(`${c.name} - Level ${c.level}`.toLowerCase(), c.id);
+    }
+  } else if (role === "LECTURER") {
+    const faculties = await prisma.faculty.findMany({ orderBy: { name: "asc" } });
+    for (const faculty of faculties) {
+      facultyMap.set(faculty.name.toLowerCase(), faculty.id);
     }
   }
 
@@ -115,9 +128,59 @@ export async function POST(request: NextRequest) {
       const emailLocal = row.email.includes("@") ? row.email.split("@")[0] : row.email;
       const passwordHash = await bcrypt.hash(emailLocal, 12);
 
+      let programId: number | null = null;
       let classId: number | null = null;
-      if (role === "STUDENT" && row.class) {
-        classId = classMap.get(row.class.toLowerCase()) ?? null;
+      if (role === "STUDENT") {
+        const indexNumber = row.indexnumber?.trim() || row.index_number?.trim() || row.indexNumber?.trim() || "";
+        if (!indexNumber) {
+          errors.push({ row: rowNum, field: "indexNumber", message: "Index number is required" });
+          continue;
+        }
+        programId = programMap.get(row.program.toLowerCase()) ?? null;
+        if (!programId) {
+          errors.push({ row: rowNum, field: "program", message: "Selected program is not valid" });
+          continue;
+        }
+
+        if (row.class) {
+          classId = classMap.get(row.class.toLowerCase()) ?? null;
+        }
+
+        if (row.class && !classId) {
+          errors.push({ row: rowNum, field: "class", message: "Selected class is not valid" });
+          continue;
+        }
+      } else if (role === "LECTURER") {
+        const facultyName = row.faculty?.trim() || row.department?.trim() || "";
+        const facultyId = facultyMap.get(facultyName.toLowerCase()) ?? null;
+        if (!facultyId) {
+          errors.push({ row: rowNum, field: "faculty", message: "Selected faculty is not valid" });
+          continue;
+        }
+
+        const title = row.title?.trim() || "";
+        if (!VALID_TITLES.includes(title as (typeof VALID_TITLES)[number])) {
+          errors.push({ row: rowNum, field: "title", message: "Selected title is not valid" });
+          continue;
+        }
+
+        await prisma.$transaction(async (tx) => {
+          const user = await tx.user.create({
+            data: {
+              email: row.email,
+              name: row.name,
+              role: role as "STUDENT" | "LECTURER" | "ADMIN",
+              passwordHash,
+            },
+          });
+
+          await tx.lecturerProfile.create({
+            data: { id: user.id, facultyId, title },
+          });
+        });
+
+        created++;
+        continue;
       }
 
       await prisma.$transaction(async (tx) => {
@@ -132,11 +195,7 @@ export async function POST(request: NextRequest) {
 
         if (role === "STUDENT") {
           await tx.studentProfile.create({
-            data: { id: user.id, program: row.program, classId },
-          });
-        } else if (role === "LECTURER") {
-          await tx.lecturerProfile.create({
-            data: { id: user.id, department: row.department, title: row.title },
+            data: { id: user.id, indexNumber: row.indexnumber || row.index_number || row.indexNumber || "", legacyProgram: row.program, programId, classId },
           });
         } else if (role === "ADMIN") {
           await tx.adminProfile.create({ data: { id: user.id } });

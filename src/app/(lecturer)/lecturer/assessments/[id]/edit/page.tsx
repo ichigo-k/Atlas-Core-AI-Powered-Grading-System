@@ -128,6 +128,7 @@ async function EditAssessmentData({ id }: { id: string }) {
     accessPassword: raw.accessPassword ?? "",
     shuffleQuestions: raw.shuffleQuestions,
     shuffleOptions: raw.shuffleOptions,
+    proctoringEnabled: raw.proctoringEnabled,
   }
 
   const initialStep2: Step2State = {

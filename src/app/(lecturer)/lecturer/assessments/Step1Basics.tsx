@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -318,6 +319,23 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
                 }`} />
               </button>
             </div>
+          </div>
+
+          {/* AI Proctoring */}
+          <div className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+            state.proctoringEnabled ? "border-[#002388]/20 bg-[#002388]/5" : "border-slate-100 bg-slate-50/50"
+          }`}>
+            <div>
+              <p className="text-sm text-slate-800">Enable AI Proctoring</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Students will be monitored via webcam during this assessment
+              </p>
+            </div>
+            <Switch
+              checked={state.proctoringEnabled}
+              onCheckedChange={(checked) => onChange({ proctoringEnabled: checked })}
+              aria-label="Enable AI Proctoring"
+            />
           </div>
         </div>
       </div>

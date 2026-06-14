@@ -15,9 +15,9 @@ export default async function LecturerLayout({
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <LecturerNavbar userName={session.user.name} />
-      <main className="flex-1 px-4 md:px-6 py-8">
+      <main className="flex-1 animate-in fade-in px-4 py-6 duration-500 md:px-8">
         {children}
       </main>
       <StudentFooter />

@@ -9,6 +9,7 @@ export type UserWithProfile = {
   dateJoined: Date
   createdAt: Date
   studentProfile: {
+    indexNumber: string | null
     program: string
     classId: number | null
   } | null

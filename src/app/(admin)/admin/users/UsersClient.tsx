@@ -1,43 +1,46 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import AddUserSheet from "./AddUserSheet";
-import BulkImportSheet from "./BulkImportSheet";
-import EditUserSheet from "./EditUserSheet";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-	UserPlus,
-	Upload,
-	MoreVertical,
-	Edit2,
-	UserX,
-	Mail,
-	Users as UsersIcon,
-	GraduationCap,
-	ShieldCheck,
 	ArrowUpDown,
+	Edit2,
+	GraduationCap,
+	MoreVertical,
+	ShieldCheck,
 	Trash2,
+	Upload,
 	UserCheck,
+	UserPlus,
+	Users as UsersIcon,
+	UserX,
 } from "lucide-react";
-import { DataTable } from "@/components/ui/data-table";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+	deleteUserAction,
+	toggleUserStatusAction,
+} from "@/app/actions/admin-users-server";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { DataTable } from "@/components/ui/data-table";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { 
-	DropdownMenu, 
-	DropdownMenuContent, 
-	DropdownMenuItem, 
-	DropdownMenuTrigger,
-	DropdownMenuSeparator 
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { toggleUserStatusAction, deleteUserAction } from "@/app/actions/admin-users-server";
 import type { UserWithProfile } from "@/lib/admin-users";
+import AddUserSheet from "./AddUserSheet";
+import BulkImportSheet from "./BulkImportSheet";
+import EditUserSheet from "./EditUserSheet";
 
 const tabs = [
 	{ key: "STUDENT" as const, label: "Students", icon: GraduationCap },
@@ -46,6 +49,12 @@ const tabs = [
 ];
 
 type UserRole = (typeof tabs)[number]["key"];
+type AdminSelectOption = {
+	id: number;
+	name: string;
+	code?: string | null;
+	level?: number | null;
+};
 
 function emailLocalPart(email: string): string {
 	return email.split("@")[0];
@@ -53,12 +62,19 @@ function emailLocalPart(email: string): string {
 
 function StatusBadge({ status }: { status: UserWithProfile["status"] }) {
 	const variant =
-		status === "ACTIVE" ? "success" : status === "SUSPENDED" ? "danger" : "warning";
-	const label = status === "ACTIVE" ? "Active" : status === "SUSPENDED" ? "Suspended" : "Pending";
+		status === "ACTIVE"
+			? "success"
+			: status === "SUSPENDED"
+				? "danger"
+				: "warning";
+	const label =
+		status === "ACTIVE"
+			? "Active"
+			: status === "SUSPENDED"
+				? "Suspended"
+				: "Pending";
 	return <Badge variant={variant}>{label}</Badge>;
 }
-
-import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 interface ActionButtonsProps {
 	user: UserWithProfile;
@@ -73,7 +89,9 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 		setLoading(true);
 		const result = await toggleUserStatusAction(user.id, user.status);
 		if (result.success) {
-			toast.success(`User ${user.status === "ACTIVE" ? "suspended" : "activated"} successfully`);
+			toast.success(
+				`User ${user.status === "ACTIVE" ? "suspended" : "activated"} successfully`,
+			);
 		} else {
 			toast.error(result.error || "Failed to update status");
 		}
@@ -86,7 +104,8 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 				<div className="flex items-center justify-end gap-2">
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<button 
+							<button
+								type="button"
 								onClick={() => onEdit(user)}
 								className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-lg transition-all"
 							>
@@ -99,6 +118,7 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<button
+								type="button"
 								disabled={loading}
 								onClick={handleToggleStatus}
 								className={`p-2 rounded-lg transition-all ${
@@ -121,7 +141,10 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
+							<button
+								type="button"
+								className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+							>
 								<MoreVertical size={16} />
 							</button>
 						</DropdownMenuTrigger>
@@ -131,7 +154,7 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 								Edit Details
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuItem 
+							<DropdownMenuItem
 								className="text-rose-600 focus:text-rose-600 focus:bg-rose-50"
 								onClick={() => onDelete(user)}
 							>
@@ -146,7 +169,17 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 	);
 }
 
-export default function UsersClient({ users, classes = [] }: { users: UserWithProfile[]; classes?: any[] }) {
+export default function UsersClient({
+	users,
+	classes = [],
+	faculties = [],
+	programs = [],
+}: {
+	users: UserWithProfile[];
+	classes?: AdminSelectOption[];
+	faculties?: AdminSelectOption[];
+	programs?: AdminSelectOption[];
+}) {
 	const [activeTab, setActiveTab] = useState<UserRole>("STUDENT");
 	const [addUserOpen, setAddUserOpen] = useState(false);
 	const [bulkImportOpen, setBulkImportOpen] = useState(false);
@@ -215,7 +248,9 @@ export default function UsersClient({ users, classes = [] }: { users: UserWithPr
 				cell: ({ row }) => {
 					const p = row.original.studentProfile;
 					return p ? (
-						<span className="text-xs font-medium text-slate-700">{p.program}</span>
+						<span className="text-xs font-medium text-slate-700">
+							{p.program}
+						</span>
 					) : (
 						<span className="text-xs text-slate-400">—</span>
 					);
@@ -229,8 +264,12 @@ export default function UsersClient({ users, classes = [] }: { users: UserWithPr
 					const p = row.original.lecturerProfile;
 					return p ? (
 						<div>
-							<p className="text-xs font-medium text-slate-700">{p.department}</p>
-							<p className="text-[10px] text-slate-400 font-medium">{p.title}</p>
+							<p className="text-xs font-medium text-slate-700">
+								{p.department}
+							</p>
+							<p className="text-[10px] text-slate-400 font-medium">
+								{p.title}
+							</p>
 						</div>
 					) : (
 						<span className="text-xs text-slate-400">—</span>
@@ -243,7 +282,9 @@ export default function UsersClient({ users, classes = [] }: { users: UserWithPr
 				header: "Date Joined",
 				cell: ({ row }) => (
 					<span className="text-xs font-medium text-slate-700">
-						{new Date(row.original.dateJoined ?? row.original.createdAt).toLocaleDateString()}
+						{new Date(
+							row.original.dateJoined ?? row.original.createdAt,
+						).toLocaleDateString()}
 					</span>
 				),
 			});
@@ -257,8 +298,14 @@ export default function UsersClient({ users, classes = [] }: { users: UserWithPr
 			},
 			{
 				id: "actions",
-				cell: ({ row }) => <ActionButtons user={row.original} onEdit={setEditUser} onDelete={setDeleteUser} />,
-			}
+				cell: ({ row }) => (
+					<ActionButtons
+						user={row.original}
+						onEdit={setEditUser}
+						onDelete={setDeleteUser}
+					/>
+				),
+			},
 		);
 
 		return baseColumns;
@@ -269,12 +316,15 @@ export default function UsersClient({ users, classes = [] }: { users: UserWithPr
 			{/* Action buttons */}
 			<div className="flex items-center justify-end gap-3">
 				<button
+					type="button"
 					onClick={() => setBulkImportOpen(true)}
-					className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-normal text-slate-700 transition-all hover:bg-slate-50">
+					className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-normal text-slate-700 transition-all hover:bg-slate-50"
+				>
 					<Upload size={18} className="text-slate-400" />
 					Bulk Import
 				</button>
 				<button
+					type="button"
 					onClick={() => setAddUserOpen(true)}
 					className="flex items-center gap-2 rounded-xl bg-[#002388] px-5 py-2.5 text-sm font-normal text-white transition-all hover:bg-[#0B4DBB]"
 				>
@@ -283,13 +333,23 @@ export default function UsersClient({ users, classes = [] }: { users: UserWithPr
 				</button>
 			</div>
 
-			<AddUserSheet open={addUserOpen} onOpenChange={setAddUserOpen} classes={classes} />
-			<BulkImportSheet open={bulkImportOpen} onOpenChange={setBulkImportOpen} classes={classes} />
-			<EditUserSheet 
-				user={editUser} 
-				open={!!editUser} 
-				onOpenChange={(open) => !open && setEditUser(null)} 
-				classes={classes} 
+			<AddUserSheet
+				open={addUserOpen}
+				onOpenChange={setAddUserOpen}
+				classes={classes}
+				faculties={faculties}
+				programs={programs}
+			/>
+			<BulkImportSheet
+				open={bulkImportOpen}
+				onOpenChange={setBulkImportOpen}
+				classes={classes}
+			/>
+			<EditUserSheet
+				user={editUser}
+				open={!!editUser}
+				onOpenChange={(open) => !open && setEditUser(null)}
+				classes={classes}
 			/>
 
 			<ConfirmModal

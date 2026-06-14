@@ -1,19 +1,50 @@
 "use client"
 
-import { useState, useTransition, useCallback, useRef } from "react"
+import { useState, useTransition, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { submitAttempt } from "@/lib/assessment-actions"
-import type { SerializedActiveAttempt, SerializedAssessmentDetail } from "./page"
+import type { SerializedActiveAttempt, SerializedAssessmentDetail, ProctorSession } from "./page"
 import LockdownOverlay from "@/components/student/LockdownOverlay"
 import type { LockdownOverlayHandle } from "@/components/student/LockdownOverlay"
 import AntiCheatGuard from "@/components/student/AntiCheatGuard"
+import FlagOverlay, { type FlagType } from "@/components/student/FlagOverlay"
 import type { ViolationReason } from "@/lib/violation-tracker"
+import { MAX_VIOLATIONS } from "@/lib/violation-tracker"
+import { useViolationStore } from "@/lib/violation-store"
+import { getProctorStatus } from "@/lib/proctor-actions"
 import QuestionRenderer from "@/components/student/QuestionRenderer"
 import CountdownTimer from "@/components/student/CountdownTimer"
+import { ProctorLiveKit } from "@/lib/proctor-webrtc"
 import {
   CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight,
-  Send, X, BookOpen, Clock, Layers, ListChecks,
+  Send, X, BookOpen, Clock, Layers, ListChecks, Video,
 } from "lucide-react"
+
+// Single overlay subscribed to the Zustand store — renders for all violation types
+function ViolationOverlay({ assessmentId }: { assessmentId: number }) {
+  const { activeEvent, terminated, finalWarning, dismissEvent, terminate } = useViolationStore()
+  const router = useRouter()
+
+  function handleFinalRedirect() {
+    terminate()
+    window.location.href = `/student/assessments/${assessmentId}`
+  }
+
+  return (
+    <FlagOverlay
+      event={activeEvent}
+      terminated={terminated}
+      finalWarning={finalWarning}
+      onDismiss={dismissEvent}
+      onReturnFullscreen={() => {
+        document.documentElement.requestFullscreen()
+          .then(() => dismissEvent())
+          .catch(() => {})
+      }}
+      onFinalRedirect={handleFinalRedirect}
+    />
+  )
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +52,7 @@ type AttemptShellProps = {
   attempt: SerializedActiveAttempt
   assessment: SerializedAssessmentDetail
   assessmentId: number
+  proctorSession: ProctorSession
 }
 
 export type SectionWithProgress = {
@@ -355,10 +387,72 @@ function QuestionPalette({ questions, answeredIds, selectedIds, activeIndex, onS
 }
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function AttemptShell({ attempt, assessment, assessmentId }: AttemptShellProps) {
+export default function AttemptShell({ attempt, assessment, assessmentId, proctorSession }: AttemptShellProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const lockdownRef = useRef<LockdownOverlayHandle>(null)
+  const proctorRef = useRef<ProctorLiveKit | null>(null)
+  const connectingRef = useRef(false)
+  const [proctorActive, setProctorActive] = useState(false)
+
+  // ── Violation store ───────────────────────────────────────────────────────
+  // Zustand store is the single source of truth — no prop drilling needed.
+  const { syncCount, recordViolation, showFinalWarning, reset: resetViolations } = useViolationStore()
+
+  // Reset store when the attempt page unmounts
+  useEffect(() => {
+    return () => resetViolations()
+  }, [resetViolations])
+
+  // Oracle flag polling removed — now using instant LiveKit Data Channels.
+
+  // ── Initialise LiveKit proctoring connection ──────────────────────────────
+  // Connect immediately after mount; do NOT block exam interaction (Req 2.3).
+  // The connectingRef guard prevents React StrictMode's double-invoke from
+  // creating duplicate participants in the LiveKit room.
+  useEffect(() => {
+    if (!proctorSession) return
+    if (connectingRef.current) return
+
+    let cancelled = false
+    connectingRef.current = true
+
+    const proctor = new ProctorLiveKit(
+      proctorSession.sessionId,
+      proctorSession.livekitToken,
+      proctorSession.livekitUrl,
+      attempt.id,
+      (type, confidence) => {
+        // Instant notification from Oracle via Data Channel
+        const currentCount = useViolationStore.getState().count
+        const newCount = currentCount + 1
+        recordViolation({
+          type: type as FlagType,
+          flagCountAfter: newCount,
+          source: 'ORACLE'
+        })
+        if (newCount >= MAX_VIOLATIONS) {
+          showFinalWarning()
+        }
+      }
+    )
+    proctorRef.current = proctor
+
+    // Fire-and-forget — exam interaction is never blocked (Req 2.3)
+    proctor.connect().then(() => {
+      if (!cancelled) setProctorActive(true)
+    }).catch((err: unknown) => {
+      console.error('[AttemptShell] ProctorLiveKit connect error:', err)
+    })
+
+    return () => {
+      cancelled = true
+      proctor.disconnect()
+      proctorRef.current = null
+      connectingRef.current = false
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Apply saved question order (shuffleQuestions) ─────────────────────────
   // The server saved a randomised order in attempt.questionOrder at creation time.
@@ -519,6 +613,15 @@ export default function AttemptShell({ attempt, assessment, assessmentId }: Atte
     // Disable the beforeunload prompt so the browser doesn't ask "leave site?"
     // when we redirect after the timer hits zero.
     lockdownRef.current?.allowUnload()
+    // Fire-and-forget: end Oracle proctoring session before navigating away
+    if (proctorSession) {
+      const oracleBaseUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL
+      if (oracleBaseUrl) {
+        fetch(`${oracleBaseUrl}/api/sessions/${proctorSession.sessionId}/end`, { method: 'POST' })
+          .catch(() => {})
+      }
+      proctorRef.current?.disconnect()
+    }
     await submitAttempt(attempt.id, "TIMED_OUT")
     window.location.href = `/student/assessments/${assessmentId}`
   }
@@ -527,6 +630,15 @@ export default function AttemptShell({ attempt, assessment, assessmentId }: Atte
     startTransition(async () => {
       // Disable the beforeunload prompt before navigating away
       lockdownRef.current?.allowUnload()
+      // Fire-and-forget: end Oracle proctoring session before navigating away
+      if (proctorSession) {
+        const oracleBaseUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL
+        if (oracleBaseUrl) {
+          fetch(`${oracleBaseUrl}/api/sessions/${proctorSession.sessionId}/end`, { method: 'POST' })
+            .catch(() => {})
+        }
+        proctorRef.current?.disconnect()
+      }
       // Map ViolationReason to the DB reason type
       const dbReason = reason === "FULLSCREEN_EXIT" ? "FULLSCREEN_VIOLATION"
         : reason === "TAB_SWITCH" ? "TAB_SWITCH"
@@ -545,6 +657,8 @@ export default function AttemptShell({ attempt, assessment, assessmentId }: Atte
     <>
       <LockdownOverlay ref={lockdownRef} isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
       <AntiCheatGuard isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
+      {/* Single FlagOverlay driven by the Zustand store — covers all violation types */}
+      <ViolationOverlay assessmentId={assessmentId} />
 
       {showSubmitDialog && (
         <SubmitDialog
@@ -703,6 +817,13 @@ export default function AttemptShell({ attempt, assessment, assessmentId }: Atte
                 </div>
                 <span className="text-[11px] text-[#9ca3af]">{totalAnsweredAll}/{totalRequired}</span>
               </div>
+              {proctorActive && (
+                <div className="flex items-center gap-1.5 rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-2.5 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#16a34a]" />
+                  <Video size={11} className="text-[#16a34a]" />
+                  <span className="text-[11px] font-medium text-[#16a34a]">Proctored</span>
+                </div>
+              )}
             </div>
           </header>
 

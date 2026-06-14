@@ -1,203 +1,129 @@
-"use client";
+"use client"
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Maximize2, AlertTriangle } from "lucide-react";
-import { MAX_VIOLATIONS, ViolationReason, addViolation, readViolationCount, readLastReason } from "@/lib/violation-tracker";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
+import { MAX_VIOLATIONS, ViolationReason, addViolation, readViolationCount } from "@/lib/violation-tracker"
+import { useViolationStore } from "@/lib/violation-store"
 
 interface LockdownOverlayProps {
-  isSecured: boolean;
-  onSubmit: (reason: ViolationReason) => void;
-  attemptId: number;
+  isSecured: boolean
+  onSubmit: (reason: ViolationReason) => void
+  attemptId: number
 }
 
 export interface LockdownOverlayHandle {
-  submit: () => void;
-  allowUnload: () => void;
+  submit: () => void
+  allowUnload: () => void
 }
-
-const REASON_LABELS: Record<ViolationReason, string> = {
-  FULLSCREEN_EXIT: "exiting fullscreen",
-  TAB_SWITCH: "switching tabs or leaving the page",
-};
 
 const LockdownOverlay = forwardRef<LockdownOverlayHandle, LockdownOverlayProps>(
   function LockdownOverlay({ isSecured, onSubmit, attemptId }, ref) {
-    const [violationCount, setViolationCount] = useState<number>(() =>
-      typeof window !== "undefined" ? readViolationCount(attemptId) : 0
-    );
-    const [isOutOfFullscreen, setIsOutOfFullscreen] = useState(false);
-    const [terminated, setTerminated] = useState(false);
-    const [terminationReason, setTerminationReason] = useState<ViolationReason | null>(null);
+    const { count, activeEvent, terminated, recordViolation, syncCount, dismissEvent, terminate, showFinalWarning } = useViolationStore()
 
-    const intentionalExitRef = useRef(false);
-    // When true, the beforeunload handler will not block navigation.
-    // Set this before any programmatic navigation (timer expiry, forced submit).
-    const allowUnloadRef = useRef(false);
-    const onSubmitRef = useRef(onSubmit);
-    onSubmitRef.current = onSubmit;
+    const intentionalExitRef = useRef(false)
+    const allowUnloadRef = useRef(false)
+    const onSubmitRef = useRef(onSubmit)
+    onSubmitRef.current = onSubmit
 
-    // Expose submit handle for intentional submission
+    const enforcementActive = useRef(false)
+
     useImperativeHandle(ref, () => ({
-      allowUnload() {
-        allowUnloadRef.current = true;
-      },
+      allowUnload() { allowUnloadRef.current = true },
       submit() {
-        intentionalExitRef.current = true;
-        allowUnloadRef.current = true;
-        const exit = document.fullscreenElement
-          ? document.exitFullscreen()
-          : Promise.resolve();
-        exit.catch(() => {}).finally(() => onSubmitRef.current("FULLSCREEN_EXIT"));
+        intentionalExitRef.current = true
+        allowUnloadRef.current = true
+        const exit = document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
+        exit.catch(() => {}).finally(() => onSubmitRef.current("FULLSCREEN_EXIT"))
       },
-    }), []);
+    }), [])
 
-    // Fullscreen enforcement
     useEffect(() => {
-      if (!isSecured) return;
+      if (!isSecured) return
+      intentionalExitRef.current = false
+      let cleanedUp = false
 
-      intentionalExitRef.current = false;
+      // Delay enforcement by 3 seconds to allow the browser to settle
+      const timer = setTimeout(() => {
+        enforcementActive.current = true
+      }, 3000)
 
-      // Already at limit on mount — terminate immediately
-      const existing = readViolationCount(attemptId);
-      if (existing >= MAX_VIOLATIONS) {
-        setViolationCount(existing);
-        setTerminationReason(readLastReason(attemptId));
-        setTerminated(true);
-        return;
+      // Sync on mount — resume after reload
+      readViolationCount(attemptId).then((existing) => {
+        if (cleanedUp) return
+        if (existing > 0) syncCount(existing)
+        if (existing >= MAX_VIOLATIONS) {
+          terminate()
+          onSubmitRef.current("FULLSCREEN_EXIT")
+        }
+      })
+
+      function flagFullscreenExit() {
+        const active = enforcementActive.current
+        const currentCount = useViolationStore.getState().count
+        
+        // Always record the violation locally to trigger the dark overlay/button (Req 10.6)
+        recordViolation({ 
+          type: "FULLSCREEN_EXIT", 
+          flagCountAfter: active ? currentCount + 1 : currentCount, 
+          source: "CLIENT" 
+        })
+
+        // Only persist to server if grace period has passed
+        if (active) {
+          addViolation(attemptId, "FULLSCREEN_EXIT").then(({ count: serverCount, willAutoSubmit }) => {
+            if (!cleanedUp) {
+              syncCount(serverCount)
+              if (willAutoSubmit) showFinalWarning()
+            }
+          })
+        }
       }
 
       function enterFullscreen() {
-        document.documentElement.requestFullscreen().catch(() => {
-          setIsOutOfFullscreen(true);
-        });
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {
+            // Browser blocked fullscreen — trigger the overlay so student can click the button
+            flagFullscreenExit()
+          })
+        }
       }
 
       function handleFullscreenChange() {
-        if (intentionalExitRef.current) return;
+        if (intentionalExitRef.current) return
         if (!document.fullscreenElement) {
-          setIsOutOfFullscreen(true);
-          const next = addViolation(attemptId, "FULLSCREEN_EXIT");
-          setViolationCount(next);
-        } else {
-          setIsOutOfFullscreen(false);
+          flagFullscreenExit()
         }
       }
 
       function handleBeforeUnload(e: BeforeUnloadEvent) {
-        if (allowUnloadRef.current) return; // timer expiry or forced submit — let it through
-        e.preventDefault();
+        if (allowUnloadRef.current) return
+        e.preventDefault()
       }
 
-      enterFullscreen();
-      document.addEventListener("fullscreenchange", handleFullscreenChange);
-      window.addEventListener("beforeunload", handleBeforeUnload);
+      enterFullscreen()
+      document.addEventListener("fullscreenchange", handleFullscreenChange)
+      window.addEventListener("beforeunload", handleBeforeUnload)
 
       return () => {
-        document.removeEventListener("fullscreenchange", handleFullscreenChange);
-        window.removeEventListener("beforeunload", handleBeforeUnload);
-      };
-    }, [isSecured, attemptId]);
-
-    // Trigger termination when limit is reached
-    useEffect(() => {
-      if (violationCount >= MAX_VIOLATIONS && !terminated) {
-        setTerminationReason(readLastReason(attemptId));
-        setTerminated(true);
-        setIsOutOfFullscreen(false);
-        // Instant submit — no countdown, no pity
-        intentionalExitRef.current = true;
-        allowUnloadRef.current = true;
-        const exit = document.fullscreenElement
-          ? document.exitFullscreen()
-          : Promise.resolve();
-        exit.catch(() => {}).finally(() => onSubmitRef.current(readLastReason(attemptId) ?? "FULLSCREEN_EXIT"));
+        cleanedUp = true
+        clearTimeout(timer)
+        document.removeEventListener("fullscreenchange", handleFullscreenChange)
+        window.removeEventListener("beforeunload", handleBeforeUnload)
       }
-    }, [violationCount, terminated, attemptId]);
+    }, [isSecured, attemptId, recordViolation, syncCount, terminate])
 
-    if (!isSecured) return null;
+    // ── Termination check ────────────────────────────────────────────────────
+    useEffect(() => {
+      if (count >= MAX_VIOLATIONS && !terminated) {
+        terminate()
+        intentionalExitRef.current = true
+        allowUnloadRef.current = true
+        const exit = document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
+        exit.catch(() => {}).finally(() => onSubmitRef.current("FULLSCREEN_EXIT"))
+      }
+    }, [count, terminated, terminate])
 
-    // ── Terminated screen ─────────────────────────────────────────────────────
-    if (terminated) {
-      const reason = terminationReason ?? readLastReason(attemptId);
-      return (
-        <div
-          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.96)", backdropFilter: "blur(8px)" }}
-        >
-          <div className="flex flex-col items-center gap-6 text-center px-8 max-w-md">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20">
-              <AlertTriangle size={30} className="text-red-400" />
-            </div>
-            <div>
-              <p className="text-white text-[20px] font-semibold mb-2">
-                Assessment terminated
-              </p>
-              <p className="text-white/60 text-[14px] leading-relaxed">
-                You accumulated {MAX_VIOLATIONS} violations
-                {reason ? <> (last: <span className="text-white/80">{REASON_LABELS[reason]}</span>)</> : ""}.
-                Your assessment has been automatically submitted.
-              </p>
-            </div>
-            <p className="text-white/40 text-[12px]">Submitting…</p>
-          </div>
-        </div>
-      );
-    }
+    return null
+  }
+)
 
-    // ── Out-of-fullscreen warning overlay ─────────────────────────────────────
-    if (isOutOfFullscreen) {
-      const remaining = MAX_VIOLATIONS - violationCount;
-      return (
-        <div
-          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)" }}
-        >
-          <div className="flex flex-col items-center gap-6 text-center px-8 max-w-sm">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
-              <Maximize2 size={28} className="text-white" />
-            </div>
-            <div>
-              <p className="text-white text-[18px] font-semibold mb-2">
-                Fullscreen required
-              </p>
-              <p className="text-white/60 text-[14px] leading-relaxed">
-                You exited fullscreen. This has been logged.
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-2">
-                {Array.from({ length: MAX_VIOLATIONS }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                      i < violationCount ? "bg-red-400" : "bg-white/20"
-                    }`}
-                  />
-                ))}
-              </div>
-              <p className={`mt-2 text-[13px] font-semibold ${remaining <= 1 ? "text-red-400" : "text-white/50"}`}>
-                {remaining} violation{remaining !== 1 ? "s" : ""} remaining before auto-submit
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                document.documentElement.requestFullscreen().then(() => {
-                  setIsOutOfFullscreen(false);
-                }).catch(() => {
-                  // Keep overlay up if browser blocks
-                });
-              }}
-              className="flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-[14px] font-semibold text-[#111827] hover:bg-white/90 transition-colors"
-            >
-              <Maximize2 size={16} />
-              Return to fullscreen
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  },
-);
-
-export default LockdownOverlay;
+export default LockdownOverlay

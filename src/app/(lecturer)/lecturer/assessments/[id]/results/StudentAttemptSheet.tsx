@@ -183,7 +183,7 @@ export default function StudentAttemptSheet({
                         {q.sectionType === "OBJECTIVE" ? (
                           <McqQuestion q={q} />
                         ) : (
-                          <SubjectiveQuestion q={q} />
+                          <SubjectiveQuestion q={q} assessmentId={assessmentId} attemptId={attemptId!} />
                         )}
                       </div>
                     ))}

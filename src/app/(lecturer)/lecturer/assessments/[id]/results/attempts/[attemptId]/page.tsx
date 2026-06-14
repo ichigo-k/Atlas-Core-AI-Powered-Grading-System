@@ -39,8 +39,8 @@ async function fetchAttemptDetail(
 
   if (!assessment || assessment.lecturerId !== lecturerUserId) return null
 
-  // Verify attempt belongs to this assessment
-  const attempt = await prisma.assessmentAttempt.findUnique({
+// Verify attempt belongs to this assessment
+   const attempt = await prisma.assessmentAttempt.findUnique({
     where: { id: attemptId },
     select: {
       id: true,
@@ -56,6 +56,7 @@ async function fetchAttemptDetail(
           answerText: true,
           selectedOption: true,
           fileUrl: true,
+          lecturerNotes: true,
         },
       },
       student: {
@@ -75,46 +76,47 @@ async function fetchAttemptDetail(
     gradingDetail?.answerFeedbacks.map((f) => [f.questionId, f]) ?? [],
   )
 
-  // Build questions array
-  const questions: QuestionDetail[] = assessment.sections.flatMap((section) =>
-    section.questions.map((q) => {
-      const answer = answerMap.get(q.id) ?? null
-      const feedback = feedbackMap.get(q.id) ?? null
-      return {
-        id: q.id,
-        order: q.order,
-        body: q.body,
-        marks: q.marks,
-        sectionName: section.name,
-        sectionType: section.type,
-        answerType: q.answerType,
-        options: q.options,
-        correctOption: q.correctOption,
-        rubricCriteria: q.rubricCriteria.map((rc) => ({
-          description: rc.description,
-          maxMarks: rc.maxMarks,
-          order: rc.order,
-        })),
-        answer: answer
-          ? {
-              answerText: answer.answerText,
-              selectedOption: answer.selectedOption,
-              fileUrl: answer.fileUrl,
-            }
-          : null,
-        feedback: feedback
-          ? {
-              totalScore: feedback.totalScore,
-              maxScore: feedback.maxScore,
-              flag: feedback.flag,
-              flagReason: feedback.flagReason,
-              bedrockError: feedback.bedrockError,
-              criteriaFeedback: feedback.criteriaFeedback,
-            }
-          : null,
-      }
-    }),
-  )
+// Build questions array
+   const questions: QuestionDetail[] = assessment.sections.flatMap((section) =>
+     section.questions.map((q) => {
+       const answer = answerMap.get(q.id) ?? null
+       const feedback = feedbackMap.get(q.id) ?? null
+       return {
+         id: q.id,
+         order: q.order,
+         body: q.body,
+         marks: q.marks,
+         sectionName: section.name,
+         sectionType: section.type,
+         answerType: q.answerType,
+         options: q.options,
+         correctOption: q.correctOption,
+         rubricCriteria: q.rubricCriteria.map((rc) => ({
+           description: rc.description,
+           maxMarks: rc.maxMarks,
+           order: rc.order,
+         })),
+         answer: answer
+           ? {
+               answerText: answer.answerText,
+               selectedOption: answer.selectedOption,
+               fileUrl: answer.fileUrl,
+             }
+           : null,
+         lecturerNotes: answer?.lecturerNotes ?? null,
+         feedback: feedback
+           ? {
+               totalScore: feedback.totalScore,
+               maxScore: feedback.maxScore,
+               flag: feedback.flag,
+               flagReason: feedback.flagReason,
+               bedrockError: feedback.bedrockError,
+               criteriaFeedback: feedback.criteriaFeedback,
+             }
+           : null,
+       }
+     }),
+   )
 
   return {
     attemptId: attempt.id,
@@ -238,7 +240,7 @@ export default async function AttemptDetailPage({
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400 px-1">
             {sectionName}
           </h2>
-          {questions.map((q, idx) => (
+{questions.map((q, idx) => (
             <div
               key={q.id}
               className="rounded-xl border border-slate-200 bg-white p-5 space-y-3"
@@ -258,11 +260,10 @@ export default async function AttemptDetailPage({
                 </span>
               </div>
 
-              {/* Answer + feedback */}
               {q.sectionType === "OBJECTIVE" ? (
                 <McqQuestion q={q} />
               ) : (
-                <SubjectiveQuestion q={q} />
+                <SubjectiveQuestion q={q} assessmentId={assessmentId} attemptId={detail.attemptId} />
               )}
             </div>
           ))}

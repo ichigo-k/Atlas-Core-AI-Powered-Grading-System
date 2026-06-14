@@ -15,9 +15,9 @@ import {
 import LiveBanner from "./LiveBanner";
 
 const typeStyles: Record<string, { bg: string; text: string }> = {
-	EXAM:       { bg: "#FEE2E2", text: "#DC2626" },
-	QUIZ:       { bg: "#FEF3C7", text: "#D97706" },
-	ASSIGNMENT: { bg: "#EDE9FE", text: "#7C3AED" },
+	EXAM:       { bg: "#fce8e6", text: "#d93025" },
+	QUIZ:       { bg: "#fef7e0", text: "#e37400" },
+	ASSIGNMENT: { bg: "#e6f4ea", text: "#1e8e3e" },
 };
 
 export default async function StudentDashboardPage() {
@@ -43,10 +43,10 @@ export default async function StudentDashboardPage() {
 		<div className="mx-auto max-w-6xl space-y-6 pb-8">
 			<header className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
 				<div>
-					<h1 className="text-2xl font-semibold text-slate-900">
-						Welcome back, <span className="text-[#002388]">{displayName}</span>
+					<h1 className="text-2xl font-normal text-[#202124]">
+						Welcome back, <span className="text-[#1a73e8]">{displayName}</span>
 					</h1>
-					<p className="mt-1 text-sm text-slate-500">
+					<p className="mt-1 text-sm text-[#5f6368]">
 						Here's what's happening with your courses today.
 					</p>
 				</div>
@@ -55,27 +55,27 @@ export default async function StudentDashboardPage() {
 			{ongoingItems.length > 0 && <LiveBanner items={ongoingItems} />}
 
 			{isEmpty ? (
-				<div className="rounded-xl border border-slate-200 bg-white px-6 py-16 flex flex-col items-center gap-3 text-center">
-					<BookOpen size={40} className="text-slate-300" />
-					<p className="text-lg font-medium text-slate-700">No assessments yet</p>
-					<p className="text-sm text-slate-400">
+				<div className="rounded-lg border border-[#dadce0] bg-white px-6 py-16 flex flex-col items-center gap-3 text-center shadow-sm">
+					<BookOpen size={40} className="text-[#dadce0]" />
+					<p className="text-lg font-medium text-[#202124]">No assessments yet</p>
+					<p className="text-sm text-[#5f6368]">
 						You haven't been assigned to a class yet, or no assessments have been scheduled.
 					</p>
 				</div>
 			) : (
 				<>
-					<section className="rounded-xl border border-slate-200 bg-white px-6 py-4 grid grid-cols-2 sm:grid-cols-4 divide-x divide-slate-100">
+					<section className="rounded-lg border border-[#dadce0] bg-white px-6 py-4 grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#dadce0] shadow-sm">
 						{[
 							{ label: "Upcoming", value: upcomingCount, icon: Calendar },
 							{ label: "Live now", value: ongoingCount, icon: AlertCircle },
 							{ label: "Completed", value: completedCount, icon: CheckCircle2 },
 							{ label: "Avg. score", value: averageScore != null ? `${averageScore.toFixed(2)}%` : "—", icon: TrendingUp },
 						].map((item, i) => (
-							<div key={item.label} className={`flex items-center gap-3 px-5 first:pl-0 last:pr-0 ${i >= 2 ? "mt-4 sm:mt-0 border-t sm:border-t-0 border-slate-100 pt-4 sm:pt-0" : ""}`}>
-								<item.icon size={16} className="text-slate-400 shrink-0" />
+							<div key={item.label} className={`flex items-center gap-3 px-5 first:pl-0 last:pr-0 ${i >= 2 ? "mt-4 sm:mt-0 border-t sm:border-t-0 border-[#dadce0] pt-4 sm:pt-0" : ""}`}>
+								<item.icon size={16} className="text-[#5f6368] shrink-0" />
 								<div>
-									<p className="text-xs text-slate-400">{item.label}</p>
-									<p className="text-xl font-semibold text-slate-900">{item.value}</p>
+									<p className="text-xs text-[#5f6368] font-medium tracking-wide">{item.label}</p>
+									<p className="text-xl font-normal text-[#202124]">{item.value}</p>
 								</div>
 							</div>
 						))}
@@ -84,33 +84,33 @@ export default async function StudentDashboardPage() {
 					<div className="grid gap-6 xl:grid-cols-2">
 						<section className="flex flex-col gap-4">
 							<div className="px-1">
-								<h2 className="flex items-center gap-2 text-lg font-medium text-slate-900">
-									<Calendar className="text-[#002388]" size={20} />
+								<h2 className="flex items-center gap-2 text-lg font-medium text-[#202124]">
+									<Calendar className="text-[#1a73e8]" size={20} />
 									Upcoming This Week
 								</h2>
 							</div>
-							<div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+							<div className="rounded-lg border border-[#dadce0] bg-white overflow-hidden shadow-sm">
 								{upcomingAssessments.length === 0 ? (
 									<p className="p-6 text-sm text-slate-400 text-center">No upcoming assessments.</p>
 								) : (
 									upcomingAssessments.map((assessment, i) => (
 										<div
 											key={assessment.id}
-											className={`p-4 transition-colors hover:bg-slate-50 ${i !== 0 ? "border-t border-slate-200" : ""}`}
+											className={`p-4 transition-colors hover:bg-[#f8f9fa] ${i !== 0 ? "border-t border-[#dadce0]" : ""}`}
 										>
 											<div className="flex items-start justify-between gap-3">
 												<div className="space-y-1">
-													<h3 className="font-medium text-slate-900">{assessment.title}</h3>
-													<div className="flex flex-col gap-1 text-sm text-slate-500 sm:flex-row sm:items-center">
-														<span className="font-medium text-slate-600">{assessment.courseTitle}</span>
-														<span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block"></span>
+													<h3 className="font-medium text-[#202124]">{assessment.title}</h3>
+													<div className="flex flex-col gap-1 text-sm text-[#5f6368] sm:flex-row sm:items-center">
+														<span className="font-medium text-[#5f6368]">{assessment.courseTitle}</span>
+														<span className="hidden h-1 w-1 rounded-full bg-[#dadce0] sm:block"></span>
 														<span className="flex items-center gap-1.5">
 															<Clock size={14} />
 															{assessment.startsAt.toLocaleDateString()}
 														</span>
 													</div>
 												</div>
-												<span className="flex-shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 capitalize">
+												<span className="flex-shrink-0 rounded-full border border-[#dadce0] px-3 py-1 text-[11px] font-medium text-[#5f6368] uppercase tracking-wider">
 													{assessment.status}
 												</span>
 											</div>
@@ -122,19 +122,19 @@ export default async function StudentDashboardPage() {
 
 						<section className="flex flex-col gap-4">
 							<div className="flex items-center justify-between px-1">
-								<h2 className="flex items-center gap-2 text-lg font-medium text-slate-900">
-									<Award className="text-[#002388]" size={20} />
+								<h2 className="flex items-center gap-2 text-lg font-medium text-[#202124]">
+									<Award className="text-[#1a73e8]" size={20} />
 									Recent Results
 								</h2>
 								<Link
 									href="/student/assessments"
-									className="flex items-center gap-1 text-sm font-medium text-[#002388] hover:text-[#0B4DBB] transition-colors"
+									className="flex items-center gap-1 text-sm font-medium text-[#1a73e8] hover:text-[#174ea6] transition-colors"
 								>
 									View all
 									<ArrowRight size={14} />
 								</Link>
 							</div>
-							<div className="rounded-xl overflow-hidden bg-white border border-slate-200">
+							<div className="rounded-lg overflow-hidden bg-white border border-[#dadce0] shadow-sm">
 								{recentResults.length === 0 ? (
 									<p className="p-6 text-sm text-slate-400 text-center">No results yet.</p>
 								) : (
@@ -146,24 +146,24 @@ export default async function StudentDashboardPage() {
 										return (
 											<div
 												key={result.id}
-												className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-slate-50 ${i !== 0 ? "border-t border-slate-200" : ""}`}
+												className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-[#f8f9fa] ${i !== 0 ? "border-t border-[#dadce0]" : ""}`}
 											>
 												<div className="min-w-0 flex-1">
-													<p className="font-semibold text-slate-900 truncate text-sm">{result.title}</p>
-													<p className="text-xs text-slate-400 mt-0.5 truncate">{result.courseTitle}</p>
+													<p className="font-medium text-[#202124] truncate text-sm">{result.title}</p>
+													<p className="text-xs text-[#5f6368] mt-0.5 truncate">{result.courseTitle}</p>
 												</div>
 												<div className="flex items-center gap-4 shrink-0">
 													<span
-														className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-center"
+														className="rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-center"
 														style={{ background: style.bg, color: style.text }}
 													>
 														{result.type}
 													</span>
 													<div className="flex items-center gap-2 w-28">
-														<div className="h-1.5 flex-1 rounded-full bg-slate-100">
+														<div className="h-1.5 flex-1 rounded-full bg-[#f1f3f4]">
 															<div className="h-1.5 rounded-full" style={{ width: `${Math.min(score, 100)}%`, background: barColor }} />
 														</div>
-														<p className="text-sm font-semibold text-slate-800 whitespace-nowrap w-12 text-right">
+														<p className="text-sm font-medium text-[#202124] whitespace-nowrap w-12 text-right">
 															{result.score.toFixed(2)}%
 														</p>
 													</div>

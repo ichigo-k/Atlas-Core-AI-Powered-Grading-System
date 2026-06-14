@@ -13,7 +13,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOutAction } from "@/app/actions/signout";
 
 interface LecturerNavbarProps {
@@ -31,18 +31,35 @@ export default function LecturerNavbar({ userName }: LecturerNavbarProps) {
 	const pathname = usePathname();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [profileOpen, setProfileOpen] = useState(false);
+	const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+	useEffect(() => {
+		function handlePointerDown(event: MouseEvent | TouchEvent) {
+			if (
+				profileMenuRef.current &&
+				!profileMenuRef.current.contains(event.target as Node)
+			) {
+				setProfileOpen(false);
+			}
+		}
+
+		document.addEventListener("mousedown", handlePointerDown);
+		document.addEventListener("touchstart", handlePointerDown);
+
+		return () => {
+			document.removeEventListener("mousedown", handlePointerDown);
+			document.removeEventListener("touchstart", handlePointerDown);
+		};
+	}, []);
 
 	return (
 		<>
 			<nav
-				className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm shadow-sm"
-				style={{ borderBottom: "1px solid #E2E8F0" }}
+				className="sticky top-0 z-50 w-full bg-white"
+				style={{ borderBottom: "1px solid #D5DBDB" }}
 			>
-				<div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-4 md:px-6">
-					<Link
-						href="/lecturer"
-						className="flex flex-shrink-0 items-center gap-2"
-					>
+				<div className="mx-auto flex h-12 max-w-7xl items-center gap-6 px-4 md:px-6">
+					<Link href="/lecturer" className="flex shrink-0 items-center gap-2">
 						<Image
 							src="/logos/gctu-logo.png"
 							alt="GCTU"
@@ -54,20 +71,25 @@ export default function LecturerNavbar({ userName }: LecturerNavbarProps) {
 							<p className="text-sm font-bold" style={{ color: "#002388" }}>
 								GCTU
 							</p>
-							<p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#64748B" }}>
+							<p
+								className="text-[10px] font-bold uppercase tracking-wider"
+								style={{ color: "#64748B" }}
+							>
 								Lecturer Portal
 							</p>
 						</div>
 					</Link>
 
-					<div className="hidden flex-1 items-center md:flex ml-4">
+					<div className="hidden flex-1 items-center ml-4 md:flex">
 						{navItems.map(({ label, href, Icon }) => {
-							const active = pathname === href || (href !== "/lecturer" && pathname.startsWith(href));
+							const active =
+								pathname === href ||
+								(href !== "/lecturer" && pathname.startsWith(href));
 							return (
 								<Link
 									key={href}
 									href={href}
-									className="relative flex h-16 items-center gap-2 px-4 text-sm font-semibold transition-colors"
+									className="relative flex h-12 items-center gap-2 px-4 text-sm font-semibold transition-colors"
 									style={{ color: active ? "#002388" : "#64748B" }}
 								>
 									<Icon size={16} strokeWidth={active ? 2.5 : 2} />
@@ -84,12 +106,10 @@ export default function LecturerNavbar({ userName }: LecturerNavbarProps) {
 					</div>
 
 					<div className="ml-auto flex items-center gap-1">
-
-						<div className="relative ml-1">
+						<div ref={profileMenuRef} className="relative ml-1">
 							<button
 								type="button"
 								onClick={() => setProfileOpen(!profileOpen)}
-								onBlur={() => setTimeout(() => setProfileOpen(false), 150)}
 								className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#002388]"
 							>
 								<User size={20} />
@@ -143,11 +163,13 @@ export default function LecturerNavbar({ userName }: LecturerNavbarProps) {
 
 			{menuOpen ? (
 				<div
-					className="fixed inset-x-0 top-16 z-40 flex flex-col gap-1 bg-white px-4 py-3 md:hidden shadow-lg"
-					style={{ borderBottom: "1px solid #E2E8F0" }}
+					className="fixed inset-x-0 top-12 z-40 flex flex-col gap-1 bg-white px-4 py-3 md:hidden shadow-lg"
+					style={{ borderBottom: "1px solid #D5DBDB" }}
 				>
 					{navItems.map(({ label, href, Icon }) => {
-						const active = pathname === href;
+						const active =
+							pathname === href ||
+							(href !== "/lecturer" && pathname.startsWith(href));
 						return (
 							<Link
 								key={href}
@@ -156,7 +178,7 @@ export default function LecturerNavbar({ userName }: LecturerNavbarProps) {
 								className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors"
 								style={
 									active
-										? { background: "#F5F3FF", color: "#7C3AED" }
+										? { background: "#EAF1FF", color: "#002388" }
 										: { color: "#64748B" }
 								}
 							>

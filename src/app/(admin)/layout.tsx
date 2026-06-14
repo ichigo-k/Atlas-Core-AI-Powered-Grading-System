@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import AdminNavbar from "@/components/layout/AdminNavbar";
-import { getSession } from "@/lib/session";
+import AdminSidebar from "@/components/layout/AdminSidebar";
 import StudentFooter from "@/components/layout/StudentFooter";
+import { getSession } from "@/lib/session";
 
 export default async function AdminLayout({
 	children,
@@ -15,14 +15,12 @@ export default async function AdminLayout({
 	}
 
 	return (
-		<div className="min-h-screen flex flex-col bg-white">
-			<AdminNavbar userName={session.user.name} />
-			<main className="flex-1 mx-auto w-full max-w-7xl p-4 md:p-6 xl:p-8">{children}</main>
+		<div className="min-h-screen bg-[#f8fafd]">
+			<div className="flex min-h-[calc(100vh-2.5rem)] flex-col xl:flex-row">
+				<AdminSidebar userName={session.user.name} />
+				<main className="w-full flex-1 p-3 md:p-5 xl:p-6">{children}</main>
+			</div>
 			<StudentFooter />
 		</div>
 	);
 }
-
-
-
-

@@ -48,6 +48,7 @@ export interface CreateAssessmentPayload {
   location?: string | null
   totalMarks: number
   status: "DRAFT" | "PUBLISHED"
+  proctoringEnabled: boolean
   classes: ClassAssignmentPayload[]
   sections: AssessmentSectionPayload[]
 }
@@ -85,6 +86,7 @@ export interface AssessmentWithDetails {
   shuffleOptions: boolean
   isLocationBound: boolean
   location: string | null
+  proctoringEnabled: boolean
   createdAt: Date
   updatedAt: Date
   classes: Array<{
@@ -128,6 +130,7 @@ export interface Step1State {
   accessPassword: string
   shuffleQuestions: boolean
   shuffleOptions: boolean
+  proctoringEnabled: boolean
 }
 
 export interface ClassAssignmentState {

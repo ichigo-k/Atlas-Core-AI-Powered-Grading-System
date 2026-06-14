@@ -118,6 +118,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           shuffleOptions: body.shuffleOptions,
           isLocationBound: body.isLocationBound,
           location: body.isLocationBound ? body.location : null,
+          proctoringEnabled: body.proctoringEnabled ?? false,
         },
       })
 

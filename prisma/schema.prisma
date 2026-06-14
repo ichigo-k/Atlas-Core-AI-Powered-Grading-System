@@ -53,6 +53,12 @@ enum GradingStatus {
   GRADED
 }
 
+enum ProctorStatus {
+  ACTIVE
+  ENDED
+  TIMED_OUT
+}
+
 model User {
   id           Int        @id @default(autoincrement())
   email        String     @unique
@@ -74,19 +80,24 @@ model User {
 }
 
 model StudentProfile {
-  id      Int    @id
-  user    User   @relation(fields: [id], references: [id])
-  program String
-  classId Int?
-  class   Class? @relation(fields: [classId], references: [id])
+  id            Int      @id
+  user          User     @relation(fields: [id], references: [id])
+  indexNumber   String?  @map("index_number")
+  legacyProgram String?  @map("program")
+  programId     Int?
+  program       Program? @relation(fields: [programId], references: [id])
+  classId       Int?
+  class         Class?   @relation(fields: [classId], references: [id])
 
   @@map("student_profiles")
 }
 
 model LecturerProfile {
-  id         Int    @id
-  user       User   @relation(fields: [id], references: [id])
-  department String
+  id         Int      @id
+  user       User     @relation(fields: [id], references: [id])
+  department String?
+  facultyId  Int?
+  faculty    Faculty? @relation(fields: [facultyId], references: [id])
   title      String
   courses    Course[] @relation("LecturerCourses")
 
@@ -105,14 +116,14 @@ model AdminProfile {
 
 model Class {
   id          Int      @id @default(autoincrement())
-  name        String   // e.g., "BIT Group B"
-  level       Int      // e.g., 100
+  name        String // e.g., "BIT Group B"
+  level       Int // e.g., 100
   isGraduated Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  students StudentProfile[]
-  courses  Course[]         @relation("ClassCourses")
+  students          StudentProfile[]
+  courses           Course[]          @relation("ClassCourses")
   assessmentClasses AssessmentClass[]
 
   @@unique([name, level])
@@ -120,12 +131,18 @@ model Class {
 }
 
 model Course {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
-  title       String
-  credits     Int      @default(3)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  title     String
+  credits   Int      @default(3)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  facultyId Int?
+  faculty   Faculty? @relation(fields: [facultyId], references: [id])
+
+  programId Int?
+  program   Program? @relation(fields: [programId], references: [id])
 
   classes   Class[]           @relation("ClassCourses")
   lecturers LecturerProfile[] @relation("LecturerCourses")
@@ -136,27 +153,57 @@ model Course {
   @@map("courses")
 }
 
+model Faculty {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  programs  Program[]
+  courses   Course[]
+  lecturers LecturerProfile[]
+
+  @@map("faculties")
+}
+
+model Program {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String?  @unique
+  facultyId Int
+  faculty   Faculty  @relation(fields: [facultyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students StudentProfile[]
+  courses  Course[]
+
+  @@unique([name, facultyId])
+  @@map("programs")
+}
+
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  action    String   // e.g., "USER_CREATED", "CLASS_ASSIGNED"
-  details   String   // e.g., "New student profile created for Kwame Asante"
-  category  String   // e.g., "USER", "CLASS", "COURSE", "SYSTEM"
+  action    String // e.g., "USER_CREATED", "CLASS_ASSIGNED"
+  details   String // e.g., "New student profile created for Kwame Asante"
+  category  String // e.g., "USER", "CLASS", "COURSE", "SYSTEM"
   createdAt DateTime @default(now())
 
   @@map("audit_logs")
 }
 
 model SystemSettings {
-  id              Int      @id @default(1)
-  academicYear    String   @default("2023/2024")
-  semester        String   @default("First Semester")
-  contactEmail    String   @default("admin@system.edu")
+  id           Int      @id @default(1)
+  academicYear String   @default("2023/2024")
+  semester     String   @default("First Semester")
+  contactEmail String   @default("admin@system.edu")
   // Grading scale: JSON array of {label, minPercent} sorted descending by minPercent.
   // e.g. [{"label":"A+","minPercent":90},{"label":"A","minPercent":85},...]
   // The last entry acts as the catch-all (lowest threshold). Anything below all
   // thresholds receives the label of the last entry (typically "F").
-  gradingScale    Json     @default("[{\"label\":\"A+\",\"minPercent\":90},{\"label\":\"A\",\"minPercent\":85},{\"label\":\"A-\",\"minPercent\":80},{\"label\":\"B+\",\"minPercent\":75},{\"label\":\"B\",\"minPercent\":70},{\"label\":\"B-\",\"minPercent\":65},{\"label\":\"C+\",\"minPercent\":60},{\"label\":\"C\",\"minPercent\":55},{\"label\":\"C-\",\"minPercent\":50},{\"label\":\"D+\",\"minPercent\":45},{\"label\":\"D\",\"minPercent\":40},{\"label\":\"F\",\"minPercent\":0}]")
-  updatedAt       DateTime @updatedAt
+  gradingScale Json     @default("[{\"label\":\"A+\",\"minPercent\":90},{\"label\":\"A\",\"minPercent\":85},{\"label\":\"A-\",\"minPercent\":80},{\"label\":\"B+\",\"minPercent\":75},{\"label\":\"B\",\"minPercent\":70},{\"label\":\"B-\",\"minPercent\":65},{\"label\":\"C+\",\"minPercent\":60},{\"label\":\"C\",\"minPercent\":55},{\"label\":\"C-\",\"minPercent\":50},{\"label\":\"D+\",\"minPercent\":45},{\"label\":\"D\",\"minPercent\":40},{\"label\":\"F\",\"minPercent\":0}]")
+  updatedAt    DateTime @updatedAt
 
   @@map("system_settings")
 }
@@ -183,6 +230,7 @@ model Assessment {
   location          String?
   gradingStatus     GradingStatus    @default(NOT_GRADED)
   resultsReleased   Boolean          @default(false)
+  proctoringEnabled Boolean          @default(false)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -195,14 +243,14 @@ model Assessment {
 }
 
 model AssessmentSection {
-  id                     Int        @id @default(autoincrement())
+  id                     Int         @id @default(autoincrement())
   assessmentId           Int
-  assessment             Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessment             Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   name                   String
   type                   SectionType
   requiredQuestionsCount Int?
 
-  questions    Question[]
+  questions Question[]
 
   @@map("assessment_sections")
 }
@@ -219,18 +267,18 @@ model AssessmentClass {
 }
 
 model Question {
-  id           Int         @id @default(autoincrement())
-  assessmentId Int
-  assessment   Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  sectionId    Int
-  section      AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  order        Int
-  body         String
-  marks        Int
-  answerType   AnswerType?
-  options      Json?
+  id            Int               @id @default(autoincrement())
+  assessmentId  Int
+  assessment    Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  sectionId     Int
+  section       AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  order         Int
+  body          String
+  marks         Int
+  answerType    AnswerType?
+  options       Json?
   correctOption Int?
-  createdAt    DateTime    @default(now())
+  createdAt     DateTime          @default(now())
 
   rubricCriteria RubricCriterion[]
   studentAnswers StudentAnswer[]
@@ -293,20 +341,22 @@ model QuestionBankItemRubric {
 }
 
 model AssessmentAttempt {
-  id             Int           @id @default(autoincrement())
-  assessmentId   Int
-  assessment     Assessment    @relation(fields: [assessmentId], references: [id])
-  studentId      Int
-  student        User          @relation(fields: [studentId], references: [id])
-  startedAt      DateTime      @default(now())
-  submittedAt    DateTime?
-  status         AttemptStatus @default(IN_PROGRESS)
-  score          Float?
-  attemptNumber  Int
-  questionOrder  Json          @default("[]")
-  tabSwitchLog   Json          @default("[]")
+  id            Int           @id @default(autoincrement())
+  assessmentId  Int
+  assessment    Assessment    @relation(fields: [assessmentId], references: [id])
+  studentId     Int
+  student       User          @relation(fields: [studentId], references: [id])
+  startedAt     DateTime      @default(now())
+  submittedAt   DateTime?
+  status        AttemptStatus @default(IN_PROGRESS)
+  score         Float?
+  attemptNumber Int
+  questionOrder Json          @default("[]")
+  tabSwitchLog  Json          @default("[]")
 
   answers StudentAnswer[]
+
+  proctorRecord ProctorRecord?
 
   @@unique([assessmentId, studentId, attemptNumber])
   @@map("assessment_attempts")
@@ -322,11 +372,33 @@ model StudentAnswer {
   selectedOption Int?
   fileUrl        String?
   answerHash     String?
+  lecturerNotes  String?           @map("lecturer_notes")
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   @@unique([attemptId, questionId])
   @@map("student_answers")
+}
+
+// ---------------------------------------------------------------------------
+// Proctoring tables — owned and migrated by Prisma.
+// ---------------------------------------------------------------------------
+
+model ProctorRecord {
+  id             Int               @id @default(autoincrement())
+  attemptId      Int               @unique
+  attempt        AssessmentAttempt @relation(fields: [attemptId], references: [id])
+  sessionId      String
+  signalingToken String
+  consentAt      DateTime
+  flagCount      Int               @default(0)
+  flagThreshold  Int               @default(5)
+  proctoringLog  Json              @default("[]")
+  status         ProctorStatus     @default(ACTIVE)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@map("proctor_records")
 }
 
 // ---------------------------------------------------------------------------
@@ -336,15 +408,15 @@ model StudentAnswer {
 // ---------------------------------------------------------------------------
 
 model GradingResult {
-  id                Int             @id @default(autoincrement())
-  attemptId         Int             @unique
+  id                Int      @id @default(autoincrement())
+  attemptId         Int      @unique
   assessmentId      Int
   score             Float
-  plagiarismFlagged Boolean         @default(false)
+  plagiarismFlagged Boolean  @default(false)
   gradedAt          DateTime
-  errorNotes        String          @default("")
+  errorNotes        String   @default("")
 
-  answerFeedbacks   AnswerFeedback[]
+  answerFeedbacks AnswerFeedback[]
 
   @@map("grader_gradingresult")
 }

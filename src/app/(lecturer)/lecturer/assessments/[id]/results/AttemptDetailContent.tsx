@@ -10,6 +10,7 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
+  Pencil,
 } from "lucide-react"
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ export type QuestionDetail = {
     selectedOption: number | null
     fileUrl: string | null
   } | null
+  lecturerNotes: string | null
   feedback: {
     totalScore: number
     maxScore: number
@@ -138,9 +140,37 @@ export function McqQuestion({ q }: { q: QuestionDetail }) {
 
 // ─── SubjectiveQuestion ───────────────────────────────────────────────────────
 
-export function SubjectiveQuestion({ q }: { q: QuestionDetail }) {
+export function SubjectiveQuestion({ q, assessmentId, attemptId }: { q: QuestionDetail; assessmentId: number; attemptId: number }) {
   const [expanded, setExpanded] = useState(true)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesValue, setNotesValue] = useState(q.lecturerNotes ?? "")
+  const [savingNotes, setSavingNotes] = useState(false)
+
   const fb = q.feedback
+
+  async function handleSaveNotes() {
+    setSavingNotes(true)
+    try {
+      const res = await fetch(
+        `/api/lecturer/assessments/${assessmentId}/attempts/${attemptId}/notes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionId: q.id, lecturerNotes: notesValue }),
+        }
+      )
+      if (!res.ok) {
+        throw new Error("Failed to save notes")
+      }
+      setEditingNotes(false)
+      window.location.reload()
+    } catch (err) {
+      console.error("[SubjectiveQuestion] Failed to save notes", err)
+      alert("Failed to save notes. Please try again.")
+    } finally {
+      setSavingNotes(false)
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -242,6 +272,65 @@ export function SubjectiveQuestion({ q }: { q: QuestionDetail }) {
           Not yet graded by AI
         </div>
       )}
+
+      {/* Lecturer notes section */}
+      <div className="rounded-xl border border-blue-200 bg-blue-50/30 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 bg-blue-100/50 border-b border-blue-200">
+          <span className="text-sm font-semibold text-blue-800">Lecturer's Notes</span>
+          {!editingNotes && (
+            <button
+              type="button"
+              onClick={() => setEditingNotes(true)}
+              className="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-white px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              <Pencil size={12} />
+              {q.lecturerNotes ? "Edit" : "Add"}
+            </button>
+          )}
+        </div>
+
+        {editingNotes ? (
+          <div className="p-4 space-y-3">
+            <textarea
+              value={notesValue}
+              onChange={(e) => setNotesValue(e.target.value)}
+              placeholder="Add your feedback or notes for this answer..."
+              className="w-full h-24 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingNotes(false)
+                  setNotesValue(q.lecturerNotes ?? "")
+                }}
+                disabled={savingNotes}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveNotes}
+                disabled={savingNotes}
+                className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {savingNotes ? "Saving..." : "Save Notes"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          q.lecturerNotes ? (
+            <div className="px-4 py-3">
+              <p className="text-xs text-slate-700 whitespace-pre-wrap">{q.lecturerNotes}</p>
+            </div>
+          ) : (
+            <div className="px-4 py-3">
+              <p className="text-xs text-slate-400 italic">No notes added yet.</p>
+            </div>
+          )
+        )}
+      </div>
     </div>
   )
 }

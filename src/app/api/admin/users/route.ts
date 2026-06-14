@@ -29,10 +29,13 @@ export async function POST(request: NextRequest) {
     name,
     role,
     // Student fields
+    indexNumber,
     program,
+    programId,
     classId,
     // Lecturer fields
     department,
+    facultyId,
     title,
   } = body as Record<string, unknown>
 
@@ -58,14 +61,19 @@ export async function POST(request: NextRequest) {
   const validRole = role as ValidRole
 
   if (validRole === "STUDENT") {
-    if (!program || typeof program !== "string") {
-      return NextResponse.json({ error: "program is required" }, { status: 400 })
+    if (!indexNumber || typeof indexNumber !== "string") {
+      return NextResponse.json({ error: "indexNumber is required" }, { status: 400 })
+    }
+    // prefer programId (new dropdown), fall back to legacy program string
+    if ((programId === undefined || typeof programId !== 'number') && (!program || typeof program !== "string")) {
+      return NextResponse.json({ error: "programId or program is required" }, { status: 400 })
     }
   }
 
   if (validRole === "LECTURER") {
-    if (!department || typeof department !== "string") {
-      return NextResponse.json({ error: "department is required" }, { status: 400 })
+    // prefer facultyId (new dropdown), fall back to department string
+    if ((facultyId === undefined || typeof facultyId !== 'number') && (!department || typeof department !== "string")) {
+      return NextResponse.json({ error: "facultyId or department is required" }, { status: 400 })
     }
     if (!title || typeof title !== "string") {
       return NextResponse.json({ error: "title is required" }, { status: 400 })
@@ -93,7 +101,9 @@ export async function POST(request: NextRequest) {
         await tx.studentProfile.create({
           data: {
             id: created.id,
-            program: program as string,
+            indexNumber: indexNumber as string,
+            programId: typeof programId === 'number' ? programId : null,
+            legacyProgram: typeof program === 'string' ? program : undefined,
             classId: typeof classId === "number" ? classId : null,
           },
         })
@@ -101,7 +111,8 @@ export async function POST(request: NextRequest) {
         await tx.lecturerProfile.create({
           data: {
             id: created.id,
-            department: department as string,
+            facultyId: typeof facultyId === 'number' ? facultyId : null,
+            department: typeof department === 'string' ? department : undefined,
             title: title as string,
           },
         })
@@ -116,9 +127,9 @@ export async function POST(request: NextRequest) {
 
     // Log the action
     await logAction(
-        "USER_CREATED",
-        `New ${validRole.toLowerCase()} account created for ${name}`,
-        "USER"
+      "USER_CREATED",
+      `New ${validRole.toLowerCase()} account created for ${name}`,
+      "USER"
     )
 
     // 7. Return 201

@@ -38,6 +38,7 @@ type QuestionWithMeta = {
     answerText: string | null
     selectedOption: number | null
     fileUrl: string | null
+    lecturerNotes: string | null
   } | null
   feedback: {
     totalScore: number
@@ -219,6 +220,18 @@ function SubjectiveQuestion({ q }: { q: QuestionWithMeta }) {
           Not yet graded by AI
         </div>
       )}
+
+      {/* Lecturer notes (visible only when results released) */}
+      {q.answer?.lecturerNotes && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50/30 overflow-hidden">
+          <div className="px-4 py-3 bg-blue-100/50 border-b border-blue-200">
+            <span className="text-sm font-semibold text-blue-800">Lecturer's Notes</span>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-xs text-slate-700 whitespace-pre-wrap">{q.answer.lecturerNotes}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -322,6 +335,7 @@ export default async function AssessmentReviewPage({
               answerText: answer.answerText,
               selectedOption: answer.selectedOption,
               fileUrl: answer.fileUrl,
+              lecturerNotes: answer.lecturerNotes,
             }
           : null,
         feedback: feedback
@@ -356,7 +370,7 @@ export default async function AssessmentReviewPage({
       </Link>
 
       {/* Header card */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">{assessment.title}</h1>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
@@ -420,7 +434,7 @@ export default async function AssessmentReviewPage({
 
       {/* Questions by section */}
       {sections.map((section) => (
-        <div key={section.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div key={section.id} className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
           {/* Section header */}
           <div className="px-6 py-3 bg-slate-50 border-b border-slate-100">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
@@ -457,7 +471,7 @@ export default async function AssessmentReviewPage({
       ))}
 
       {sections.every((s) => s.questions.length === 0) && (
-        <div className="rounded-xl border border-slate-200 bg-white px-6 py-10 text-center">
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center">
           <p className="text-sm text-slate-400">No questions found for this assessment.</p>
         </div>
       )}

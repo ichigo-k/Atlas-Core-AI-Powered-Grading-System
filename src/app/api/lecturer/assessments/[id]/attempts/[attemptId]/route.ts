@@ -63,12 +63,13 @@ export async function GET(
       score: true,
       startedAt: true,
       submittedAt: true,
-      answers: {
+answers: {
         select: {
           questionId: true,
           answerText: true,
           selectedOption: true,
           fileUrl: true,
+          lecturerNotes: true,
         },
       },
       student: {
@@ -116,6 +117,7 @@ export async function GET(
               answerText: answer.answerText,
               selectedOption: answer.selectedOption,
               fileUrl: answer.fileUrl,
+              lecturerNotes: answer.lecturerNotes,
             }
           : null,
         // AI feedback (null if not graded or MCQ)

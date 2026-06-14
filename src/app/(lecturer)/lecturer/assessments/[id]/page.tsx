@@ -119,6 +119,7 @@ async function AssessmentDetailData({ id }: { id: string }) {
     shuffleOptions: raw.shuffleOptions,
     isLocationBound: raw.isLocationBound,
     location: raw.location,
+    proctoringEnabled: raw.proctoringEnabled,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     classes: raw.classes.map((ac) => ({
@@ -149,7 +150,7 @@ async function AssessmentDetailData({ id }: { id: string }) {
     })),
   }
 
-  return <AssessmentDetailView assessment={assessment} />
+  return <AssessmentDetailView assessment={assessment} userId={user.id} />
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────

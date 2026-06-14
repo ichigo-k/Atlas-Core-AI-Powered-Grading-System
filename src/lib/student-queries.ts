@@ -20,6 +20,8 @@ type UpcomingItem = {
   startsAt: Date
   endsAt: Date
   status: DerivedStatus
+  passwordProtected: boolean
+  proctoringEnabled: boolean
 }
 
 type RecentResultItem = {
@@ -69,6 +71,7 @@ export type AssessmentDetail = {
   shuffleOptions: boolean
   isLocationBound: boolean
   location: string | null
+  proctoringEnabled: boolean
   sections: {
     id: number
     name: string
@@ -113,7 +116,14 @@ export type ActiveAttempt = {
     answerText: string | null
     selectedOption: number | null
     fileUrl: string | null
+    lecturerNotes: string | null
   }[]
+  proctorRecord: {
+    flagCount: number
+    flagThreshold: number
+    sessionId: string
+    signalingToken: string
+  } | null
 }
 
 const EMPTY_DASHBOARD: DashboardData = {
@@ -145,6 +155,8 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
           title: true,
           type: true,
           status: true,
+          passwordProtected: true,
+          proctoringEnabled: true,
           startsAt: true,
           endsAt: true,
           totalMarks: true,
@@ -195,6 +207,8 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
     startsAt: a.startsAt,
     endsAt: a.endsAt,
     status: a.derivedStatus,
+    passwordProtected: a.passwordProtected,
+    proctoringEnabled: a.proctoringEnabled,
   }))
 
   // Load grading scale once for grade computation
@@ -293,11 +307,11 @@ export async function getStudentAssessments(studentId: number): Promise<StudentA
         sections: a.sections,
         latestAttempt: raw
           ? {
-              score: raw.score,
-              grade: raw.score !== null ? computeGrade(raw.score, a.totalMarks, scale2) : null,
-              attemptNumber: raw.attemptNumber,
-              status: raw.status,
-            }
+            score: raw.score,
+            grade: raw.score !== null ? computeGrade(raw.score, a.totalMarks, scale2) : null,
+            attemptNumber: raw.attemptNumber,
+            status: raw.status,
+          }
           : null,
       }
     })
@@ -335,6 +349,7 @@ export async function getAssessmentWithQuestions(assessmentId: number, studentId
       shuffleOptions: true,
       isLocationBound: true,
       location: true,
+      proctoringEnabled: true,
       course: { select: { title: true, code: true } },
       sections: {
         select: {
@@ -371,6 +386,7 @@ export async function getAssessmentWithQuestions(assessmentId: number, studentId
     shuffleOptions: assessment.shuffleOptions,
     isLocationBound: assessment.isLocationBound,
     location: assessment.location,
+    proctoringEnabled: assessment.proctoringEnabled,
     sections: assessment.sections,
   }
 }
@@ -417,6 +433,8 @@ export type ScheduleItem = {
   durationMinutes: number | null
   location: string | null
   status: DerivedStatus
+  passwordProtected: boolean
+  proctoringEnabled: boolean
 }
 
 export async function getScheduleAssessments(studentId: number): Promise<ScheduleItem[]> {
@@ -439,6 +457,8 @@ export async function getScheduleAssessments(studentId: number): Promise<Schedul
           title: true,
           type: true,
           status: true,
+          passwordProtected: true,
+          proctoringEnabled: true,
           startsAt: true,
           endsAt: true,
           durationMinutes: true,
@@ -463,6 +483,8 @@ export async function getScheduleAssessments(studentId: number): Promise<Schedul
       durationMinutes: a.durationMinutes,
       location: a.location,
       status: a.status === 'CLOSED' ? 'completed' : deriveStatus(a.startsAt, a.endsAt, now),
+      passwordProtected: a.passwordProtected,
+      proctoringEnabled: a.proctoringEnabled,
     }))
     .filter((a) => a.status === 'upcoming' || a.status === 'ongoing')
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
@@ -481,13 +503,22 @@ export async function getActiveAttempt(attemptId: number, studentId: number): Pr
       submittedAt: true,
       questionOrder: true,
       tabSwitchLog: true,
-      answers: {
+answers: {
         select: {
           id: true,
           questionId: true,
           answerText: true,
           selectedOption: true,
           fileUrl: true,
+          lecturerNotes: true,
+        },
+      },
+      proctorRecord: {
+        select: {
+          flagCount: true,
+          flagThreshold: true,
+          sessionId: true,
+          signalingToken: true,
         },
       },
     },

@@ -67,7 +67,7 @@ export async function updateUserAction(userId: number, formData: FormData) {
     await requireAdmin();
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
-    
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { studentProfile: true, lecturerProfile: true },
@@ -84,10 +84,11 @@ export async function updateUserAction(userId: number, formData: FormData) {
     });
 
     if (user.role === "STUDENT") {
+      const indexNumber = formData.get("indexNumber") as string;
       const program = formData.get("program") as string;
       await prisma.studentProfile.update({
         where: { id: userId },
-        data: { program },
+        data: { indexNumber, legacyProgram: program },
       });
     } else if (user.role === "LECTURER") {
       const department = formData.get("department") as string;

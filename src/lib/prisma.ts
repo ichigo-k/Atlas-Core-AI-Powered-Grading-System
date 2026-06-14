@@ -17,7 +17,6 @@ let prisma: PrismaClient;
 if (globalForPrisma.prisma) {
   prisma = globalForPrisma.prisma;
 } else {
-  console.log("Initializing new PrismaClient instance...");
   // Hardened pool for flaky connections
   const pool = new Pool({
     connectionString,

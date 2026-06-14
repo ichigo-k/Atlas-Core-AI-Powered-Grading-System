@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 export async function logAction(
 	action: string,
 	details: string,
-	category: "USER" | "CLASS" | "COURSE" | "SYSTEM"
+	category: "USER" | "CLASS" | "COURSE" | "FACULTY" | "PROGRAM" | "SYSTEM",
 ) {
 	try {
 		await prisma.auditLog.create({
@@ -25,7 +25,10 @@ export async function getRecentAuditLogs(limit = 10) {
 	});
 }
 
-export async function getAuditLogs(options?: { category?: string; limit?: number }) {
+export async function getAuditLogs(options?: {
+	category?: string;
+	limit?: number;
+}) {
 	return prisma.auditLog.findMany({
 		where: options?.category ? { category: options.category } : {},
 		take: options?.limit ?? 50,

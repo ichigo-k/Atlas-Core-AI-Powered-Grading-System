@@ -43,10 +43,13 @@ function validate(
 	if (!data.name?.trim()) errors.name = "Full name is required";
 	if (!data.email?.trim()) errors.email = "Email is required";
 	if (role === "STUDENT") {
-		if (!data.program?.trim()) errors.program = "Program is required";
+		if (!data.indexNumber?.trim()) errors.indexNumber = "Index number is required";
+		// programId expected from dropdown; fall back to program string
+		if (!data.programId && !data.program) errors.program = "Program is required";
 	}
 	if (role === "LECTURER") {
-		if (!data.department?.trim()) errors.department = "Department is required";
+		// facultyId expected from dropdown; fall back to department string
+		if (!data.facultyId && !data.department) errors.department = "Faculty is required";
 		if (!data.title?.trim()) errors.title = "Title is required";
 	}
 	return errors;
@@ -77,10 +80,14 @@ export default function AddUserSheet({
 	open,
 	onOpenChange,
 	classes = [],
+	faculties = [],
+	programs = [],
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	classes?: any[];
+	faculties?: any[];
+	programs?: any[];
 }) {
 	const router = useRouter();
 	const [role, setRole] = useState<Role>("STUDENT");
@@ -111,10 +118,14 @@ export default function AddUserSheet({
 			role: currentRole,
 		};
 		if (currentRole === "STUDENT") {
-			body.program = data.program;
+			if (data.indexNumber) body.indexNumber = data.indexNumber;
+			if (data.programId) body.programId = Number(data.programId);
+			// keep legacy program string if provided
+			if (data.program) body.program = data.program;
 			if (data.classId?.trim()) body.classId = Number(data.classId);
 		} else if (currentRole === "LECTURER") {
-			body.department = data.department;
+			if (data.facultyId) body.facultyId = Number(data.facultyId);
+			if (data.department) body.department = data.department;
 			body.title = data.title;
 		}
 
@@ -200,11 +211,11 @@ export default function AddUserSheet({
 					{/* Full Name */}
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="name" className="text-slate-700 font-medium">Full Name</Label>
-						<Input 
-							id="name" 
-							name="name" 
-							placeholder="e.g. Kwame Mensah" 
-							className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]" 
+						<Input
+							id="name"
+							name="name"
+							placeholder="e.g. Kwame Mensah"
+							className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]"
 						/>
 						{fe.name && <p className="text-xs text-red-500">{fe.name}</p>}
 					</div>
@@ -227,13 +238,34 @@ export default function AddUserSheet({
 					{role === "STUDENT" && (
 						<>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="program" className="text-slate-700 font-medium">Program</Label>
-								<Input 
-									id="program" 
-									name="program" 
-									placeholder="e.g. Computer Science" 
-									className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]" 
+								<Label htmlFor="indexNumber" className="text-slate-700 font-medium">Index Number</Label>
+								<Input
+									id="indexNumber"
+									name="indexNumber"
+									type="text"
+									placeholder="e.g. 4211230210"
+									className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]"
 								/>
+								{fe.indexNumber && <p className="text-xs text-red-500">{fe.indexNumber}</p>}
+							</div>
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="programId" className="text-slate-700 font-medium">Program</Label>
+								<Select name="programId">
+									<SelectTrigger id="programId" className="w-full rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]">
+										<SelectValue placeholder={programs?.length ? "Select program" : "No programs found"} />
+									</SelectTrigger>
+									<SelectContent>
+										{(!programs || programs.length === 0) ? (
+											<div className="p-2 text-sm text-slate-500">No programs found</div>
+										) : (
+											programs.map((p) => (
+												<SelectItem key={p.id} value={p.id.toString()}>
+													{p.name} {p.faculty ? `— ${p.faculty.name}` : ""}
+												</SelectItem>
+											))
+										)}
+									</SelectContent>
+								</Select>
 								{fe.program && <p className="text-xs text-red-500">{fe.program}</p>}
 							</div>
 							<div className="flex flex-col gap-2">
@@ -264,13 +296,23 @@ export default function AddUserSheet({
 					{role === "LECTURER" && (
 						<>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="department" className="text-slate-700 font-medium">Department</Label>
-								<Input 
-									id="department" 
-									name="department" 
-									placeholder="e.g. Computer Science" 
-									className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]" 
-								/>
+								<Label htmlFor="facultyId" className="text-slate-700 font-medium">Faculty</Label>
+								<Select name="facultyId">
+									<SelectTrigger id="facultyId" className="w-full rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]">
+										<SelectValue placeholder={faculties?.length ? "Select faculty" : "No faculties found"} />
+									</SelectTrigger>
+									<SelectContent>
+										{(!faculties || faculties.length === 0) ? (
+											<div className="p-2 text-sm text-slate-500">No faculties found</div>
+										) : (
+											faculties.map((f) => (
+												<SelectItem key={f.id} value={f.id.toString()}>
+													{f.name}
+												</SelectItem>
+											))
+										)}
+									</SelectContent>
+								</Select>
 								{fe.department && <p className="text-xs text-red-500">{fe.department}</p>}
 							</div>
 							<div className="flex flex-col gap-2">
