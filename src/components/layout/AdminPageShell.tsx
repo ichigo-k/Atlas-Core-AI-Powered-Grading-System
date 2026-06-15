@@ -1,5 +1,4 @@
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -18,47 +17,26 @@ export default function AdminPageShell({
 	icon: Icon,
 	actions,
 	children,
-	eyebrow = "Admin console",
 }: AdminPageShellProps) {
 	return (
-		<div className="mx-auto w-full max-w-7xl space-y-6 pb-8">
-			<header>
-				<nav className="rounded-lg border border-slate-200 bg-white px-4 py-4 md:px-5">
-					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-						<div className="min-w-0">
-							<div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-								<Link
-									href="/admin"
-									className="font-medium text-slate-500 transition-colors hover:text-slate-900"
-								>
-									Admin
-								</Link>
-								<ChevronRight size={15} className="text-slate-400" />
-								<span className="font-semibold text-slate-900">{title}</span>
-							</div>
-							<div className="mt-3 flex min-w-0 items-start gap-3">
-								{Icon ? (
-									<div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#1967d2]">
-										<Icon size={18} />
-									</div>
-								) : null}
-								<div className="min-w-0">
-									<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-										{eyebrow}
-									</p>
-									<h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
-										{title}
-									</h1>
-									<p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-										{description}
-									</p>
-								</div>
-							</div>
-						</div>
-						{actions ? <div className="shrink-0">{actions}</div> : null}
+		<div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+			<div className="flex flex-wrap items-start justify-between gap-3">
+				<div className="min-w-0">
+					<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+						{Icon ? <Icon size={11} /> : null}
+						<Link href="/admin" className="hover:text-[#1e293b] transition-colors">
+							Admin
+						</Link>
+						<span>›</span>
+						<span>{title}</span>
 					</div>
-				</nav>
-			</header>
+					<h1 className="text-xl font-semibold text-[#1e293b]">{title}</h1>
+					<p className="text-[12px] text-muted-foreground mt-0.5 max-w-3xl">
+						{description}
+					</p>
+				</div>
+				{actions ? <div className="shrink-0">{actions}</div> : null}
+			</div>
 			{children}
 		</div>
 	);

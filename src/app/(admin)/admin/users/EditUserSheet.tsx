@@ -87,11 +87,11 @@ export default function EditUserSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="sm:max-w-120 p-0 border-l border-slate-200">
+			<SheetContent className="sm:max-w-120 p-0 border-l border-border">
 				<div className="h-full flex flex-col">
 					<SheetHeader className="p-8 bg-slate-50/50 border-b border-slate-100">
 						<div className="flex items-center gap-4">
-							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-slate-200 text-[#002388]">
+							<div className="flex h-12 w-12 items-center justify-center rounded-sm bg-white border border-border text-[#002388]">
 								{user.role === "STUDENT" ? (
 									<GraduationCap size={24} />
 								) : (
@@ -137,7 +137,7 @@ export default function EditUserSheet({
 											id="name"
 											name="name"
 											defaultValue={user.name || ""}
-											className="h-11 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+											className="h-11 pl-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all"
 										/>
 									</div>
 								</div>
@@ -157,7 +157,7 @@ export default function EditUserSheet({
 											id="email"
 											name="email"
 											defaultValue={user.email}
-											className="h-11 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+											className="h-11 pl-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all"
 										/>
 									</div>
 								</div>
@@ -182,7 +182,7 @@ export default function EditUserSheet({
 											id="indexNumber"
 											name="indexNumber"
 											defaultValue={user.studentProfile?.indexNumber || ""}
-											className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4"
+											className="h-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all px-4"
 										/>
 									</div>
 								)}
@@ -199,7 +199,7 @@ export default function EditUserSheet({
 											id="program"
 											name="program"
 											defaultValue={user.studentProfile?.program || ""}
-											className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4"
+											className="h-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all px-4"
 										/>
 									</div>
 								)}
@@ -217,7 +217,7 @@ export default function EditUserSheet({
 												id="department"
 												name="department"
 												defaultValue={user.lecturerProfile?.department || ""}
-												className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4"
+												className="h-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all px-4"
 											/>
 										</div>
 										<div className="space-y-2">
@@ -231,7 +231,7 @@ export default function EditUserSheet({
 												id="title"
 												name="title"
 												defaultValue={user.lecturerProfile?.title || ""}
-												className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4"
+												className="h-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all px-4"
 											/>
 										</div>
 									</div>
@@ -247,15 +247,15 @@ export default function EditUserSheet({
 											onValueChange={handleReassign}
 											defaultValue={user.studentProfile?.classId?.toString()}
 										>
-											<SelectTrigger className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4">
+											<SelectTrigger className="h-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all px-4">
 												<SelectValue placeholder="Select a class" />
 											</SelectTrigger>
-											<SelectContent className="rounded-xl border-slate-200">
+											<SelectContent className="rounded-sm border-border">
 												{classes.map((cls) => (
 													<SelectItem
 														key={cls.id}
 														value={cls.id.toString()}
-														className="text-sm rounded-lg"
+														className="text-sm rounded-sm"
 													>
 														{cls.name} (L{cls.level})
 													</SelectItem>
@@ -272,7 +272,7 @@ export default function EditUserSheet({
 						<Button
 							type="submit"
 							form="edit-user-form"
-							className="w-full h-12 bg-[#002388] hover:bg-[#0B4DBB] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+							className="w-full h-12 bg-[#002388] hover:bg-[#001570] text-white font-bold rounded-sm transition-all flex items-center justify-center gap-2"
 							disabled={loading}
 						>
 							<Save size={18} />

@@ -164,7 +164,7 @@ export default function BulkImportSheet({
 								reset();
 							}}
 						>
-							<SelectTrigger className="w-full rounded-xl focus-visible:ring-[#002388]">
+							<SelectTrigger className="w-full rounded-sm focus-visible:ring-[#002388]">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -196,10 +196,10 @@ export default function BulkImportSheet({
 								onDragLeave={() => setIsDragging(false)}
 								onDrop={handleDrop}
 								onClick={() => fileInputRef.current?.click()}
-								className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 cursor-pointer transition-colors ${
+								className={`flex flex-col items-center justify-center gap-3 rounded-sm border-2 border-dashed px-6 py-10 cursor-pointer transition-colors ${
 									isDragging
 										? "border-[#002388] bg-[#002388]/5"
-										: "border-slate-200 hover:border-[#002388]/40 hover:bg-slate-50"
+										: "border-border hover:border-[#002388]/40 hover:bg-slate-50"
 								}`}
 							>
 								<Upload size={28} className="text-slate-400" />
@@ -221,7 +221,7 @@ export default function BulkImportSheet({
 							</div>
 
 							{fileError && (
-								<div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
+								<div className="flex items-start gap-2 rounded-sm bg-red-50 border border-red-200 px-3 py-2.5">
 									<AlertCircle
 										size={15}
 										className="text-red-500 mt-0.5 shrink-0"
@@ -235,7 +235,7 @@ export default function BulkImportSheet({
 					{/* Step: ready */}
 					{step === "ready" && selectedFile && (
 						<>
-							<div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 px-3 py-4 mt-2">
+							<div className="flex items-center gap-2 rounded-sm bg-slate-50 border border-border px-3 py-4 mt-2">
 								<FileText size={20} className="text-[#002388] shrink-0" />
 								<div className="flex flex-col flex-1 min-w-0">
 									<span className="text-sm font-semibold text-slate-700 truncate">
@@ -253,7 +253,7 @@ export default function BulkImportSheet({
 									<X size={16} />
 								</button>
 							</div>
-							<div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
+							<div className="bg-blue-50 border border-blue-100 rounded-sm p-3 text-sm text-blue-800">
 								Click the import button below to process this file. Our system
 								will validate each row and create the users.
 							</div>
@@ -264,7 +264,7 @@ export default function BulkImportSheet({
 					{step === "result" && result && (
 						<div className="flex flex-col gap-3">
 							<div className="grid grid-cols-2 gap-3">
-								<div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
+								<div className="rounded-sm bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
 									<p className="text-2xl font-bold text-emerald-600">
 										{result.created}
 									</p>
@@ -273,7 +273,7 @@ export default function BulkImportSheet({
 									</p>
 								</div>
 								<div
-									className={`rounded-xl border px-4 py-3 text-center ${result.failed > 0 ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}
+									className={`rounded-sm border px-4 py-3 text-center ${result.failed > 0 ? "bg-red-50 border-red-200" : "bg-slate-50 border-border"}`}
 								>
 									<p
 										className={`text-2xl font-bold ${result.failed > 0 ? "text-red-600" : "text-slate-400"}`}
@@ -289,7 +289,7 @@ export default function BulkImportSheet({
 							</div>
 
 							{result.failed === 0 && (
-								<div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+								<div className="flex items-center gap-2 rounded-sm bg-emerald-50 border border-emerald-200 px-3 py-2.5">
 									<CheckCircle2
 										size={15}
 										className="text-emerald-500 shrink-0"
@@ -305,7 +305,7 @@ export default function BulkImportSheet({
 									<p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
 										Row Errors
 									</p>
-									<div className="flex flex-col gap-1 max-h-48 overflow-y-auto rounded-xl border border-red-200 bg-red-50 p-2">
+									<div className="flex flex-col gap-1 max-h-48 overflow-y-auto rounded-sm border border-red-200 bg-red-50 p-2">
 										{result.errors.map((err, i) => (
 											<div
 												key={i}
@@ -332,7 +332,7 @@ export default function BulkImportSheet({
 						<Button
 							onClick={handleConfirm}
 							disabled={importing}
-							className="w-full bg-[#002388] hover:bg-[#0B4DBB] text-white rounded-xl h-10"
+							className="w-full bg-[#002388] hover:bg-[#001570] text-white rounded-sm h-10"
 						>
 							{importing ? "Importing…" : "Import Users"}
 						</Button>
@@ -341,7 +341,7 @@ export default function BulkImportSheet({
 						<Button
 							variant="outline"
 							onClick={reset}
-							className="w-full rounded-xl h-10 border-slate-200"
+							className="w-full rounded-sm h-10 border-border"
 						>
 							Import Another File
 						</Button>
@@ -350,7 +350,7 @@ export default function BulkImportSheet({
 						<Button
 							variant="outline"
 							onClick={() => handleClose(false)}
-							className="w-full rounded-xl h-10 border-slate-200"
+							className="w-full rounded-sm h-10 border-border"
 						>
 							Cancel
 						</Button>

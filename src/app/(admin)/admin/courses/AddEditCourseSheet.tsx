@@ -109,7 +109,7 @@ export default function AddEditCourseSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="sm:max-w-[540px] p-0 border-l border-slate-200">
+			<SheetContent className="sm:max-w-[540px] p-0 border-l border-border">
 				<div className="h-full flex flex-col">
 					<SheetHeader className="p-8 bg-slate-50/50 border-b border-slate-100">
 						<div className="flex items-center gap-4">
@@ -150,7 +150,7 @@ export default function AddEditCourseSheet({
 												name="code"
 												defaultValue={course?.code || ""}
 												placeholder="e.g. CS101"
-												className="h-11 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all font-mono uppercase"
+												className="h-11 pl-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all font-mono uppercase"
 											/>
 										</div>
 									</div>
@@ -173,7 +173,7 @@ export default function AddEditCourseSheet({
 												min="1"
 												max="10"
 												defaultValue={course?.credits || 3}
-												className="h-11 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+												className="h-11 pl-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all"
 											/>
 										</div>
 									</div>
@@ -192,7 +192,7 @@ export default function AddEditCourseSheet({
 											name="title"
 											defaultValue={course?.title || ""}
 											placeholder="e.g. Introduction to Computer Science"
-											className="h-11 px-4 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+											className="h-11 px-4 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all"
 										/>
 									</div>
 								</div>
@@ -232,7 +232,7 @@ export default function AddEditCourseSheet({
 						<Button
 							type="submit"
 							form="course-form"
-							className="w-full h-12 bg-[#002388] hover:bg-[#0B4DBB] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+							className="w-full h-12 bg-[#002388] hover:bg-[#001570] text-white font-bold rounded-sm transition-all flex items-center justify-center gap-2"
 							disabled={loading}
 						>
 							<Save size={18} />

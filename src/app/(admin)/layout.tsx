@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import AdminSidebar from "@/components/layout/AdminSidebar";
-import StudentFooter from "@/components/layout/StudentFooter";
+import AdminShell from "@/components/layout/AdminShell";
 import { getSession } from "@/lib/session";
 
 export default async function AdminLayout({
@@ -15,12 +14,11 @@ export default async function AdminLayout({
 	}
 
 	return (
-		<div className="min-h-screen bg-[#f8fafd]">
-			<div className="flex min-h-[calc(100vh-2.5rem)] flex-col xl:flex-row">
-				<AdminSidebar userName={session.user.name} />
-				<main className="w-full flex-1 p-3 md:p-5 xl:p-6">{children}</main>
-			</div>
-			<StudentFooter />
-		</div>
+		<AdminShell
+			userName={session.user.name}
+			userEmail={session.user.email}
+		>
+			{children}
+		</AdminShell>
 	);
 }

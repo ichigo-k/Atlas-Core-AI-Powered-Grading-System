@@ -22,12 +22,12 @@ export default async function AdminSettingsPage({
 			description="Manage system-wide configuration, grading scale, and audit trails."
 			icon={Settings2}
 			actions={
-				<div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+				<div className="flex items-center gap-1 rounded-sm border border-border bg-slate-50 p-1">
 					<Link
 						href="/admin/settings?tab=system"
 						className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
 							activeTab === "system"
-								? "bg-white text-[#1967d2]"
+								? "bg-white text-[#002388]"
 								: "text-slate-600 hover:text-slate-900"
 						}`}
 					>
@@ -38,7 +38,7 @@ export default async function AdminSettingsPage({
 						href="/admin/settings?tab=logs"
 						className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
 							activeTab === "logs"
-								? "bg-white text-[#1967d2]"
+								? "bg-white text-[#002388]"
 								: "text-slate-600 hover:text-slate-900"
 						}`}
 					>
@@ -49,7 +49,7 @@ export default async function AdminSettingsPage({
 			}
 		>
 			{activeTab === "system" ? (
-				<div className="max-w-2xl rounded-lg border border-slate-200 bg-white p-4 md:p-6">
+				<div className="max-w-2xl rounded-sm border border-border bg-white p-4 md:p-6">
 					<SystemSettingsForm initialSettings={systemSettings} />
 				</div>
 			) : (

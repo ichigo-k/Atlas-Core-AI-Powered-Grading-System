@@ -18,7 +18,7 @@ export default function AddCourseButton() {
 		<button
 			type="button"
 			onClick={handleClick}
-			className="flex items-center gap-2 rounded-xl bg-[#002388] px-5 py-2.5 text-sm font-normal text-white transition-all hover:bg-[#0B4DBB]"
+			className="flex items-center gap-2 rounded-sm bg-[#002388] px-4 py-2 text-[12px] font-semibold text-white transition-all hover:bg-[#001570]"
 		>
 			<BookPlus size={18} />
 			Add New Course

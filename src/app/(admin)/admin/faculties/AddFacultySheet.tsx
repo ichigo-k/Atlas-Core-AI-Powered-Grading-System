@@ -42,7 +42,7 @@ export default function AddFacultySheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="sm:max-w-[540px] p-0 border-l border-slate-200">
+			<SheetContent className="sm:max-w-[540px] p-0 border-l border-border">
 				<div className="h-full flex flex-col">
 					<SheetHeader className="p-8 bg-slate-50/50 border-b border-slate-100">
 						<div className="flex items-center gap-4">

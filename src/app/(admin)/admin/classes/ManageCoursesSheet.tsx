@@ -88,7 +88,7 @@ export default function ManageCoursesSheet({
 						<p className="text-sm text-slate-500">No courses available in the system.</p>
 					) : (
 						allCourses.map((course) => (
-							<div key={course.id} className="flex items-start space-x-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+							<div key={course.id} className="flex items-start space-x-3 p-3 rounded-sm border border-slate-100 hover:bg-slate-50 transition-colors">
 								<Checkbox 
 									id={`course-${course.id}`} 
 									checked={selectedCourseIds.has(course.id)}
@@ -114,7 +114,7 @@ export default function ManageCoursesSheet({
 					<Button
 						onClick={handleSave}
 						disabled={isPending}
-						className="w-full bg-[#002388] hover:bg-[#0B4DBB] text-white rounded-lg h-10 font-medium transition-colors flex items-center justify-center gap-2"
+						className="w-full bg-[#002388] hover:bg-[#001570] text-white rounded-sm h-10 font-medium transition-colors flex items-center justify-center gap-2"
 					>
 						{isPending && <Loader2 className="h-4 w-4 animate-spin" />}
 						<span>Save Courses</span>

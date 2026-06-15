@@ -107,7 +107,7 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 							<button
 								type="button"
 								onClick={() => onEdit(user)}
-								className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-lg transition-all"
+								className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-sm transition-all"
 							>
 								<Edit2 size={16} />
 							</button>
@@ -121,7 +121,7 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 								type="button"
 								disabled={loading}
 								onClick={handleToggleStatus}
-								className={`p-2 rounded-lg transition-all ${
+								className={`p-2 rounded-sm transition-all ${
 									user.status === "SUSPENDED"
 										? "text-emerald-500 hover:bg-emerald-50"
 										: "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
@@ -143,7 +143,7 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 						<DropdownMenuTrigger asChild>
 							<button
 								type="button"
-								className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+								className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all"
 							>
 								<MoreVertical size={16} />
 							</button>
@@ -318,7 +318,7 @@ export default function UsersClient({
 				<button
 					type="button"
 					onClick={() => setBulkImportOpen(true)}
-					className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-normal text-slate-700 transition-all hover:bg-slate-50"
+					className="flex items-center gap-2 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-slate-700 transition-all hover:bg-slate-50"
 				>
 					<Upload size={18} className="text-slate-400" />
 					Bulk Import
@@ -326,7 +326,7 @@ export default function UsersClient({
 				<button
 					type="button"
 					onClick={() => setAddUserOpen(true)}
-					className="flex items-center gap-2 rounded-xl bg-[#002388] px-5 py-2.5 text-sm font-normal text-white transition-all hover:bg-[#0B4DBB]"
+					className="flex items-center gap-2 rounded-sm bg-[#002388] px-4 py-2 text-[12px] font-semibold text-white transition-all hover:bg-[#001570]"
 				>
 					<UserPlus size={18} />
 					Add User
@@ -364,7 +364,7 @@ export default function UsersClient({
 			/>
 
 			{/* Tabs */}
-			<div className="flex items-center gap-8 border-b border-slate-200">
+			<div className="flex items-center gap-8 border-b border-border">
 				{tabs.map(({ key, label, icon: Icon }) => {
 					const active = activeTab === key;
 					return (
@@ -384,7 +384,7 @@ export default function UsersClient({
 								className={`flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold transition-colors ${
 									active
 										? "bg-[#002388] text-white"
-										: "border border-slate-200 text-slate-500 bg-slate-50 group-hover:border-slate-300"
+										: "border border-border text-slate-500 bg-slate-50 group-hover:border-slate-300"
 								}`}
 							>
 								{counts[key]}

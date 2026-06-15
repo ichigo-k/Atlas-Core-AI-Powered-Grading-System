@@ -164,7 +164,7 @@ export default function ClassesClient({
 									<TooltipTrigger asChild>
 										<button 
 											onClick={() => { setSelectedClass(cls); setMembersOpen(true); }}
-											className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-lg transition-all"
+											className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-sm transition-all"
 										>
 											<UserPlus size={16} />
 										</button>
@@ -176,7 +176,7 @@ export default function ClassesClient({
 									<TooltipTrigger asChild>
 										<button 
 											onClick={() => { setSelectedClass(cls); setCoursesOpen(true); }}
-											className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+											className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all"
 										>
 											<Settings2 size={16} />
 										</button>
@@ -186,7 +186,7 @@ export default function ClassesClient({
 
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
-										<button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
+										<button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all">
 											<MoreVertical size={16} />
 										</button>
 									</DropdownMenuTrigger>
@@ -214,14 +214,14 @@ export default function ClassesClient({
 				<button
 					onClick={() => setUpgradeConfirmOpen(true)}
 					disabled={isUpgrading}
-					className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-normal text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50"
+					className="flex items-center gap-2 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50"
 				>
 					<ArrowUpCircle size={18} className="text-slate-400" />
 					Bulk Upgrade Levels
 				</button>
 				<button
 					onClick={() => { setEditingClass(null); setAddEditOpen(true); }}
-					className="flex items-center gap-2 rounded-xl bg-[#002388] px-5 py-2.5 text-sm font-normal text-white transition-all hover:bg-[#0B4DBB]"
+					className="flex items-center gap-2 rounded-sm bg-[#002388] px-4 py-2 text-[12px] font-semibold text-white transition-all hover:bg-[#001570]"
 				>
 					<FolderPlus size={18} />
 					Create Class

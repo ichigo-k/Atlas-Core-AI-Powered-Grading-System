@@ -156,7 +156,7 @@ export default function SystemLogsTable({
 							className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
 								categoryFilter === cat
 									? "bg-slate-900 text-white"
-									: "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+									: "bg-white border border-border text-slate-500 hover:bg-slate-50 hover:text-slate-900"
 							}`}
 						>
 							{cat}

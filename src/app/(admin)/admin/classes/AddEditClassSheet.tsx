@@ -93,7 +93,7 @@ export default function AddEditClassSheet({
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							placeholder="e.g. BIT Group B" 
-							className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]" 
+							className="rounded-sm h-10 border-border focus-visible:ring-[#002388]" 
 							required
 						/>
 					</div>
@@ -106,7 +106,7 @@ export default function AddEditClassSheet({
 							value={level}
 							onChange={(e) => setLevel(e.target.value)}
 							placeholder="e.g. 100" 
-							className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]" 
+							className="rounded-sm h-10 border-border focus-visible:ring-[#002388]" 
 							required
 						/>
 					</div>
@@ -115,7 +115,7 @@ export default function AddEditClassSheet({
 						<Button
 							type="submit"
 							disabled={isPending}
-							className="w-full bg-[#002388] hover:bg-[#0B4DBB] text-white rounded-lg h-10 font-medium transition-colors flex items-center justify-center gap-2"
+							className="w-full bg-[#002388] hover:bg-[#001570] text-white rounded-sm h-10 font-medium transition-colors flex items-center justify-center gap-2"
 						>
 							{isPending && <Loader2 className="h-4 w-4 animate-spin" />}
 							<span>{editingClass ? "Save Changes" : "Create Class"}</span>

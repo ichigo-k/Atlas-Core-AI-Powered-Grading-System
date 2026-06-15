@@ -39,16 +39,16 @@ export default function ChangePasswordPage() {
 			icon={Key}
 			eyebrow="Account settings"
 		>
-			<div className="max-w-xl rounded-lg border border-slate-200 bg-white p-4 md:p-6">
+			<div className="max-w-xl rounded-sm border border-border bg-white p-4 md:p-6">
 				<form onSubmit={handleSubmit} className="flex flex-col gap-5">
 					{error && (
-						<div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+						<div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-sm text-sm font-medium flex items-center gap-2">
 							<AlertCircle size={16} />
 							{error}
 						</div>
 					)}
 					{success && (
-						<div className="bg-emerald-50 border border-emerald-200 text-emerald-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+						<div className="bg-emerald-50 border border-emerald-200 text-emerald-600 px-3 py-2 rounded-sm text-sm font-medium flex items-center gap-2">
 							<CheckCircle2 size={16} />
 							Password successfully updated
 						</div>
@@ -66,7 +66,7 @@ export default function ChangePasswordPage() {
 							type="password"
 							name="currentPassword"
 							required
-							className="h-10 rounded-lg border-slate-200 focus-visible:ring-[#1967d2]"
+							className="h-10 rounded-sm border-border focus-visible:ring-[#002388]"
 						/>
 					</div>
 
@@ -81,7 +81,7 @@ export default function ChangePasswordPage() {
 							required
 							minLength={8}
 							placeholder="Minimum 8 characters"
-							className="h-10 rounded-lg border-slate-200 focus-visible:ring-[#1967d2]"
+							className="h-10 rounded-sm border-border focus-visible:ring-[#002388]"
 						/>
 					</div>
 
@@ -98,7 +98,7 @@ export default function ChangePasswordPage() {
 							name="confirmPassword"
 							required
 							minLength={8}
-							className="h-10 rounded-lg border-slate-200 focus-visible:ring-[#1967d2]"
+							className="h-10 rounded-sm border-border focus-visible:ring-[#002388]"
 						/>
 					</div>
 
@@ -106,7 +106,7 @@ export default function ChangePasswordPage() {
 						<Button
 							type="submit"
 							disabled={loading}
-							className="flex h-10 items-center justify-center gap-2 rounded-lg bg-[#1967d2] px-6 font-medium text-white transition-colors hover:bg-[#1558b0]"
+							className="flex h-10 items-center justify-center gap-2 rounded-sm bg-[#002388] px-6 font-medium text-white transition-colors hover:bg-[#1558b0]"
 						>
 							<Save size={16} />
 							{loading ? "Updating..." : "Update Password"}

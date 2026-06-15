@@ -62,7 +62,7 @@ function SubmitButton() {
 		<Button
 			type="submit"
 			disabled={pending}
-			className="w-full bg-[#002388] hover:bg-[#0B4DBB] text-white rounded-lg h-10 font-medium transition-colors flex items-center justify-center gap-2"
+			className="w-full bg-[#002388] hover:bg-[#001570] text-white rounded-sm h-10 font-medium transition-colors flex items-center justify-center gap-2"
 		>
 			{pending ? (
 				<>
@@ -188,7 +188,7 @@ export default function AddUserSheet({
 				<form action={formAction} className="flex flex-col gap-5">
 					{/* 409 inline error */}
 					{state.status === "conflict" && (
-						<div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-lg text-sm font-medium">
+						<div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-sm text-sm font-medium">
 							{state.conflictMessage}
 						</div>
 					)}
@@ -197,7 +197,7 @@ export default function AddUserSheet({
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="role-select" className="text-slate-700 font-medium">Role</Label>
 						<Select value={role} onValueChange={(v) => setRole(v as Role)}>
-							<SelectTrigger id="role-select" className="w-full rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]">
+							<SelectTrigger id="role-select" className="w-full rounded-sm h-10 border-border focus-visible:ring-[#002388]">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -215,7 +215,7 @@ export default function AddUserSheet({
 							id="name"
 							name="name"
 							placeholder="e.g. Kwame Mensah"
-							className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]"
+							className="rounded-sm h-10 border-border focus-visible:ring-[#002388]"
 						/>
 						{fe.name && <p className="text-xs text-red-500">{fe.name}</p>}
 					</div>
@@ -228,7 +228,7 @@ export default function AddUserSheet({
 							name="email"
 							type="email"
 							placeholder="e.g. 4211230210@live.gctu.edu.gh"
-							className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]"
+							className="rounded-sm h-10 border-border focus-visible:ring-[#002388]"
 						/>
 						<p className="text-[12px] text-slate-500">Password will be set to the local part of the email (before @)</p>
 						{fe.email && <p className="text-xs text-red-500">{fe.email}</p>}
@@ -244,14 +244,14 @@ export default function AddUserSheet({
 									name="indexNumber"
 									type="text"
 									placeholder="e.g. 4211230210"
-									className="rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]"
+									className="rounded-sm h-10 border-border focus-visible:ring-[#002388]"
 								/>
 								{fe.indexNumber && <p className="text-xs text-red-500">{fe.indexNumber}</p>}
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label htmlFor="programId" className="text-slate-700 font-medium">Program</Label>
 								<Select name="programId">
-									<SelectTrigger id="programId" className="w-full rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]">
+									<SelectTrigger id="programId" className="w-full rounded-sm h-10 border-border focus-visible:ring-[#002388]">
 										<SelectValue placeholder={programs?.length ? "Select program" : "No programs found"} />
 									</SelectTrigger>
 									<SelectContent>
@@ -273,7 +273,7 @@ export default function AddUserSheet({
 									Class <span className="text-slate-400 font-normal">(optional)</span>
 								</Label>
 								<Select name="classId">
-									<SelectTrigger id="classId" className="w-full rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]">
+									<SelectTrigger id="classId" className="w-full rounded-sm h-10 border-border focus-visible:ring-[#002388]">
 										<SelectValue placeholder="Select class" />
 									</SelectTrigger>
 									<SelectContent>
@@ -298,7 +298,7 @@ export default function AddUserSheet({
 							<div className="flex flex-col gap-2">
 								<Label htmlFor="facultyId" className="text-slate-700 font-medium">Faculty</Label>
 								<Select name="facultyId">
-									<SelectTrigger id="facultyId" className="w-full rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]">
+									<SelectTrigger id="facultyId" className="w-full rounded-sm h-10 border-border focus-visible:ring-[#002388]">
 										<SelectValue placeholder={faculties?.length ? "Select faculty" : "No faculties found"} />
 									</SelectTrigger>
 									<SelectContent>
@@ -318,7 +318,7 @@ export default function AddUserSheet({
 							<div className="flex flex-col gap-2">
 								<Label htmlFor="title-select" className="text-slate-700 font-medium">Title</Label>
 								<Select name="title">
-									<SelectTrigger id="title-select" className="w-full rounded-lg h-10 border-slate-200 focus-visible:ring-[#002388]">
+									<SelectTrigger id="title-select" className="w-full rounded-sm h-10 border-border focus-visible:ring-[#002388]">
 										<SelectValue placeholder="Select title" />
 									</SelectTrigger>
 									<SelectContent>

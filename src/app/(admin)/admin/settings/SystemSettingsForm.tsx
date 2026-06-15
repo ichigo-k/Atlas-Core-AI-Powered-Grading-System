@@ -107,7 +107,7 @@ export default function SystemSettingsForm({
 								name="academicYear"
 								value={formData.academicYear}
 								onChange={handleChange}
-								className="h-11 rounded-xl border-slate-200"
+								className="h-11 rounded-sm border-border"
 							/>
 						</div>
 						<div className="space-y-2">
@@ -118,7 +118,7 @@ export default function SystemSettingsForm({
 								name="semester"
 								value={formData.semester}
 								onChange={handleChange}
-								className="h-11 rounded-xl border-slate-200"
+								className="h-11 rounded-sm border-border"
 							/>
 						</div>
 					</div>
@@ -138,7 +138,7 @@ export default function SystemSettingsForm({
 							type="email"
 							value={formData.contactEmail}
 							onChange={handleChange}
-							className="h-11 rounded-xl border-slate-200"
+							className="h-11 rounded-sm border-border"
 						/>
 					</div>
 				</div>
@@ -193,7 +193,7 @@ export default function SystemSettingsForm({
 											handleScaleChange(realIndex, "label", e.target.value)
 										}
 										placeholder="e.g. A+"
-										className="h-10 rounded-xl border-slate-200 font-mono text-sm"
+										className="h-10 rounded-sm border-border font-mono text-sm"
 									/>
 									<Input
 										type="number"
@@ -204,12 +204,12 @@ export default function SystemSettingsForm({
 											handleScaleChange(realIndex, "minPercent", e.target.value)
 										}
 										placeholder="e.g. 90"
-										className="h-10 rounded-xl border-slate-200 font-mono text-sm"
+										className="h-10 rounded-sm border-border font-mono text-sm"
 									/>
 									<button
 										type="button"
 										onClick={() => removeRow(realIndex)}
-										className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+										className="w-8 h-8 flex items-center justify-center rounded-sm text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
 										aria-label="Remove grade"
 									>
 										<Trash2 size={14} />
@@ -222,14 +222,14 @@ export default function SystemSettingsForm({
 					<button
 						type="button"
 						onClick={addRow}
-						className="flex items-center gap-2 text-xs font-semibold text-[#002388] hover:text-[#0B4DBB] transition-colors mt-1"
+						className="flex items-center gap-2 text-xs font-semibold text-[#002388] hover:text-[#001570] transition-colors mt-1"
 					>
 						<Plus size={14} />
 						Add grade
 					</button>
 
 					{/* Live preview */}
-					<div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+					<div className="mt-4 p-4 bg-slate-50 rounded-sm border border-slate-100">
 						<p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
 							Preview
 						</p>
@@ -239,7 +239,7 @@ export default function SystemSettingsForm({
 								.map((entry, i) => (
 									<span
 										key={i}
-										className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700"
+										className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-border text-xs font-semibold text-slate-700"
 									>
 										<span className="font-bold text-[#002388]">
 											{entry.label || "?"}
@@ -257,7 +257,7 @@ export default function SystemSettingsForm({
 					<Button
 						onClick={handleSave}
 						disabled={loading}
-						className="h-12 px-8 bg-[#002388] hover:bg-[#0B4DBB] text-white font-normal rounded-xl flex items-center gap-2"
+						className="h-12 px-8 bg-[#002388] hover:bg-[#001570] text-white font-normal rounded-sm flex items-center gap-2"
 					>
 						<Save size={18} />
 						{loading ? "Saving..." : "Save System Changes"}

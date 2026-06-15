@@ -73,24 +73,24 @@ function DashboardSkeleton() {
 				{[1, 2, 3, 4].map((item) => (
 					<div
 						key={item}
-						className="rounded-lg border border-slate-200 bg-white p-4"
+						className="rounded-sm border border-border bg-white p-4"
 					>
-						<div className="h-9 w-9 rounded-lg bg-slate-100" />
+						<div className="h-9 w-9 rounded-sm bg-slate-100" />
 						<div className="mt-5 h-7 w-16 rounded bg-slate-100" />
 						<div className="mt-2 h-3 w-24 rounded bg-slate-100" />
 					</div>
 				))}
 			</div>
 			<div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-				<div className="rounded-lg border border-slate-200 bg-white p-4">
+				<div className="rounded-sm border border-border bg-white p-4">
 					<div className="h-5 w-32 rounded bg-slate-100" />
 					<div className="mt-4 grid gap-3 sm:grid-cols-2">
 						{[1, 2, 3, 4].map((item) => (
-							<div key={item} className="h-24 rounded-lg bg-slate-100" />
+							<div key={item} className="h-24 rounded-sm bg-slate-100" />
 						))}
 					</div>
 				</div>
-				<div className="rounded-lg border border-slate-200 bg-white p-4">
+				<div className="rounded-sm border border-border bg-white p-4">
 					<div className="h-5 w-28 rounded bg-slate-100" />
 					<div className="mt-4 space-y-3">
 						{[1, 2, 3].map((item) => (
@@ -116,33 +116,33 @@ async function DashboardContent() {
 					return (
 						<div
 							key={item.label}
-							className="rounded-lg border border-slate-200 bg-white p-4"
+							className="rounded-sm border border-border bg-white p-4"
 						>
 							<div className="flex items-start justify-between gap-3">
-								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f0fe] text-[#1967d2]">
+								<div className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#dbeafe] text-[#002388]">
 									<Icon size={20} />
 								</div>
 								<span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
 									Live
 								</span>
 							</div>
-							<p className="mt-5 text-3xl font-semibold tracking-tight text-slate-900">
+							<p className="mt-4 text-[26px] font-semibold leading-none text-[#1e293b]">
 								{item.value}
 							</p>
-							<p className="mt-1 text-sm text-slate-600">{item.label}</p>
+							<p className="mt-1.5 text-[12px] text-muted-foreground">{item.label}</p>
 						</div>
 					);
 				})}
 			</section>
 
 			<div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
-				<section className="rounded-lg border border-slate-200 bg-white">
-					<div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 md:px-5">
+				<section className="rounded-sm border border-border bg-white">
+					<div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
 						<div>
-							<h2 className="text-base font-semibold text-slate-900">
+							<h2 className="text-[13px] font-semibold text-[#1e293b]">
 								Admin shortcuts
 							</h2>
-							<p className="text-sm text-slate-500">
+							<p className="text-[12px] text-muted-foreground">
 								Common setup flows in one place.
 							</p>
 						</div>
@@ -152,10 +152,10 @@ async function DashboardContent() {
 							<Link
 								key={href}
 								href={href}
-								className="group rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-[#1967d2]/30 hover:bg-[#f8fbff]"
+								className="group rounded-sm border border-border bg-white p-4 transition-colors hover:border-[#002388]/30 hover:bg-[#f8fafc]"
 							>
 								<div className="flex items-start gap-3">
-									<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-[#e8f0fe] group-hover:text-[#1967d2]">
+									<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-slate-600 group-hover:bg-[#dbeafe] group-hover:text-[#002388]">
 										<Icon size={18} />
 									</div>
 									<div className="min-w-0 flex-1">
@@ -165,7 +165,7 @@ async function DashboardContent() {
 											</h3>
 											<ArrowRight
 												size={16}
-												className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-[#1967d2]"
+												className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-[#002388]"
 											/>
 										</div>
 										<p className="mt-1 text-sm leading-5 text-slate-500">
@@ -178,11 +178,11 @@ async function DashboardContent() {
 					</div>
 				</section>
 
-				<section className="rounded-lg border border-slate-200 bg-white">
-					<div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 md:px-5">
+				<section className="rounded-sm border border-border bg-white">
+					<div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
 						<div className="flex items-center gap-3">
 							<div
-								className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+								className={`flex h-9 w-9 items-center justify-center rounded-sm ${
 									isHealthy
 										? "bg-emerald-50 text-emerald-700"
 										: "bg-amber-50 text-amber-700"
@@ -195,10 +195,10 @@ async function DashboardContent() {
 								)}
 							</div>
 							<div>
-								<h2 className="text-base font-semibold text-slate-900">
+								<h2 className="text-[13px] font-semibold text-[#1e293b]">
 									System health
 								</h2>
-								<p className="text-sm text-slate-500">Status: {healthStatus}</p>
+								<p className="text-[12px] text-muted-foreground">Status: {healthStatus}</p>
 							</div>
 						</div>
 					</div>
@@ -207,7 +207,7 @@ async function DashboardContent() {
 							{auditAlerts.map((alert) => (
 								<div
 									key={alert}
-									className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"
+									className="rounded-sm bg-slate-50 px-3 py-2 text-sm text-slate-700"
 								>
 									{alert}
 								</div>
@@ -235,24 +235,24 @@ async function DashboardContent() {
 				</section>
 			</div>
 
-			<section className="rounded-lg border border-slate-200 bg-white">
-				<div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 md:px-5">
+			<section className="rounded-sm border border-border bg-white">
+				<div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
 					<div className="flex items-center gap-3">
-						<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+						<div className="flex h-9 w-9 items-center justify-center rounded-sm bg-slate-100 text-slate-600">
 							<History size={18} />
 						</div>
 						<div>
-							<h2 className="text-base font-semibold text-slate-900">
+							<h2 className="text-[13px] font-semibold text-[#1e293b]">
 								Recent activity
 							</h2>
-							<p className="text-sm text-slate-500">
+							<p className="text-[12px] text-muted-foreground">
 								Latest system audit events.
 							</p>
 						</div>
 					</div>
 					<Link
 						href="/admin/settings?tab=logs"
-						className="text-sm font-medium text-[#1967d2] hover:underline"
+						className="text-sm font-medium text-[#002388] hover:underline"
 					>
 						View all
 					</Link>
@@ -283,7 +283,7 @@ async function DashboardContent() {
 							</div>
 						))
 					) : (
-						<div className="px-4 py-10 text-center text-sm text-slate-500">
+						<div className="px-4 py-10 text-center text-[12px] text-muted-foreground">
 							No recent activity recorded.
 						</div>
 					)}
@@ -293,23 +293,23 @@ async function DashboardContent() {
 			<section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 				<Link
 					href="/admin/programs"
-					className="rounded-lg border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 transition-colors hover:border-[#1967d2]/30 hover:bg-[#f8fbff]"
+					className="rounded-sm border border-border bg-white p-4 text-sm font-medium text-slate-700 transition-colors hover:border-[#002388]/30 hover:bg-[#f8fafc]"
 				>
-					<School size={18} className="mb-3 text-[#1967d2]" />
+					<School size={18} className="mb-3 text-[#002388]" />
 					Programs and academic structure
 				</Link>
 				<Link
 					href="/admin/settings"
-					className="rounded-lg border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 transition-colors hover:border-[#1967d2]/30 hover:bg-[#f8fbff]"
+					className="rounded-sm border border-border bg-white p-4 text-sm font-medium text-slate-700 transition-colors hover:border-[#002388]/30 hover:bg-[#f8fafc]"
 				>
-					<Settings size={18} className="mb-3 text-[#1967d2]" />
+					<Settings size={18} className="mb-3 text-[#002388]" />
 					System settings and grading scale
 				</Link>
 				<Link
 					href="/admin/change-password"
-					className="rounded-lg border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 transition-colors hover:border-[#1967d2]/30 hover:bg-[#f8fbff]"
+					className="rounded-sm border border-border bg-white p-4 text-sm font-medium text-slate-700 transition-colors hover:border-[#002388]/30 hover:bg-[#f8fafc]"
 				>
-					<Users size={18} className="mb-3 text-[#1967d2]" />
+					<Users size={18} className="mb-3 text-[#002388]" />
 					Account security
 				</Link>
 			</section>

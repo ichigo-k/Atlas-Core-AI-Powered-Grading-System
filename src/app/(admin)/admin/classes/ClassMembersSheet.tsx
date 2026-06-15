@@ -66,7 +66,7 @@ export default function ClassMembersSheet({
 					) : (
 						<div className="space-y-3">
 							{members.map((m) => (
-								<div key={m.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 flex items-start justify-between">
+								<div key={m.id} className="p-3 rounded-sm border border-slate-100 bg-slate-50 flex items-start justify-between">
 									<div className="space-y-1">
 										<p className="font-semibold text-slate-800 text-sm">{m.name || "—"}</p>
 										<p className="text-xs text-slate-500">{m.email}</p>

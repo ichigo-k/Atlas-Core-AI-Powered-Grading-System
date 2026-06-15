@@ -150,7 +150,7 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => handleEdit(row.original)}
-                      className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-lg transition-all"
+                      className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-sm transition-all"
                     >
                       <Edit2 size={16} />
                     </button>
@@ -160,7 +160,7 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
+                    <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all">
                       <MoreVertical size={16} />
                     </button>
                   </DropdownMenuTrigger>

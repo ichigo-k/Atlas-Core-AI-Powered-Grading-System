@@ -87,11 +87,11 @@ export default function ManageAssignmentsSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="sm:max-w-[480px] p-0 border-l border-slate-200">
+			<SheetContent className="sm:max-w-[480px] p-0 border-l border-border">
 				<div className="h-full flex flex-col">
 					<SheetHeader className="p-8 bg-slate-50/50 border-b border-slate-100">
 						<div className="flex items-center gap-4">
-							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-slate-200 text-[#002388]">
+							<div className="flex h-12 w-12 items-center justify-center rounded-sm bg-white border border-border text-[#002388]">
 								<LinkIcon size={24} />
 							</div>
 							<div className="text-left">
@@ -128,10 +128,10 @@ export default function ManageAssignmentsSheet({
 									return (
 										<div
 											key={cls.id}
-											className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+											className={`flex items-center justify-between p-3 rounded-sm border transition-all ${
 												isAssigned
 													? "border-[#002388]/20 bg-[#002388]/5"
-													: "border-slate-100 hover:border-slate-200"
+													: "border-slate-100 hover:border-border"
 											}`}
 										>
 											<div className="flex items-center gap-3">
@@ -187,10 +187,10 @@ export default function ManageAssignmentsSheet({
 									return (
 										<div
 											key={lec.id}
-											className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+											className={`flex items-center justify-between p-3 rounded-sm border transition-all ${
 												isAssigned
 													? "border-[#002388]/20 bg-[#002388]/5"
-													: "border-slate-100 hover:border-slate-200"
+													: "border-slate-100 hover:border-border"
 											}`}
 										>
 											<div className="flex items-center gap-3">
