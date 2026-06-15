@@ -351,8 +351,8 @@ model AssessmentAttempt {
   status        AttemptStatus @default(IN_PROGRESS)
   score         Float?
   attemptNumber Int
-  questionOrder Json          @default("[]")
-  tabSwitchLog  Json          @default("[]")
+  questionOrder      Json      @default("[]")
+  tabSwitchLog       Json      @default("[]")
 
   answers StudentAnswer[]
 
@@ -372,9 +372,11 @@ model StudentAnswer {
   selectedOption Int?
   fileUrl        String?
   answerHash     String?
-  lecturerNotes  String?           @map("lecturer_notes")
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  lecturerNotes          String?   @map("lecturer_notes")
+  lecturerAdjustedScore  Float?    @map("lecturer_adjusted_score")
+  lecturerAdjustReason   String?   @map("lecturer_adjust_reason")
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   @@unique([attemptId, questionId])
   @@map("student_answers")

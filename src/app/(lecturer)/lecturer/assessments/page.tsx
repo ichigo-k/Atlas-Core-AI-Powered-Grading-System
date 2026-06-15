@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
-import { ClipboardList } from "lucide-react"
+import { ClipboardList, Plus } from "lucide-react"
+import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import AssessmentsClient from "./AssessmentsClient"
@@ -57,6 +58,12 @@ export default function LecturerAssessmentsPage() {
             Create and manage exams, quizzes, and assignments for your courses.
           </p>
         </div>
+        <Link
+          href="/lecturer/assessments/new"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-sm text-[12px] font-semibold hover:bg-[#001570] transition-colors"
+        >
+          <Plus size={13} /> New Assessment
+        </Link>
       </div>
 
       <Suspense

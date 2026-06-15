@@ -260,22 +260,21 @@ export default function AssessmentForm({
   }
 
   return (
-    <div className="mx-auto max-w-4xl w-full pb-16">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16">
       {/* Header */}
-      <div className="space-y-6 mb-10">
-        <Link
-          href="/lecturer/assessments"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-[#002388] transition-colors"
-        >
-          <ArrowLeft size={13} />
-          Back to Assessments
-        </Link>
-
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">
+          <Link
+            href="/lecturer/assessments"
+            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors mb-1.5"
+          >
+            <ArrowLeft size={12} />
+            Back to Assessments
+          </Link>
+          <h1 className="text-xl font-semibold text-[#1e293b]">
             {isEditing ? "Edit Assessment" : "New Assessment"}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-[12px] text-muted-foreground mt-0.5">
             {isEditing
               ? "Update your assessment configuration and content."
               : "Set up a new assessment for your courses."}
@@ -284,7 +283,7 @@ export default function AssessmentForm({
       </div>
 
       {/* Step indicator */}
-      <div className="mb-10">
+      <div className="mb-8 rounded-sm border border-border bg-white px-5 py-4">
         <div className="flex items-center">
           {STEPS.map((s, i) => {
             const isActive = i === step
@@ -298,26 +297,26 @@ export default function AssessmentForm({
                   className="flex items-center gap-2.5 outline-none"
                 >
                   <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-medium transition-all ${
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-all ${
                       isDone
-                        ? "border-[#002388] bg-[#002388] text-white"
+                        ? "border-primary bg-primary text-white"
                         : isActive
-                          ? "border-[#002388] bg-white text-[#002388]"
-                          : "border-slate-200 bg-white text-slate-400"
+                          ? "border-primary bg-white text-primary"
+                          : "border-border bg-white text-muted-foreground"
                     }`}
                   >
-                    {isDone ? <CheckCircle2 size={14} /> : i + 1}
+                    {isDone ? <CheckCircle2 size={13} /> : i + 1}
                   </div>
                   <span
-                    className={`text-sm transition-colors ${
-                      isActive ? "text-[#002388] font-medium" : isDone ? "text-slate-700" : "text-slate-400"
+                    className={`text-[13px] transition-colors ${
+                      isActive ? "text-primary font-semibold" : isDone ? "text-[#1e293b] font-medium" : "text-muted-foreground"
                     }`}
                   >
                     {s.label}
                   </span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <div className={`mx-3 h-px flex-1 transition-colors ${isDone ? "bg-[#002388]" : "bg-slate-200"}`} />
+                  <div className={`mx-3 h-px flex-1 transition-colors ${isDone ? "bg-primary" : "bg-border"}`} />
                 )}
               </div>
             )
@@ -326,7 +325,7 @@ export default function AssessmentForm({
       </div>
 
       {/* Step content */}
-      <div className="space-y-8">
+      <div className="space-y-5">
         {step === 0 && (
           <Step1Basics
             state={step1}
@@ -366,20 +365,20 @@ export default function AssessmentForm({
 
         {/* Navigation footer */}
         {step < 3 && (
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-between pt-4 border-t border-border">
             <Button
               type="button"
               variant="ghost"
               onClick={handleBack}
               disabled={step === 0}
-              className="h-9 px-4 text-slate-500 hover:text-slate-900 disabled:opacity-0"
+              className="h-8 px-4 text-[13px] text-muted-foreground hover:text-[#1e293b] disabled:opacity-0"
             >
               Previous
             </Button>
             <Button
               type="button"
               onClick={handleContinue}
-              className="h-9 px-5 bg-[#002388] hover:bg-[#0B4DBB] text-white font-medium"
+              className="h-8 px-4 bg-primary hover:bg-[#001570] text-white text-[13px] font-semibold rounded-sm"
             >
               Continue to {STEPS[step + 1].label}
             </Button>

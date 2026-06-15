@@ -10,39 +10,41 @@ import type { LecturerCourse } from "@/lib/assessment-types"
 
 function FormSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl w-full pb-16 space-y-10 animate-pulse">
-      <div className="space-y-2">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16 space-y-8 animate-pulse">
+      <div className="space-y-1.5">
         <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-64" />
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-3 w-64" />
       </div>
       {/* stepper */}
-      <div className="flex items-center gap-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="flex items-center gap-2 flex-1 last:flex-none">
-            <Skeleton className="h-7 w-7 rounded-full shrink-0" />
-            <Skeleton className="h-4 w-14" />
-            {i < 3 && <Skeleton className="h-px flex-1" />}
-          </div>
-        ))}
-      </div>
-      {/* form card */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-5">
-        <Skeleton className="h-3 w-36" />
-        <div className="grid grid-cols-2 gap-5">
+      <div className="rounded-sm border border-border bg-white px-5 py-4">
+        <div className="flex items-center gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-1.5">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-10 w-full rounded-lg" />
+            <div key={i} className="flex items-center gap-2 flex-1 last:flex-none">
+              <Skeleton className="h-6 w-6 rounded-full shrink-0" />
+              <Skeleton className="h-3.5 w-14" />
+              {i < 3 && <Skeleton className="h-px flex-1" />}
             </div>
           ))}
         </div>
       </div>
-      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
+      {/* form card */}
+      <div className="rounded-sm border border-border bg-white p-5 space-y-4">
+        <Skeleton className="h-3 w-36" />
+        <div className="grid grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="space-y-1.5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-9 w-full rounded-sm" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-sm border border-border bg-white p-5 space-y-4">
         <Skeleton className="h-3 w-40" />
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-lg" />
+            <Skeleton key={i} className="h-16 rounded-sm" />
           ))}
         </div>
       </div>

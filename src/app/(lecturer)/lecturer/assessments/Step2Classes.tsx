@@ -18,7 +18,7 @@ interface Step2ClassesProps {
 
 function SectionHeader({ label }: { label: string }) {
   return (
-    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-4">
+    <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-4">
       {label}
     </p>
   )
@@ -49,14 +49,14 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Assign Classes */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-sm border border-border bg-white p-5">
         <SectionHeader label="Assign Classes" />
 
         {classes.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center">
-            <p className="text-sm text-slate-400">
+          <div className="rounded-sm border border-dashed border-border bg-[#f3f2f1] px-6 py-10 text-center">
+            <p className="text-[13px] text-muted-foreground">
               {selectedCourse
                 ? `No classes are assigned to ${selectedCourse.code}.`
                 : "Select a course in Step 1 first."}
@@ -65,34 +65,34 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
         ) : (
           <div className="space-y-3">
             <div className="relative max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Search classes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 h-9 border-slate-200 bg-white text-sm focus-visible:ring-[#002388]/30"
+                className="pl-8 h-9 rounded-sm border-border bg-white text-[13px] focus-visible:ring-primary/30"
               />
             </div>
 
-            <div className="rounded-lg border border-slate-200 overflow-hidden">
+            <div className="rounded-sm border border-border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-[#f3f2f1] border-b border-border">
                   <tr>
-                    <th className="px-4 py-2.5 w-12 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 w-12 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.05em]">
                       Select
                     </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.05em]">
                       Class Name
                     </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.05em]">
                       Level
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-4 py-8 text-center text-sm text-slate-400">
+                      <td colSpan={3} className="px-4 py-8 text-center text-[13px] text-muted-foreground">
                         No classes found
                       </td>
                     </tr>
@@ -102,15 +102,15 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
                       return (
                         <tr
                           key={cls.id}
-                          className={`transition-colors cursor-pointer hover:bg-slate-50 ${isSelected ? "bg-[#002388]/5" : ""}`}
+                          className={`transition-colors cursor-pointer hover:bg-slate-50/60 ${isSelected ? "bg-[#dce6f7]" : ""}`}
                           onClick={() => toggleClass(cls.id, cls.name, cls.level)}
                         >
                           <td className="px-4 py-3 text-center">
                             <div
-                              className={`flex h-4 w-4 mx-auto items-center justify-center rounded border transition-all ${
+                              className={`flex h-4 w-4 mx-auto items-center justify-center rounded-sm border transition-all ${
                                 isSelected
-                                  ? "bg-[#002388] border-[#002388] text-white"
-                                  : "border-slate-300 bg-white"
+                                  ? "bg-primary border-primary text-white"
+                                  : "border-border bg-white"
                               }`}
                             >
                               {isSelected && (
@@ -120,8 +120,8 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-slate-900">{cls.name}</td>
-                          <td className="px-4 py-3 text-slate-500">Level {cls.level}</td>
+                          <td className="px-4 py-3 text-[13px] text-[#1e293b]">{cls.name}</td>
+                          <td className="px-4 py-3 text-[13px] text-muted-foreground">Level {cls.level}</td>
                         </tr>
                       )
                     })
@@ -131,38 +131,38 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
             </div>
 
             {state.selectedClasses.length > 0 && (
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 {state.selectedClasses.length} class{state.selectedClasses.length !== 1 ? "es" : ""} selected
               </p>
             )}
           </div>
         )}
 
-        {errors.classes && <p className="text-xs text-rose-500 mt-2">{errors.classes}</p>}
+        {errors.classes && <p className="text-[11px] text-rose-500 mt-2">{errors.classes}</p>}
       </div>
 
       {/* Location Restriction */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-sm border border-border bg-white p-5">
         <SectionHeader label="Location Restriction" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => onChange({ isLocationBound: false, location: "" })}
-            className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-3 p-3.5 rounded-sm border text-left transition-all ${
               !state.isLocationBound
-                ? "border-[#002388] bg-[#002388]/5"
-                : "border-slate-200 bg-white hover:border-slate-300"
+                ? "border-primary bg-[#dce6f7]"
+                : "border-border bg-white hover:bg-[#f3f2f1]"
             }`}
           >
             <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
-              !state.isLocationBound ? "border-[#002388]" : "border-slate-300"
+              !state.isLocationBound ? "border-primary" : "border-border"
             }`}>
-              {!state.isLocationBound && <div className="h-2 w-2 rounded-full bg-[#002388]" />}
+              {!state.isLocationBound && <div className="h-2 w-2 rounded-full bg-primary" />}
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-900">Anywhere</p>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-[13px] font-semibold text-[#1e293b]">Anywhere</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                 Students can take this from any location.
               </p>
             </div>
@@ -171,20 +171,20 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
           <button
             type="button"
             onClick={() => onChange({ isLocationBound: true })}
-            className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-3 p-3.5 rounded-sm border text-left transition-all ${
               state.isLocationBound
-                ? "border-[#002388] bg-[#002388]/5"
-                : "border-slate-200 bg-white hover:border-slate-300"
+                ? "border-primary bg-[#dce6f7]"
+                : "border-border bg-white hover:bg-[#f3f2f1]"
             }`}
           >
             <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
-              state.isLocationBound ? "border-[#002388]" : "border-slate-300"
+              state.isLocationBound ? "border-primary" : "border-border"
             }`}>
-              {state.isLocationBound && <div className="h-2 w-2 rounded-full bg-[#002388]" />}
+              {state.isLocationBound && <div className="h-2 w-2 rounded-full bg-primary" />}
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-900">Location-Bound</p>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-[13px] font-semibold text-[#1e293b]">Location-Bound</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                 Restrict to a specific campus hall or exam room.
               </p>
             </div>
@@ -193,7 +193,7 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
 
         {state.isLocationBound && (
           <div className="mt-4 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Label htmlFor="location" className="text-xs text-slate-600">
+            <Label htmlFor="location" className="text-[12px] text-muted-foreground">
               Required Location <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -201,9 +201,9 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
               value={state.location}
               onChange={(e) => onChange({ location: e.target.value })}
               placeholder="e.g. Lecture Hall A, Room 204"
-              className="h-10 border-slate-200 bg-white focus-visible:ring-[#002388]/30"
+              className="h-9 rounded-sm border-border bg-white focus-visible:ring-primary/30 text-[13px]"
             />
-            {errors.location && <p className="text-xs text-rose-500 mt-1">{errors.location}</p>}
+            {errors.location && <p className="text-[11px] text-rose-500 mt-1">{errors.location}</p>}
           </div>
         )}
       </div>

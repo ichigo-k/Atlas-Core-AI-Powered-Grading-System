@@ -51,13 +51,15 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   searchKey?: string
   placeholder?: string
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
-  placeholder = "Search..."
+  placeholder = "Search...",
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -163,7 +165,8 @@ export function DataTable<TData, TValue>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className="group hover:bg-slate-50/60 transition-colors border-b border-[#f1f5f9] last:border-0"
+                    className={`group hover:bg-slate-50/60 transition-colors border-b border-[#f1f5f9] last:border-0 ${onRowClick ? "cursor-pointer" : ""}`}
+                    onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-5 py-3.5">
