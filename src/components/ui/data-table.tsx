@@ -99,18 +99,18 @@ export function DataTable<TData, TValue>({
             onChange={(event) =>
               table.getColumn(searchKey || "")?.setFilterValue(event.target.value)
             }
-            className="pl-9 h-10 rounded-xl border-slate-200 focus-visible:ring-[#002388] focus-visible:border-[#002388]"
+            className="pl-9 h-10 rounded-sm border-border focus-visible:ring-primary focus-visible:border-primary text-[12px]"
           />
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-auto h-10 gap-2 rounded-xl border-slate-200 text-slate-600 font-semibold text-[11px] uppercase tracking-wider hover:bg-slate-50">
+              <Button variant="outline" size="sm" className="ml-auto h-10 gap-2 rounded-sm border-border text-[#323130] font-semibold text-[11px] uppercase tracking-wider hover:bg-slate-50">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 View
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[180px] rounded-xl">
+            <DropdownMenuContent align="end" className="w-[180px] rounded-sm">
               <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Toggle Columns</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {table
@@ -134,140 +134,93 @@ export function DataTable<TData, TValue>({
       </div>
 
       {isMobile ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-16 px-6 text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 text-[#002388]">
+        <div className="flex flex-col items-center justify-center rounded-sm border border-dashed border-border bg-white py-16 px-6 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-primary">
             <Monitor size={24} />
           </div>
-          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Desktop Required</h3>
-          <p className="mt-2 text-xs leading-relaxed text-slate-500 max-w-[280px]">
-            This administrative table contains complex data structures. For the best management experience, please switch to a desktop computer.
+          <p className="text-[14px] font-semibold text-[#1e293b]">Desktop Required</p>
+          <p className="mt-2 text-[12px] text-muted-foreground max-w-[280px]">
+            This table is best viewed on a desktop. Please switch to a larger screen.
           </p>
         </div>
       ) : (
-        <>
-          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} className="h-12">
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      )
-                    })}
+        <div className="rounded-sm border border-border bg-white overflow-hidden">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="bg-slate-50/80 hover:bg-slate-50/80 border-b border-border">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="h-11 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="group hover:bg-slate-50/60 transition-colors border-b border-[#f1f5f9] last:border-0"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="px-5 py-3.5">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
                   </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                      className="group hover:bg-slate-50/50 transition-colors"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-32 text-center text-slate-500 font-medium"
-                    >
-                      No results found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between px-2 py-4">
-            <div className="text-xs font-medium text-slate-500">
-              {table.getFilteredSelectedRowModel().rows.length} of{" "}
-              {table.getFilteredRowModel().rows.length} row(s) selected.
-            </div>
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 lg:gap-8">
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-[13px] text-muted-foreground">
+                    No results found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+
+          {/* Pagination — inside the card */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border bg-slate-50/50 px-5 py-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            </span>
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rows</p>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Rows</span>
                 <Select
                   value={`${table.getState().pagination.pageSize}`}
-                  onValueChange={(value) => {
-                    table.setPageSize(Number(value))
-                  }}
+                  onValueChange={(value) => table.setPageSize(Number(value))}
                 >
-                  <SelectTrigger className="h-8 w-[70px] rounded-lg border-slate-200 text-xs font-semibold">
-                    <SelectValue placeholder={table.getState().pagination.pageSize} />
+                  <SelectTrigger className="h-8 w-16 rounded-sm border-border text-[11px] font-semibold">
+                    <SelectValue />
                   </SelectTrigger>
-                  <SelectContent side="top" className="rounded-xl">
+                  <SelectContent side="top" className="rounded-sm">
                     {[10, 20, 30, 40, 50].map((pageSize) => (
-                      <SelectItem key={pageSize} value={`${pageSize}`} className="text-xs font-medium">
-                        {pageSize}
-                      </SelectItem>
+                      <SelectItem key={pageSize} value={`${pageSize}`} className="text-[11px] font-medium">{pageSize}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                Page {table.getState().pagination.pageIndex + 1} of{" "}
-                {table.getPageCount()}
-              </div>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  className="hidden h-8 w-8 p-0 lg:flex rounded-lg border-slate-200"
-                  onClick={() => table.setPageIndex(0)}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <span className="sr-only">Go to first page</span>
+                <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-border" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0 rounded-lg border-slate-200"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <span className="sr-only">Go to previous page</span>
+                <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-border" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0 rounded-lg border-slate-200"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  <span className="sr-only">Go to next page</span>
+                <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-border" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  className="hidden h-8 w-8 p-0 lg:flex rounded-lg border-slate-200"
-                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                  disabled={!table.getCanNextPage()}
-                >
-                  <span className="sr-only">Go to last page</span>
+                <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-border" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

@@ -45,7 +45,7 @@ export default function DashboardCharts({ typeCounts }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
+    <div className="rounded-sm border border-border bg-white p-5">
       <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-5">
         Assessment Breakdown
       </p>

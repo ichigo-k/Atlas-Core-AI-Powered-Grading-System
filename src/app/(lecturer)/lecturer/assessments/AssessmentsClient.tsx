@@ -32,16 +32,16 @@ interface AssessmentsClientProps {
   assessments: AssessmentListItem[]
 }
 
-const typeBadge: Record<AssessmentTypeEnum, string> = {
-  EXAM: "bg-red-50 text-red-700 border-red-200",
-  QUIZ: "bg-amber-50 text-amber-700 border-amber-200",
-  ASSIGNMENT: "bg-blue-50 text-blue-700 border-blue-200",
+const typeStyle: Record<AssessmentTypeEnum, { bg: string; text: string }> = {
+  EXAM:       { bg: "#fee2e2", text: "#991b1b" },
+  QUIZ:       { bg: "#fef9c3", text: "#854d0e" },
+  ASSIGNMENT: { bg: "#dcfce7", text: "#166534" },
 }
 
-const statusBadge: Record<AssessmentStatusEnum, string> = {
-  DRAFT: "bg-slate-100 text-slate-600 border-slate-200",
-  PUBLISHED: "bg-green-50 text-green-700 border-green-200",
-  CLOSED: "bg-slate-200 text-slate-500 border-slate-300",
+const statusStyle: Record<AssessmentStatusEnum, { bg: string; text: string; dot: string }> = {
+  DRAFT:     { bg: "#f1f5f9", text: "#475569", dot: "#94a3b8" },
+  PUBLISHED: { bg: "#dcfce7", text: "#166534", dot: "#22c55e" },
+  CLOSED:    { bg: "#f1f5f9", text: "#64748b", dot: "#94a3b8" },
 }
 
 export default function AssessmentsClient({ assessments }: AssessmentsClientProps) {
@@ -127,19 +127,22 @@ export default function AssessmentsClient({ assessments }: AssessmentsClientProp
       ),
       cell: ({ row }) => (
         <div className="min-w-0">
-          <p className="font-medium text-slate-900 truncate">{row.getValue("title")}</p>
-          <p className="text-[10px] text-slate-400 uppercase tracking-tight mt-0.5">{row.original.courseCode}</p>
+          <p className="text-[13px] font-semibold text-[#1e293b] truncate">{row.getValue("title")}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{row.original.courseCode}</p>
         </div>
       ),
     },
     {
       accessorKey: "type",
       header: "Type",
-      cell: ({ row }) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${typeBadge[row.original.type]}`}>
-          {row.original.type}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const s = typeStyle[row.original.type]
+        return (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-[0.04em]" style={{ background: s.bg, color: s.text }}>
+            {row.original.type}
+          </span>
+        )
+      },
     },
     {
       accessorKey: "status",
@@ -148,8 +151,10 @@ export default function AssessmentsClient({ assessments }: AssessmentsClientProp
         const a = row.original
         const effectiveStatus =
           a.status === "PUBLISHED" && new Date() > new Date(a.endsAt) ? "CLOSED" : a.status
+        const s = statusStyle[effectiveStatus]
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${statusBadge[effectiveStatus]}`}>
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-[0.04em]" style={{ background: s.bg, color: s.text }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
             {effectiveStatus}
           </span>
         )
@@ -159,7 +164,7 @@ export default function AssessmentsClient({ assessments }: AssessmentsClientProp
       accessorKey: "classCount",
       header: "Classes",
       cell: ({ row }) => (
-        <span className="text-sm text-slate-700">{row.original.classCount}</span>
+        <span className="text-[13px] text-[#1e293b]">{row.original.classCount}</span>
       ),
     },
     {
@@ -175,14 +180,14 @@ export default function AssessmentsClient({ assessments }: AssessmentsClientProp
         </Button>
       ),
       cell: ({ row }) => (
-        <span className="text-xs text-slate-600">{format(new Date(row.original.startsAt), "MMM d, yyyy HH:mm")}</span>
+        <span className="text-[11px] text-muted-foreground">{format(new Date(row.original.startsAt), "MMM d, yyyy HH:mm")}</span>
       ),
     },
     {
       accessorKey: "endsAt",
       header: "Ends",
       cell: ({ row }) => (
-        <span className="text-xs text-slate-600">{format(new Date(row.original.endsAt), "MMM d, yyyy HH:mm")}</span>
+        <span className="text-[11px] text-muted-foreground">{format(new Date(row.original.endsAt), "MMM d, yyyy HH:mm")}</span>
       ),
     },
     {
@@ -195,32 +200,30 @@ export default function AssessmentsClient({ assessments }: AssessmentsClientProp
         return (
           <div className="flex items-center justify-end gap-1">
             {effectiveStatus === "DRAFT" && (
-              <Button
-                size="sm"
-                variant="outline"
+              <button
+                type="button"
                 disabled={isLoading}
                 onClick={() => handleStatusTransition(a.id, "PUBLISHED")}
-                className="h-7 px-2 text-[10px] font-medium text-green-700 border-green-200 hover:bg-green-50 rounded-lg"
+                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-sm text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors disabled:opacity-50"
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
+                <CheckCircle className="h-3 w-3" />
                 Publish
-              </Button>
+              </button>
             )}
             {effectiveStatus === "PUBLISHED" && (
-              <Button
-                size="sm"
-                variant="outline"
+              <button
+                type="button"
                 disabled={isLoading}
                 onClick={() => setCloseTarget(a)}
-                className="h-7 px-2 text-[10px] font-medium text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
+                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-sm text-[11px] font-semibold border border-border text-[#323130] hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                <XCircle className="h-3 w-3 mr-1" />
+                <XCircle className="h-3 w-3" />
                 Close
-              </Button>
+              </button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
+                <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all">
                   <MoreVertical size={15} />
                 </button>
               </DropdownMenuTrigger>
@@ -260,13 +263,13 @@ export default function AssessmentsClient({ assessments }: AssessmentsClientProp
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex justify-end">
         <button
           onClick={() => router.push("/lecturer/assessments/new")}
-          className="flex items-center gap-2 rounded-xl bg-[#002388] px-4 py-2.5 text-sm text-white hover:bg-[#0B4DBB] transition-colors"
+          className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
         >
-          <Plus size={16} />
+          <Plus size={14} />
           New Assessment
         </button>
       </div>

@@ -11,6 +11,7 @@ import {
   Zap,
   BookOpen,
   Award,
+  ClipboardList,
 } from "lucide-react"
 import { getSession } from "@/lib/session"
 import { prisma } from "@/lib/prisma"
@@ -55,13 +56,13 @@ type QuestionWithMeta = {
 function ScoreBar({ score, max }: { score: number; max: number }) {
   const pct = max > 0 ? Math.round((score / max) * 100) : 0
   const color =
-    pct >= 70 ? "bg-[#23A559]" : pct >= 50 ? "bg-[#F0B132]" : pct >= 20 ? "bg-[#F97316]" : "bg-[#F23F42]"
+    pct >= 70 ? "bg-[#10B981]" : pct >= 50 ? "bg-[#F59E0B]" : pct >= 20 ? "bg-[#F97316]" : "bg-[#EF4444]"
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-1000 ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-[11px] font-black text-slate-900 tabular-nums w-10 text-right">
+      <span className="text-[11px] font-semibold text-[#1e293b] tabular-nums w-10 text-right">
         {pct}%
       </span>
     </div>
@@ -77,46 +78,46 @@ function McqQuestion({ q }: { q: QuestionWithMeta }) {
   const isCorrect = selected !== null && selected === correct
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-2">
+    <div className="space-y-3">
+      <div className="grid gap-1.5">
         {options.map((opt, i) => {
           const isSelected = selected === i
           const isCorrectOpt = correct === i
           let cls =
-            "flex items-start gap-3 rounded-xl border-2 px-4 py-3 text-sm font-bold transition-all w-full "
+            "flex items-start gap-3 rounded-sm border px-3 py-2 text-[12px] font-semibold transition-all w-full "
           if (isCorrectOpt)
-            cls += "border-[#23A559]/20 bg-[#E6F4EA] text-[#23A559]"
+            cls += "border-emerald-200 bg-emerald-50 text-emerald-800"
           else if (isSelected && !isCorrectOpt)
-            cls += "border-[#F23F42]/20 bg-[#FEE7E9] text-[#F23F42]"
-          else cls += "border-slate-100 bg-slate-50 text-slate-600"
+            cls += "border-red-200 bg-red-50 text-red-800"
+          else cls += "border-border bg-white text-slate-600 hover:bg-slate-50"
 
           return (
             <div key={i} className={cls}>
-              <span className="shrink-0 font-black text-[10px] mt-0.5 w-5 h-5 flex items-center justify-center rounded bg-white/50 border border-current/10">
+              <span className="shrink-0 font-bold text-[10px] mt-0.5 w-5 h-5 flex items-center justify-center rounded-sm bg-slate-100 border border-border text-[#1e293b]">
                 {String.fromCharCode(65 + i)}
               </span>
               <span className="flex-1 leading-tight mt-0.5">{opt}</span>
               {isCorrectOpt && (
-                <CheckCircle2 size={16} className="shrink-0 text-[#23A559]" strokeWidth={3} />
+                <CheckCircle2 size={14} className="shrink-0 text-emerald-600" strokeWidth={2} />
               )}
               {isSelected && !isCorrectOpt && (
-                <XCircle size={16} className="shrink-0 text-[#F23F42]" strokeWidth={3} />
+                <XCircle size={14} className="shrink-0 text-red-600" strokeWidth={2} />
               )}
             </div>
           )
         })}
       </div>
       {selected === null && (
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic px-1">No answer selected</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground italic px-1">No answer selected</p>
       )}
       <div className="flex items-center gap-2 px-1 pt-1">
         {isCorrect ? (
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#23A559]">
-            <CheckCircle2 size={12} strokeWidth={3} /> Correct — {q.marks} Marks awarded
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+            <CheckCircle2 size={12} strokeWidth={2} /> Correct — {q.marks} Marks awarded
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#F23F42]">
-            <XCircle size={12} strokeWidth={3} /> Incorrect — 0 Marks awarded
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-600">
+            <XCircle size={12} strokeWidth={2} /> Incorrect — 0 Marks awarded
           </span>
         )}
       </div>
@@ -137,27 +138,27 @@ function SubjectiveQuestion({ q }: { q: QuestionWithMeta }) {
           href={q.answer.fileUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2.5 rounded-xl border-2 border-discord-blurple/10 bg-discord-blurple/5 px-4 py-3 text-xs font-black uppercase tracking-widest text-discord-blurple hover:bg-discord-blurple/10 transition-all shadow-sm"
+          className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-slate-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-700 hover:bg-slate-100 transition-colors shadow-sm"
         >
-          <FileText size={16} strokeWidth={3} />
+          <FileText size={14} strokeWidth={2} />
           View attachment
         </a>
       ) : q.answer?.answerText ? (
-        <div className="rounded-2xl border-2 border-slate-100 bg-slate-50/50 px-5 py-4 text-sm font-bold text-slate-700 leading-relaxed whitespace-pre-wrap">
+        <div className="rounded-sm border border-border bg-slate-50/50 px-4 py-3 text-[12px] font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">
           {q.answer.answerText}
         </div>
       ) : (
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic px-1">No answer provided</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground italic px-1">No answer provided</p>
       )}
 
       {/* AI feedback */}
       {fb ? (
-        <div className="discord-card !bg-slate-50/30">
+        <div className="bg-white border border-border rounded-sm overflow-hidden">
           {/* Score header */}
-          <div className="flex items-center justify-between px-5 py-4 bg-slate-100/50 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-border">
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <span className="text-xs font-black text-slate-900 uppercase tracking-widest shrink-0">
-                {fb.totalScore} / {fb.maxScore} <span className="text-slate-400 font-bold ml-0.5">pts</span>
+              <span className="text-[11px] font-semibold text-[#1e293b] uppercase tracking-wider shrink-0">
+                {fb.totalScore} / {fb.maxScore} <span className="text-slate-400 font-medium ml-0.5">pts</span>
               </span>
               <div className="flex-1 min-w-0">
                 <ScoreBar score={fb.totalScore} max={fb.maxScore} />
@@ -165,69 +166,69 @@ function SubjectiveQuestion({ q }: { q: QuestionWithMeta }) {
             </div>
             <div className="flex items-center gap-2 ml-4 shrink-0">
               {fb.bedrockError && (
-                <span className="inline-flex items-center gap-1 rounded-lg bg-[#FFF4E5] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#F0B132] border border-[#F0B132]/20">
-                  <Zap size={10} strokeWidth={3} /> AI ERROR
+                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-sm px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+                  <Zap size={10} strokeWidth={2} /> AI ERROR
                 </span>
               )}
               {fb.flag && (
-                <span className="inline-flex items-center gap-1 rounded-lg bg-[#FEE7E9] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#F23F42] border border-[#F23F42]/20">
-                  <ShieldAlert size={10} strokeWidth={3} /> {fb.flag}
+                <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 rounded-sm px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+                  <ShieldAlert size={10} strokeWidth={2} /> {fb.flag}
                 </span>
               )}
-              <ChevronDown size={16} className="text-slate-400" strokeWidth={2.5} />
+              <ChevronDown size={14} className="text-slate-400" strokeWidth={2} />
             </div>
           </div>
 
-          <div className="divide-y divide-slate-100/50">
+          <div className="divide-y divide-slate-100">
             {/* Flag reason */}
             {fb.flagReason && (
-              <div className="flex items-start gap-3 px-5 py-4 bg-[#FEE7E9]/40">
-                <AlertTriangle size={14} className="shrink-0 text-[#F23F42] mt-0.5" strokeWidth={3} />
-                <p className="text-xs font-bold text-[#F23F42] uppercase tracking-tight">{fb.flagReason}</p>
+              <div className="flex items-start gap-2.5 px-4 py-2.5 bg-red-50/50 border-b border-red-100">
+                <AlertTriangle size={14} className="shrink-0 text-red-600 mt-0.5" strokeWidth={2} />
+                <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide">{fb.flagReason}</p>
               </div>
             )}
 
             {/* Per-criterion breakdown */}
             {fb.criteriaFeedback.length > 0 ? (
               fb.criteriaFeedback.map((c, i) => (
-                <div key={i} className="px-5 py-4 space-y-2">
+                <div key={i} className="px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-[0.1em] flex-1">
+                    <span className="text-[9px] font-semibold text-slate-600 uppercase tracking-wide flex-1">
                       {c.criterion}
                     </span>
-                    <span className="text-[10px] font-black text-slate-500 shrink-0 tabular-nums bg-slate-100 px-2 py-0.5 rounded">
+                    <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-sm">
                       {c.awarded} / {c.max}
                     </span>
                   </div>
                   <ScoreBar score={c.awarded} max={c.max} />
                   {c.justification && (
-                    <p className="text-xs font-bold text-slate-500 leading-relaxed italic">
+                    <p className="text-[11px] font-medium text-muted-foreground leading-relaxed italic">
                       "{c.justification}"
                     </p>
                   )}
                 </div>
               ))
             ) : (
-              <div className="px-5 py-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-center">Breakdown Unavailable</p>
+              <div className="px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground italic text-center">Breakdown Unavailable</p>
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border-2 border-dashed border-slate-100 px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-center">
+        <div className="rounded-sm border border-dashed border-border bg-slate-50/30 px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground italic text-center">
           Awaiting AI Grading
         </div>
       )}
 
       {/* Lecturer notes */}
       {q.answer?.lecturerNotes && (
-        <div className="discord-card !border-discord-blurple/20 !bg-discord-blurple/5">
-          <div className="px-5 py-3 bg-discord-blurple/10 border-b border-discord-blurple/10">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-discord-blurple">Lecturer Feedback</span>
+        <div className="bg-white border border-primary/20 bg-primary/5 rounded-sm overflow-hidden">
+          <div className="px-4 py-2 bg-primary/10 border-b border-primary/10">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-primary">Lecturer Feedback</span>
           </div>
-          <div className="px-5 py-4">
-            <p className="text-sm font-bold text-slate-700 whitespace-pre-wrap italic">
+          <div className="px-4 py-3">
+            <p className="text-[12px] font-semibold text-slate-700 whitespace-pre-wrap italic">
               {q.answer.lecturerNotes}
             </p>
           </div>
@@ -351,71 +352,86 @@ export default async function AssessmentReviewPage({
       : null
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-12">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
       {/* Back nav */}
-      <Link
-        href={`/student/assessments/${assessmentId}`}
-        className="group inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-discord-blurple transition-all"
-      >
-        <ChevronLeft size={16} strokeWidth={3} className="group-hover:-translate-x-1 transition-transform" />
-        Back to Assessment
-      </Link>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+            <ClipboardList size={11} />
+            <span>Student</span>
+            <span>›</span>
+            <span>Assessments</span>
+            <span>›</span>
+            <span>Review</span>
+          </div>
+          <h1 className="text-xl font-semibold text-[#1e293b]">
+            Assessment Review
+          </h1>
+        </div>
+        <Link
+          href={`/student/assessments/${assessmentId}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-sm text-[12px] font-medium text-[#323130] hover:bg-slate-50 transition-colors"
+        >
+          <ChevronLeft size={13} />
+          Back to Assessment
+        </Link>
+      </div>
 
       {/* Header card */}
-      <div className="discord-card p-8 space-y-8">
+      <div className="bg-white border border-border rounded-sm p-6 space-y-5">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-tight uppercase">{assessment.title}</h1>
-          <p className="mt-3 flex items-center gap-2.5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            <BookOpen size={16} className="text-discord-blurple" strokeWidth={2.5} />
+          <h1 className="text-lg font-bold text-[#1e293b] leading-tight">{assessment.title}</h1>
+          <p className="mt-1.5 flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <BookOpen size={12} className="text-primary" strokeWidth={2} />
             {assessment.courseTitle}
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-            {assessment.courseCode}
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+            <span className="text-[#1e293b]">{assessment.courseCode}</span>
           </p>
         </div>
 
         {/* Score summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 border-t border-slate-100 pt-8">
-          <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 border-t border-[#f1f5f9] pt-5">
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Your Performance
             </p>
             {score != null ? (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-4xl font-black text-slate-900 leading-none">{score}</span>
-                <span className="text-xl font-bold text-slate-300 leading-none">/ {assessment.totalMarks}</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-[#1e293b] leading-none">{score}</span>
+                <span className="text-sm font-semibold text-slate-400 leading-none">/ {assessment.totalMarks}</span>
               </div>
             ) : (
-              <p className="text-sm font-bold text-slate-400 italic">Not yet scored</p>
+              <p className="text-sm font-semibold text-slate-400 italic">Not yet scored</p>
             )}
           </div>
 
-          <div className="flex flex-col justify-center gap-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Completion Pct</p>
+          <div className="flex flex-col justify-center gap-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Pct</p>
             {scorePct !== null && score != null ? (
                <ScoreBar score={score} max={assessment.totalMarks} />
-            ) : <div className="h-2 bg-slate-100 rounded-full" />}
+            ) : <div className="h-2 bg-slate-100 rounded-sm" />}
           </div>
 
-          <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">
+          <div className="space-y-0.5 sm:text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-right">
               Final Grade
             </p>
-            <div className="flex justify-end">
+            <div className="flex sm:justify-end mt-1">
               {latestSubmitted.grade ? (
-                <div className="h-14 w-14 rounded-2xl bg-discord-blurple flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-discord-blurple/20">
+                <div className="h-10 w-10 rounded-sm bg-primary flex items-center justify-center text-white text-lg font-bold">
                   {latestSubmitted.grade}
                 </div>
               ) : (
-                <div className="h-14 w-14 rounded-2xl bg-slate-100" />
+                <div className="h-10 w-10 rounded-sm bg-slate-100 border border-border" />
               )}
             </div>
           </div>
         </div>
 
         {gradingDetail?.plagiarismFlagged && (
-          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#F23F42]/20 bg-[#FEE7E9] p-4">
-             <ShieldAlert size={24} className="text-[#F23F42]" strokeWidth={3} />
-             <p className="text-xs font-black uppercase tracking-widest text-[#F23F42]">SECURITY ALERT: PLAGIARISM DETECTED</p>
+          <div className="flex items-center gap-3 rounded-sm border border-red-100 bg-red-50 p-4">
+             <ShieldAlert size={16} className="text-red-600 shrink-0" strokeWidth={2} />
+             <p className="text-[11px] font-bold uppercase tracking-wider text-red-700">Security Alert: Plagiarism Detected</p>
           </div>
         )}
       </div>
@@ -424,28 +440,28 @@ export default async function AssessmentReviewPage({
       {sections.map((section) => (
         <div key={section.id} className="space-y-4">
           <div className="flex items-center gap-3 px-1">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-900">{section.name}</h2>
-            <div className="flex-1 h-px bg-slate-100" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded">{section.questions.length} Items</span>
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#1e293b]">{section.name}</h2>
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border border-border px-2 py-0.5 rounded-sm">{section.questions.length} Items</span>
           </div>
 
-          <div className="grid gap-6">
+          <div className="grid gap-4">
             {section.questions.map((q, qi) => (
-              <div key={q.id} className="discord-card p-6 space-y-6 transition-all hover:border-slate-300">
-                <div className="flex items-start justify-between gap-6">
-                  <div className="flex items-start gap-4 flex-1 min-w-0">
-                    <span className="shrink-0 flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg shadow-black/10">
+              <div key={q.id} className="bg-white border border-border rounded-sm p-5 space-y-4 transition-all hover:border-slate-300">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-sm bg-[#1e293b] text-white text-xs font-bold">
                       {qi + 1}
                     </span>
-                    <p className="text-base font-bold text-slate-800 leading-relaxed pt-0.5">{q.body}</p>
+                    <p className="text-sm font-semibold text-slate-800 leading-relaxed pt-0.5">{q.body}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-sm font-black text-slate-900 tabular-nums">{q.marks} Pts</p>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weighting</p>
+                    <p className="text-[12px] font-bold text-[#1e293b] tabular-nums">{q.marks} Pts</p>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Weighting</p>
                   </div>
                 </div>
 
-                <div className="pl-0 sm:pl-12 border-l-4 border-slate-100 sm:border-l-0">
+                <div className="pl-0 sm:pl-9">
                   {section.type === "OBJECTIVE" ? (
                     <McqQuestion q={q} />
                   ) : (
@@ -459,9 +475,9 @@ export default async function AssessmentReviewPage({
       ))}
 
       {sections.every((s) => s.questions.length === 0) && (
-        <div className="discord-card p-16 text-center">
-           <AlertTriangle size={48} className="text-slate-200 mx-auto mb-4" strokeWidth={3} />
-           <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Assessment data unavailable.</p>
+        <div className="bg-white border border-border rounded-sm p-16 text-center flex flex-col items-center gap-3">
+           <AlertTriangle size={36} className="text-slate-300" strokeWidth={2} />
+           <p className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wider">Assessment data unavailable.</p>
         </div>
       )}
     </div>

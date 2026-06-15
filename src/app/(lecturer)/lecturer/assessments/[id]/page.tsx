@@ -14,10 +14,10 @@ function DetailSkeleton() {
       {/* nav */}
       <div className="flex items-center justify-between">
         <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-8 w-16 rounded-lg" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
       </div>
       {/* hero */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3">
+      <div className="rounded-sm border border-slate-200 bg-white p-6 space-y-3">
         <div className="flex gap-2">
           <Skeleton className="h-5 w-14 rounded" />
           <Skeleton className="h-5 w-20 rounded" />
@@ -37,14 +37,14 @@ function DetailSkeleton() {
       {/* info grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className={`rounded-xl border border-slate-200 bg-white p-5 space-y-3 ${i === 2 ? "md:col-span-2" : ""}`}>
+          <div key={i} className={`rounded-sm border border-slate-200 bg-white p-5 space-y-3 ${i === 2 ? "md:col-span-2" : ""}`}>
             <Skeleton className="h-3 w-24" />
             {[...Array(4)].map((_, j) => <Skeleton key={j} className="h-4 w-full" />)}
           </div>
         ))}
       </div>
       {/* table */}
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-sm border border-slate-200 bg-white overflow-hidden">
         <div className="px-5 py-3.5 border-b border-slate-100">
           <Skeleton className="h-3 w-20" />
         </div>

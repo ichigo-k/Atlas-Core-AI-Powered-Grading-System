@@ -10,7 +10,7 @@ import type { AssessmentResultsData } from "./AssessmentResultsView"
 
 function ResultsSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl pb-16 space-y-6 animate-pulse">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12 animate-pulse">
       <Skeleton className="h-4 w-36" />
       {/* hero */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3">

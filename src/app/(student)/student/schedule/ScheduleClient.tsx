@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Clock, MapPin } from "lucide-react";
+import { CalendarDays, Clock, MapPin, CalendarClock } from "lucide-react";
 
 export type ScheduleItemSerialized = {
 	id: number;
@@ -30,6 +30,12 @@ function getTodayIso(): string {
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+const TYPE_BADGE: Record<string, { bg: string; text: string }> = {
+	EXAM:       { bg: "#fee2e2", text: "#991b1b" },
+	QUIZ:       { bg: "#fef9c3", text: "#854d0e" },
+	ASSIGNMENT: { bg: "#dcfce7", text: "#166534" },
+};
+
 export default function ScheduleClient({ items }: { items: ScheduleItemSerialized[] }) {
 	const router = useRouter();
 	const todayIso = getTodayIso();
@@ -49,7 +55,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 
 	const activeDates = useMemo(
 		() => Object.keys(grouped).filter((d) => d >= todayIso).sort().slice(0, 14),
-		[grouped, todayIso]
+		[grouped, todayIso],
 	);
 
 	const pills = useMemo(
@@ -63,7 +69,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 				count: grouped[iso]?.length ?? 0,
 			};
 		}),
-		[activeDates, grouped, todayIso]
+		[activeDates, grouped, todayIso],
 	);
 
 	useEffect(() => {
@@ -91,7 +97,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 					}
 				}
 			},
-			{ threshold: 0.4 }
+			{ threshold: 0.4 },
 		);
 		for (const date of activeDates) {
 			const el = sectionRefs.current[date];
@@ -101,86 +107,101 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 	}, [activeDates]);
 
 	return (
-		<div className="mx-auto max-w-6xl space-y-8 pb-12">
-			<header className="flex flex-col gap-1">
-				<h1 className="flex items-center gap-3 text-3xl font-black text-slate-900 tracking-tight">
-					<CalendarDays className="text-discord-blurple" size={32} strokeWidth={2.5} />
+		<div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+
+			{/* ── Page header ── */}
+			<div>
+				<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+					<CalendarClock size={11} />
+					<span>Student</span>
+					<span>›</span>
+					<span>Schedule</span>
+				</div>
+				<h1 className="text-xl font-semibold text-[#1e293b] flex items-center gap-2">
+					<CalendarDays size={18} className="text-primary" strokeWidth={2} />
 					Schedule
 				</h1>
-				<p className="text-slate-500 font-medium">
+				<p className="text-[12px] text-muted-foreground mt-0.5">
 					{activeDates.length > 0
-						? `Stay ahead of your next ${activeDates.length} assessment days.`
+						? `Stay ahead of your next ${activeDates.length} assessment day${activeDates.length !== 1 ? "s" : ""}.`
 						: "Your schedule is currently clear."}
 				</p>
-			</header>
+			</div>
 
+			{/* ── Date pills ── */}
 			{pills.length > 0 && (
-				<div className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar">
+				<div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
 					{pills.map((p) => (
 						<button
 							key={p.iso}
 							onClick={() => handlePillClick(p.iso)}
-							className={`flex flex-col items-center min-w-[64px] gap-1 rounded-2xl p-3 transition-all active:scale-95 ${
+							className={`flex flex-col items-center min-w-[52px] gap-0.5 rounded-sm px-3 py-2.5 transition-all ${
 								activePill === p.iso
-									? "bg-discord-blurple text-white shadow-xl shadow-discord-blurple/20"
+									? "bg-primary text-white"
 									: p.isToday
-									? "bg-discord-blurple/10 text-discord-blurple"
-									: "bg-white text-slate-500 hover:bg-slate-50"
+									? "bg-primary/10 text-primary border border-primary/20"
+									: "bg-white border border-border text-muted-foreground hover:bg-slate-50"
 							}`}
 						>
-							<span className="text-[10px] font-black uppercase tracking-widest leading-none">{p.weekday}</span>
-							<span className="text-xl font-black leading-none mt-1">{p.day}</span>
+							<span className="text-[9px] font-semibold uppercase tracking-widest leading-none">{p.weekday}</span>
+							<span className="text-[18px] font-semibold leading-none mt-0.5">{p.day}</span>
 							{p.count > 0 && (
-								<div className={`w-1 h-1 rounded-full mt-1.5 ${activePill === p.iso ? "bg-white" : "bg-discord-blurple"}`} />
+								<div className={`w-1 h-1 rounded-full mt-1 ${activePill === p.iso ? "bg-white" : "bg-primary"}`} />
 							)}
 						</button>
 					))}
 				</div>
 			)}
 
+			{/* ── Content ── */}
 			{activeDates.length === 0 ? (
-				<div className="discord-card py-24 flex flex-col items-center justify-center text-center">
-					<div className="bg-slate-100 p-6 rounded-full mb-4">
-						<CalendarDays size={40} className="text-slate-300" strokeWidth={3} />
+				<div className="bg-white border border-border rounded-sm py-20 flex flex-col items-center gap-4 text-center">
+					<div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+						<CalendarDays size={28} className="text-slate-300" strokeWidth={2} />
 					</div>
-					<h3 className="text-xl font-black text-slate-900">No assessments found</h3>
-					<p className="mt-1 text-slate-500 font-bold max-w-xs">
+					<p className="text-[15px] font-semibold text-[#1e293b]">No assessments scheduled</p>
+					<p className="max-w-xs text-[13px] text-muted-foreground">
 						Check back later when assessments have been scheduled for you.
 					</p>
 				</div>
 			) : (
-				<div className="space-y-12">
+				<div className="space-y-8">
 					{activeDates.map((date) => {
 						const dayItems = grouped[date];
-						const isToday = date === todayIso;
+						const isToday  = date === todayIso;
 						const d = new Date(`${date}T00:00:00`);
 						return (
 							<div
 								key={date}
 								data-date={date}
 								ref={(el) => { sectionRefs.current[date] = el; }}
-								className="space-y-4"
+								className="space-y-3"
 							>
-								<div className="flex items-center gap-4 sticky top-0 bg-white/80 backdrop-blur py-2 z-10 -mx-4 px-4 sm:mx-0 sm:px-0">
-									<div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-black transition-all ${
-										isToday ? "bg-discord-blurple text-white shadow-lg shadow-discord-blurple/20" : "bg-slate-100 text-slate-500"
-									}`}>
+								{/* Day header */}
+								<div className="flex items-center gap-3 sticky top-0 bg-[#f8f9fa]/90 backdrop-blur py-2 z-10">
+									<div
+										className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[13px] font-semibold transition-all ${
+											isToday ? "bg-primary text-white" : "bg-white border border-border text-[#1e293b]"
+										}`}
+									>
 										{d.getDate()}
 									</div>
 									<div className="flex flex-col">
-										<span className="text-sm font-black text-slate-900 uppercase tracking-tight">
+										<span className="text-[12px] font-semibold text-[#1e293b]">
 											{isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "long" })}
 										</span>
-										<span className="text-xs font-bold text-slate-400">
+										<span className="text-[11px] text-muted-foreground">
 											{d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
 										</span>
 									</div>
-									<div className="flex-1 h-px bg-slate-100" />
-									<span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg">
-										{dayItems.length}
+									<div className="flex-1 h-px bg-border" />
+									<span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-white border border-border px-2 py-0.5 rounded-sm">
+										{dayItems.length} item{dayItems.length !== 1 ? "s" : ""}
 									</span>
 								</div>
-								<div className="grid gap-3">
+
+								{/* Day items */}
+								<div className="grid gap-2">
 									{dayItems.map((a) => (
 										<AssessmentCard
 											key={a.id}
@@ -210,42 +231,59 @@ function AssessmentCard({
 		hour: "numeric",
 		minute: "2-digit",
 	});
+	const style = TYPE_BADGE[a.type] ?? { bg: "#f1f5f9", text: "#475569" };
 
 	return (
 		<button
 			type="button"
 			onClick={onClick}
-			className="discord-card w-full text-left p-4 flex items-center gap-5 transition-all hover:border-discord-blurple/30 hover:bg-slate-50/50 group active:scale-[0.99]"
+			className="bg-white border border-border rounded-sm w-full text-left p-4 flex items-center gap-4 transition-colors hover:bg-slate-50/60 group"
 		>
+			{/* Left stripe */}
+			<div
+				className="w-[3px] h-10 rounded-sm flex-shrink-0"
+				style={{ background: isOngoing ? "#EF4444" : "#002388" }}
+			/>
+
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 mb-1">
-					<p className="text-xs font-bold text-slate-400 uppercase tracking-tight truncate">{a.courseCode}</p>
+					<p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide truncate">
+						{a.courseCode}
+					</p>
+					<span
+						className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider flex-shrink-0"
+						style={{ background: style.bg, color: style.text }}
+					>
+						{a.type}
+					</span>
 					{isOngoing && (
-						<span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#FEE7E9] text-[10px] font-black text-[#F23F42] uppercase tracking-widest">
-							<span className="h-1.5 w-1.5 rounded-full bg-[#F23F42] animate-pulse" />
+						<span className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-red-50 text-[9px] font-bold text-red-600 uppercase tracking-widest">
+							<span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
 							Live
 						</span>
 					)}
 				</div>
-				<p className="text-lg font-black text-slate-900 truncate group-hover:text-discord-blurple transition-colors">{a.title}</p>
+				<p className="text-[13px] font-semibold text-[#1e293b] truncate group-hover:text-primary transition-colors">
+					{a.title}
+				</p>
 			</div>
 
-			<div className="flex flex-col items-end gap-2 shrink-0">
-				<div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
-					<div className="flex items-center gap-1.5">
-						<Clock size={14} className="text-slate-400" strokeWidth={2.5} />
+			<div className="flex flex-col items-end gap-1.5 shrink-0">
+				<div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-slate-50 border border-border px-2.5 py-1 rounded-sm">
+					<div className="flex items-center gap-1">
+						<Clock size={11} className="text-slate-400" strokeWidth={2} />
 						{time}
 					</div>
 					{a.durationMinutes && (
 						<>
-							<div className="w-1 h-1 rounded-full bg-slate-300" />
+							<div className="w-px h-3 bg-slate-200" />
 							<span>{formatDuration(a.durationMinutes)}</span>
 						</>
 					)}
 				</div>
 				{a.location && (
-					<div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-						<MapPin size={12} strokeWidth={2.5} />
+					<div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+						<MapPin size={10} strokeWidth={2} />
 						{a.location}
 					</div>
 				)}

@@ -45,18 +45,19 @@ async function AssessmentsDataWrapper() {
 
 export default function LecturerAssessmentsPage() {
   return (
-    <div className="mx-auto max-w-7xl space-y-8 pb-8">
-      <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
-            <ClipboardList className="text-[#002388]" size={28} />
-            Assessments
-          </h1>
-          <p className="text-sm text-slate-500">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+            <ClipboardList size={11} />
+            <span>Assessments</span>
+          </div>
+          <h1 className="text-xl font-semibold text-[#1e293b]">Assessments</h1>
+          <p className="text-[12px] text-muted-foreground mt-0.5">
             Create and manage exams, quizzes, and assignments for your courses.
           </p>
         </div>
-      </header>
+      </div>
 
       <Suspense
         fallback={

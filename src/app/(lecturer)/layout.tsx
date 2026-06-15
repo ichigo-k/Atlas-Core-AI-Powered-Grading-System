@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/session"
-import LecturerNavbar from "@/components/layout/LecturerNavbar"
-import StudentFooter from "@/components/layout/StudentFooter"
+import LecturerShell from "@/components/layout/LecturerShell"
 
 export default async function LecturerLayout({
   children,
@@ -15,12 +14,11 @@ export default async function LecturerLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      <LecturerNavbar userName={session.user.name} />
-      <main className="flex-1 animate-in fade-in px-4 py-6 duration-500 md:px-8">
-        {children}
-      </main>
-      <StudentFooter />
-    </div>
+    <LecturerShell
+      userName={session.user.name}
+      userEmail={session.user.email}
+    >
+      {children}
+    </LecturerShell>
   )
 }

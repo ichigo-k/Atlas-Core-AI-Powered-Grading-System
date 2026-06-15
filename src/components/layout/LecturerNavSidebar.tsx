@@ -5,45 +5,25 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardList,
-  Calendar,
+  Library,
+  FileCheck,
   User,
   LogOut,
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/signout";
 
-interface StudentNavbarProps {
-  ongoingCount: number;
+interface LecturerNavSidebarProps {
   onClose?: () => void;
 }
 
 const NAV_ITEMS = [
-  {
-    label: "Dashboard",
-    href: "/student",
-    Icon: LayoutDashboard,
-    exact: true,
-    badge: null as "live" | null,
-  },
-  {
-    label: "Assessments",
-    href: "/student/assessments",
-    Icon: ClipboardList,
-    exact: false,
-    badge: "live" as "live" | null,
-  },
-  {
-    label: "Schedule",
-    href: "/student/schedule",
-    Icon: Calendar,
-    exact: false,
-    badge: null as "live" | null,
-  },
+  { label: "Dashboard",     href: "/lecturer",              Icon: LayoutDashboard, exact: true  },
+  { label: "Assessments",   href: "/lecturer/assessments",  Icon: ClipboardList,   exact: false },
+  { label: "Question Bank", href: "/lecturer/question-bank",Icon: Library,         exact: false },
+  { label: "Grade Book",    href: "/lecturer/grades",       Icon: FileCheck,       exact: false },
 ];
 
-export default function StudentNavbar({
-  ongoingCount,
-  onClose,
-}: StudentNavbarProps) {
+export default function LecturerNavSidebar({ onClose }: LecturerNavSidebarProps) {
   const pathname = usePathname();
 
   function isActive(href: string, exact: boolean) {
@@ -54,14 +34,12 @@ export default function StudentNavbar({
   return (
     <nav className="h-full w-56 bg-white border-r border-border flex flex-col overflow-y-auto">
       <div className="flex-1 py-2">
-        {/* Main section */}
         <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Main
         </div>
 
-        {NAV_ITEMS.map(({ label, href, Icon, exact, badge }) => {
+        {NAV_ITEMS.map(({ label, href, Icon, exact }) => {
           const active = isActive(href, exact);
-          const showBadge = badge === "live" && ongoingCount > 0;
           return (
             <Link
               key={href}
@@ -81,45 +59,34 @@ export default function StudentNavbar({
                 className={active ? "text-primary" : "text-[#94A3B8]"}
               />
               <span className="flex-1">{label}</span>
-              {showBadge && (
-                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
-                  {ongoingCount}
-                </span>
-              )}
             </Link>
           );
         })}
 
-        {/* Account section */}
         <div className="px-4 pt-5 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Account
         </div>
 
         <Link
-          href="/student/profile"
+          href="/lecturer/profile"
           onClick={onClose}
           className={[
             "flex items-center gap-2.5 px-4 py-[9px] text-[13px]",
             "border-l-[3px] transition-colors",
-            isActive("/student/profile", false)
+            isActive("/lecturer/profile", false)
               ? "bg-blue-50 text-primary border-accent font-semibold"
               : "text-[#323130] border-transparent hover:bg-slate-50",
           ].join(" ")}
         >
           <User
             size={15}
-            strokeWidth={isActive("/student/profile", false) ? 2.2 : 1.8}
-            className={
-              isActive("/student/profile", false)
-                ? "text-primary"
-                : "text-[#94A3B8]"
-            }
+            strokeWidth={isActive("/lecturer/profile", false) ? 2.2 : 1.8}
+            className={isActive("/lecturer/profile", false) ? "text-primary" : "text-[#94A3B8]"}
           />
           My Profile
         </Link>
       </div>
 
-      {/* Sign out pinned to bottom */}
       <div className="border-t border-border py-2">
         <form action={signOutAction}>
           <button

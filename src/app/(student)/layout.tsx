@@ -1,37 +1,73 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import StudentNavbar from "@/components/layout/StudentNavbar";
 import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import StudentShell from "@/components/layout/StudentShell";
 
 export default async function StudentLayout({
-	children,
+  children,
 }: {
-	children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-	const session = await getSession();
+  const session = await getSession();
 
-	if (!session || session.user.role !== "STUDENT") {
-		redirect("/");
-	}
+  if (!session || session.user.role !== "STUDENT") {
+    redirect("/");
+  }
 
-	// Check if this is the exam attempt page — if so, render bare (no nav)
-	const headersList = await headers();
-	const pathname = headersList.get("x-pathname") || "";
-	const isAttemptPage =
-		pathname.includes("/assessments/") && pathname.includes("/attempt");
+  // Bare layout for the in-exam attempt page (no nav chrome)
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const isAttemptPage =
+    pathname.includes("/assessments/") && pathname.includes("/attempt");
 
-	if (isAttemptPage) {
-		return <>{children}</>;
-	}
+  if (isAttemptPage) {
+    return <>{children}</>;
+  }
 
-	return (
-		<div className="flex min-h-screen bg-discord-sidebar">
-			<StudentNavbar userName={session.user.name} />
-			<main className="ml-[72px] flex-1 overflow-hidden p-2">
-				<div className="h-full w-full overflow-y-auto rounded-tl-2xl bg-[#f8f9fa] shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-					<div className="px-4 py-6 md:px-8">{children}</div>
-				</div>
-			</main>
-		</div>
-	);
+  // Get ongoing count for the nav badge (non-critical — fails silently)
+  let ongoingCount = 0;
+  const email = session.user.email;
+
+  if (email) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (user) {
+        const profile = await prisma.studentProfile.findUnique({
+          where: { id: user.id },
+          select: { classId: true },
+        });
+        if (profile?.classId) {
+          const now = new Date();
+          ongoingCount = await prisma.assessmentClass.count({
+            where: {
+              classId: profile.classId,
+              assessment: {
+                status: "PUBLISHED",
+                startsAt: { lte: now },
+                endsAt: { gte: now },
+              },
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("[StudentLayout] failed to fetch ongoing count", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return (
+    <StudentShell
+      userName={session.user.name}
+      userEmail={session.user.email}
+      ongoingCount={ongoingCount}
+    >
+      {children}
+    </StudentShell>
+  );
 }

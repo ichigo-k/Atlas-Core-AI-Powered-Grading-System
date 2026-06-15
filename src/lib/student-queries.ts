@@ -10,6 +10,7 @@ export type DashboardData = {
   averageScore: number | null
   upcomingAssessments: UpcomingItem[]
   recentResults: RecentResultItem[]
+  gradeDistribution: Record<string, number>
 }
 
 type UpcomingItem = {
@@ -17,8 +18,11 @@ type UpcomingItem = {
   title: string
   type: string
   courseTitle: string
+  courseCode: string
   startsAt: Date
   endsAt: Date
+  durationMinutes: number | null
+  location: string | null
   status: DerivedStatus
   passwordProtected: boolean
   proctoringEnabled: boolean
@@ -29,6 +33,7 @@ type RecentResultItem = {
   title: string
   type: string
   courseTitle: string
+  courseCode: string
   endsAt: Date
   score: number   // 0 if student never submitted
   grade: string   // computed from score on read
@@ -133,6 +138,7 @@ const EMPTY_DASHBOARD: DashboardData = {
   averageScore: null,
   upcomingAssessments: [],
   recentResults: [],
+  gradeDistribution: {},
 }
 
 export async function getDashboardData(studentId: number): Promise<DashboardData> {
@@ -160,7 +166,9 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
           startsAt: true,
           endsAt: true,
           totalMarks: true,
-          course: { select: { title: true } },
+          durationMinutes: true,
+          location: true,
+          course: { select: { title: true, code: true } },
           attempts: {
             where: { studentId },
             orderBy: { score: 'desc' },
@@ -204,8 +212,11 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
     title: a.title,
     type: a.type,
     courseTitle: a.course.title,
+    courseCode: a.course.code,
     startsAt: a.startsAt,
     endsAt: a.endsAt,
+    durationMinutes: a.durationMinutes,
+    location: a.location,
     status: a.derivedStatus,
     passwordProtected: a.passwordProtected,
     proctoringEnabled: a.proctoringEnabled,
@@ -227,13 +238,21 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
       title: a.title,
       type: a.type,
       courseTitle: a.course.title,
+      courseCode: a.course.code,
       endsAt: a.endsAt,
       score,
       grade: computeGrade(score, a.totalMarks, scale),
     }
   })
 
-  return { upcomingCount, ongoingCount, completedCount, averageScore, upcomingAssessments, recentResults }
+  const gradeDistribution: Record<string, number> = {}
+  for (const a of enriched.filter((x) => x.derivedStatus === 'completed')) {
+    const score = a.attempts[0]?.score ?? 0
+    const grade = computeGrade(score, a.totalMarks, scale)
+    gradeDistribution[grade] = (gradeDistribution[grade] ?? 0) + 1
+  }
+
+  return { upcomingCount, ongoingCount, completedCount, averageScore, upcomingAssessments, recentResults, gradeDistribution }
 }
 
 export async function getStudentAssessments(studentId: number): Promise<StudentAssessmentRow[]> {

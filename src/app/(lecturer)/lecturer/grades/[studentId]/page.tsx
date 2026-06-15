@@ -10,7 +10,7 @@ export default async function StudentGradePage({
 }) {
   const { studentId } = await params
   return (
-    <div className="mx-auto max-w-5xl space-y-8 pb-8">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
       <Suspense
         fallback={
           <div className="relative">

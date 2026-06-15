@@ -9,6 +9,7 @@ import {
   Layers,
   Lock,
   MapPin,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -24,7 +25,7 @@ import AssessmentEntryClient from "./AssessmentEntryClient";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(date: Date) {
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString("en-GB", {
     weekday: "short",
     year: "numeric",
     month: "short",
@@ -35,14 +36,14 @@ function formatDate(date: Date) {
 }
 
 const typeBadgeStyles: Record<string, { bg: string; text: string }> = {
-  EXAM: { bg: "#FEE7E9", text: "#F23F42" },
-  QUIZ: { bg: "#FFF4E5", text: "#F0B132" },
-  ASSIGNMENT: { bg: "#E6F4EA", text: "#23A559" },
+  EXAM:       { bg: "#fee2e2", text: "#991b1b" },
+  QUIZ:       { bg: "#fef9c3", text: "#854d0e" },
+  ASSIGNMENT: { bg: "#dcfce7", text: "#166534" },
 };
 
 const sectionTypeBadge: Record<string, { bg: string; text: string }> = {
-  OBJECTIVE: { bg: "#E6F4EA", text: "#23A559" },
-  SUBJECTIVE: { bg: "#F1F5F9", text: "#475569" },
+  OBJECTIVE:  { bg: "#dcfce7", text: "#166534" },
+  SUBJECTIVE: { bg: "#f1f5f9", text: "#475569" },
 };
 
 const oracleConfigured = !!(
@@ -147,11 +148,11 @@ export default async function AssessmentDetailPage({
   const startExpiredMessage = startStatus === "ended";
 
   const startStatusBanner = startExpiredMessage ? (
-    <div className="flex items-start gap-4 rounded-xl border-2 border-[#F23F42]/20 bg-[#FEE7E9] px-5 py-4 animate-in fade-in slide-in-from-top-2">
-      <AlertCircle size={20} className="shrink-0 text-[#F23F42]" strokeWidth={2.5} />
+    <div className="flex items-start gap-3 rounded-sm border border-red-100 bg-red-50 px-4 py-3 animate-in fade-in slide-in-from-top-2">
+      <AlertCircle size={16} className="shrink-0 text-red-600 mt-0.5" strokeWidth={2} />
       <div>
-        <p className="font-black text-[#F23F42] uppercase tracking-tight">Assessment time has expired</p>
-        <p className="text-sm text-[#F23F42]/80 font-bold mt-0.5">
+        <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Assessment time has expired</p>
+        <p className="text-[11px] text-red-700/80 font-semibold mt-0.5">
           This assessment window has closed. Any unfinished attempt has been
           marked as timed out.
         </p>
@@ -160,126 +161,143 @@ export default async function AssessmentDetailPage({
   ) : null;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-12">
-      {/* Back nav */}
-      <Link
-        href="/student/assessments"
-        className="group inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-discord-blurple transition-all"
-      >
-        <ChevronLeft size={16} strokeWidth={3} className="group-hover:-translate-x-1 transition-transform" />
-        Back to Assessments
-      </Link>
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+      {/* Page header / Back nav */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+            <ClipboardList size={11} />
+            <span>Student</span>
+            <span>›</span>
+            <span>Assessments</span>
+            <span>›</span>
+            <span>Details</span>
+          </div>
+          <h1 className="text-xl font-semibold text-[#1e293b]">
+            Assessment Details
+          </h1>
+        </div>
+        <Link
+          href="/student/assessments"
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-sm text-[12px] font-medium text-[#323130] hover:bg-slate-50 transition-colors"
+        >
+          <ChevronLeft size={13} />
+          Back to Assessments
+        </Link>
+      </div>
 
       {/* Hero card */}
-      <div className="discord-card p-8 space-y-8">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="bg-white border border-border rounded-sm p-6 space-y-5">
+        <div className="flex flex-wrap items-center gap-2">
           <span
-            className="rounded px-2.5 py-1 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
             style={{ background: typeStyle.bg, color: typeStyle.text }}
           >
             {assessment.type}
           </span>
           {assessment.passwordProtected && (
-            <span className="rounded px-2.5 py-1 text-[10px] font-black uppercase tracking-widest bg-slate-900 text-white shadow-sm flex items-center gap-1.5">
-              <Lock size={12} strokeWidth={3} />
+            <span className="rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-900 text-white flex items-center gap-1">
+              <Lock size={10} strokeWidth={2.5} />
               Secured
             </span>
           )}
           {isUpcoming && (
-            <span className="rounded px-2.5 py-1 text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-500">
+            <span className="rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
               Upcoming
             </span>
           )}
           {isEnded && (
-            <span className="rounded px-2.5 py-1 text-[10px] font-black uppercase tracking-widest bg-[#FEE7E9] text-[#F23F42]">
+            <span className="rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-red-50 text-red-600 border border-red-100">
               Closed
             </span>
           )}
         </div>
 
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">
+          <h1 className="text-lg font-bold text-[#1e293b] leading-tight">
             {assessment.title}
           </h1>
-          <p className="mt-3 flex items-center gap-2.5 text-sm font-bold text-slate-500 uppercase tracking-tight">
-            <BookOpen size={18} className="text-discord-blurple" strokeWidth={2.5} />
+          <p className="mt-1.5 flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <BookOpen size={12} className="text-primary" strokeWidth={2} />
             {assessment.courseTitle}
             <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-            <span className="text-slate-900">
+            <span className="text-[#1e293b]">
               {assessment.courseCode}
             </span>
           </p>
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 border-t border-slate-100 pt-8">
-          <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Total Marks</span>
-            <div className="flex items-center gap-2">
-               <Award size={20} className="text-discord-blurple" strokeWidth={2.5} />
-               <span className="text-2xl font-black text-slate-900">{assessment.totalMarks}</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-[#f1f5f9] pt-5">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Total Marks</span>
+            <div className="flex items-center gap-1.5">
+               <Award size={14} className="text-primary" strokeWidth={2} />
+               <span className="text-base font-bold text-[#1e293b]">{assessment.totalMarks}</span>
             </div>
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Duration</span>
-            <div className="flex items-center gap-2">
-               <Clock size={20} className="text-discord-blurple" strokeWidth={2.5} />
-               <span className="text-2xl font-black text-slate-900">
-                 {assessment.durationMinutes ? `${assessment.durationMinutes}m` : "∞"}
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Duration</span>
+            <div className="flex items-center gap-1.5">
+               <Clock size={14} className="text-primary" strokeWidth={2} />
+               <span className="text-base font-bold text-[#1e293b]">
+                 {assessment.durationMinutes ? `${assessment.durationMinutes}m` : "No limit"}
                </span>
             </div>
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Attempts</span>
-            <span className="block text-2xl font-black text-slate-900">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Attempts</span>
+            <span className="block text-base font-bold text-[#1e293b] mt-0.5">
               {attempts.length} / {assessment.maxAttempts}
             </span>
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Questions</span>
-            <span className="block text-2xl font-black text-slate-900">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Questions</span>
+            <span className="block text-base font-bold text-[#1e293b] mt-0.5">
               {totalQuestions}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Schedule */}
-        <div className="discord-card p-6 space-y-6">
-          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-            <Calendar size={14} strokeWidth={3} className="text-discord-blurple" />
+        <div className="bg-white border border-border rounded-sm p-5 space-y-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Calendar size={12} strokeWidth={2} className="text-primary" />
             Schedule Details
           </h2>
-          <div className="grid gap-6">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-discord-blurple">
-                 <Clock size={20} strokeWidth={2.5} />
+          <div className="grid gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-sm bg-slate-50 border border-border flex items-center justify-center text-primary">
+                 <Clock size={14} strokeWidth={2} />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Available From</p>
-                <p className="text-sm font-black text-slate-700">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Available From</p>
+                <p className="text-[12px] font-semibold text-[#1e293b]">
                   {formatDate(assessment.startsAt)}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-[#FEE7E9] flex items-center justify-center text-[#F23F42]">
-                 <Lock size={20} strokeWidth={2.5} />
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-sm bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
+                 <Lock size={14} strokeWidth={2} />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Closing At</p>
-                <p className="text-sm font-black text-slate-700">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Closing At</p>
+                <p className="text-[12px] font-semibold text-[#1e293b]">
                   {formatDate(assessment.endsAt)}
                 </p>
               </div>
             </div>
             {assessment.isLocationBound && assessment.location && (
-              <div className="flex items-center gap-4 pt-2">
-                <MapPin size={20} className="text-slate-400" strokeWidth={2.5} />
+              <div className="flex items-center gap-3 pt-1">
+                <div className="h-7 w-7 rounded-sm bg-slate-50 border border-border flex items-center justify-center text-slate-500">
+                  <MapPin size={14} strokeWidth={2} />
+                </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Location Requirement</p>
-                  <p className="text-sm font-black text-slate-700">
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Location Requirement</p>
+                  <p className="text-[12px] font-semibold text-[#1e293b]">
                     {assessment.location}
                   </p>
                 </div>
@@ -290,39 +308,39 @@ export default async function AssessmentDetailPage({
 
         {/* Sections */}
         {assessment.sections.length > 0 && (
-          <div className="discord-card overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-slate-100 px-6 py-4 bg-slate-50/50">
-              <Layers size={16} className="text-discord-blurple" strokeWidth={3} />
-              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900">
+          <div className="bg-white border border-border rounded-sm overflow-hidden flex flex-col">
+            <div className="flex items-center gap-1.5 border-b border-border px-5 py-3 bg-slate-50/50">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#1e293b] flex items-center gap-1.5">
+                <Layers size={13} className="text-primary" strokeWidth={2} />
                 Structure
               </h2>
             </div>
-            <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto no-scrollbar">
+            <div className="divide-y divide-[#f1f5f9] max-h-[300px] overflow-y-auto no-scrollbar">
               {assessment.sections.map((section) => {
                 const badge = sectionTypeBadge[section.type] ?? {
-                  bg: "#F1F5F9",
+                  bg: "#f1f5f9",
                   text: "#475569",
                 };
                 return (
                   <div
                     key={section.id}
-                    className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50/80 transition-colors"
+                    className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-slate-50/80 transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-slate-900">
+                      <p className="truncate text-[12px] font-semibold text-[#1e293b]">
                         {section.name}
                       </p>
                       <span
-                        className="inline-block mt-1 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest"
+                        className="inline-block mt-0.5 rounded-sm px-1 py-0.2 text-[8px] font-bold uppercase tracking-wider"
                         style={{ background: badge.bg, color: badge.text }}
                       >
                         {section.type}
                       </span>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-black text-slate-900">{section.questions.length}Q</p>
+                      <p className="text-[12px] font-semibold text-[#1e293b]">{section.questions.length}Q</p>
                       {section.requiredQuestionsCount && (
-                        <p className="text-[10px] font-bold text-slate-400">Ans {section.requiredQuestionsCount}</p>
+                        <p className="text-[9px] font-semibold text-muted-foreground">Ans {section.requiredQuestionsCount}</p>
                       )}
                     </div>
                   </div>
@@ -334,27 +352,27 @@ export default async function AssessmentDetailPage({
       </div>
 
       {/* Entry / status area */}
-      <div className="discord-card p-8">
+      <div className="bg-white border border-border rounded-sm p-6">
         {startStatusBanner}
         {!studentId ? (
-          <p className="text-sm font-bold text-slate-500 text-center">
+          <p className="text-[12px] font-semibold text-muted-foreground text-center">
             Please sign in to start this assessment.
           </p>
         ) : hasSubmitted && isLocked ? (
-          <div className="flex flex-col items-center gap-6 py-4 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[#E6F4EA] shadow-xl shadow-[#23A559]/10">
-              <CheckCircle2 size={40} className="text-[#23A559]" strokeWidth={3} />
+          <div className="flex flex-col items-center gap-4 py-3 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+              <CheckCircle2 size={24} strokeWidth={2} />
             </div>
-            <div className="space-y-2">
-              <p className="text-2xl font-black text-slate-900 uppercase tracking-tight">
+            <div className="space-y-1">
+              <p className="text-base font-bold text-[#1e293b] uppercase tracking-wide">
                 Submission Finalised
               </p>
-              <p className="text-sm font-bold text-slate-500">
+              <p className="text-[12px] text-muted-foreground">
                 You completed this assessment on{" "}
-                <span className="text-slate-900">{latestSubmitted?.submittedAt ? formatDate(latestSubmitted.submittedAt) : "—"}</span>
+                <span className="text-[#1e293b] font-semibold">{latestSubmitted?.submittedAt ? formatDate(latestSubmitted.submittedAt) : "—"}</span>
               </p>
               {latestSubmitted?.status === "TIMED_OUT" && (
-                <div className="mt-2 inline-block px-3 py-1.5 rounded-lg bg-[#FEE7E9] text-[11px] font-black text-[#F23F42] uppercase tracking-widest">
+                <div className="mt-2 inline-block px-2.5 py-1 rounded-sm bg-red-50 border border-red-100 text-[10px] font-semibold text-red-700 uppercase tracking-wider">
                   {submissionReason === "FULLSCREEN_VIOLATION"
                     ? "Security Violation: Auto-Submitted"
                     : "Time Expiry: Auto-Submitted"}
@@ -363,94 +381,90 @@ export default async function AssessmentDetailPage({
             </div>
 
             {resultsReleased && latestSubmitted?.score != null ? (
-              <div className="w-full max-w-sm rounded-2xl border-4 border-[#23A559]/20 bg-[#E6F4EA]/30 p-6 flex flex-col items-center shadow-inner">
-                <p className="text-[10px] font-black text-[#23A559] uppercase tracking-[0.2em]">Final Performance</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                   <p className="text-5xl font-black text-[#23A559]">
+              <div className="w-full max-w-sm rounded-sm border border-emerald-200 bg-emerald-50/30 p-5 flex flex-col items-center">
+                <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Final Performance</p>
+                <div className="mt-2 flex items-baseline gap-1">
+                   <p className="text-3xl font-bold text-emerald-600">
                     {latestSubmitted.score}
                   </p>
-                  <p className="text-xl font-bold text-[#23A559]/60">/ {assessment.totalMarks}</p>
+                  <p className="text-sm font-semibold text-emerald-600/60">/ {assessment.totalMarks}</p>
                 </div>
                 {grade && (
-                  <div className="mt-4 rounded-xl bg-[#23A559] px-6 py-2 shadow-lg shadow-[#23A559]/20">
-                    <p className="text-sm font-black text-white uppercase tracking-widest">
-                      Grade: {grade}
-                    </p>
+                  <div className="mt-3 rounded-sm bg-emerald-600 px-4 py-1.5 text-[11px] font-semibold text-white">
+                    Grade: {grade}
                   </div>
                 )}
               </div>
             ) : !resultsReleased && hasSubmitted ? (
-              <div className="rounded-xl bg-slate-100 px-6 py-3">
-                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                  Grading in progress • Results pending
-                </p>
+              <div className="rounded-sm bg-slate-50 border border-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
+                Grading in progress • Results pending
               </div>
             ) : null}
 
             <Link
               href="/student/assessments"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 text-sm font-black text-white hover:bg-black transition-all active:scale-95 shadow-xl shadow-black/10"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-sm bg-[#1e293b] px-4 py-2 text-[12px] font-semibold text-white hover:bg-black transition-all active:scale-95"
             >
-              <ChevronLeft size={18} strokeWidth={3} />
+              <ChevronLeft size={14} />
               Return Home
             </Link>
           </div>
         ) : isUpcoming ? (
-          <div className="flex items-center gap-4 rounded-2xl border-2 border-discord-blurple/20 bg-discord-blurple/5 px-6 py-6 border-dashed">
-            <div className="h-12 w-12 rounded-2xl bg-discord-blurple flex items-center justify-center text-white shrink-0 shadow-lg shadow-discord-blurple/20">
-               <AlertCircle size={24} strokeWidth={3} />
+          <div className="flex items-center gap-3 rounded-sm border border-dashed border-primary/20 bg-primary/5 p-5">
+            <div className="h-9 w-9 bg-primary/10 rounded-sm text-primary flex items-center justify-center shrink-0">
+               <AlertCircle size={18} strokeWidth={2} />
             </div>
             <div>
-              <p className="font-black text-discord-blurple uppercase tracking-tight">Access Restricted</p>
-              <p className="text-sm font-bold text-slate-500 mt-1">
+              <p className="text-[13px] font-semibold text-[#1e293b] uppercase tracking-wider">Access Restricted</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5">
                 This assessment window opens on {formatDate(assessment.startsAt)}.
               </p>
             </div>
           </div>
         ) : isEnded ? (
-          <div className="flex items-center gap-4 rounded-2xl border-2 border-slate-200 bg-slate-50 px-6 py-6 border-dashed text-center flex-col sm:flex-row">
-            <div className="h-12 w-12 rounded-2xl bg-slate-200 flex items-center justify-center text-slate-500 shrink-0">
-               <Lock size={24} strokeWidth={3} />
+          <div className="flex items-center gap-3 rounded-sm border border-dashed border-border bg-slate-50 p-5 text-left w-full">
+            <div className="h-9 w-9 bg-slate-200 rounded-sm text-slate-500 flex items-center justify-center shrink-0">
+               <Lock size={18} strokeWidth={2} />
             </div>
-            <div className="text-left">
-              <p className="font-black text-slate-900 uppercase tracking-tight">Submission Period Over</p>
-              <p className="text-sm font-bold text-slate-500 mt-1">
+            <div>
+              <p className="text-[13px] font-semibold text-[#1e293b] uppercase tracking-wider">Submission Period Over</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5">
                 This assessment was closed on {formatDate(assessment.endsAt)}.
               </p>
             </div>
           </div>
         ) : isLocked ? (
-          <div className="flex flex-col items-center gap-4 text-center">
-             <div className="h-16 w-16 rounded-3xl bg-[#FEE7E9] flex items-center justify-center text-[#F23F42] shadow-lg shadow-[#F23F42]/10">
-               <Lock size={32} strokeWidth={3} />
+          <div className="flex flex-col items-center gap-3 text-center py-3">
+             <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
+               <Lock size={16} strokeWidth={2} />
             </div>
             <div>
-              <p className="font-black text-slate-900 uppercase tracking-tight text-xl">Maximum attempts reached</p>
-              <p className="text-sm font-bold text-slate-500 mt-1">
+              <p className="text-[14px] font-bold text-[#1e293b] uppercase tracking-wide">Maximum attempts reached</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
                 You have used all available attempts ({assessment.maxAttempts}) for this assessment.
               </p>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 px-1">
+          <div className="space-y-4">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
               Actions
             </h2>
             {hasSubmitted && latestSubmitted && (
-              <div className="flex items-start gap-4 rounded-2xl border-2 border-[#23A559]/10 bg-[#E6F4EA]/20 p-5">
+              <div className="flex items-start gap-3 rounded-sm border border-emerald-100 bg-emerald-50/10 p-4">
                 <CheckCircle2
-                  size={20}
-                  className="shrink-0 text-[#23A559]"
-                  strokeWidth={3}
+                  size={16}
+                  className="shrink-0 text-emerald-600 mt-0.5"
+                  strokeWidth={2}
                 />
-                <div className="space-y-0.5">
-                  <p className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                <div>
+                  <p className="text-[12px] font-bold text-[#1e293b] uppercase tracking-wider">
                     Previous Attempt Logged
                   </p>
-                  <p className="text-[11px] font-bold text-slate-500">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     Attempt {latestSubmitted.attemptNumber} submitted on {formatDate(latestSubmitted.submittedAt!)}.
                   </p>
-                  <p className="text-[11px] font-black text-[#23A559] uppercase tracking-widest mt-2 bg-white px-2 py-0.5 rounded-md inline-block shadow-sm">
+                  <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide mt-2 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-sm inline-block">
                     {assessment.maxAttempts - attempts.length} Attempt{assessment.maxAttempts - attempts.length !== 1 ? "s" : ""} Left
                   </p>
                 </div>

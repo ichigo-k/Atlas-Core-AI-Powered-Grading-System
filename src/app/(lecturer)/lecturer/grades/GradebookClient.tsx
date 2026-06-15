@@ -113,8 +113,8 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       header: ({ column }) => <SortHeader label="Student" column={column} />,
       cell: ({ row }) => (
         <div>
-          <p className="text-sm font-semibold text-slate-900">{row.original.name}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{row.original.email}</p>
+          <p className="text-[13px] font-semibold text-[#1e293b]">{row.original.name}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{row.original.email}</p>
         </div>
       ),
       filterFn: (row, _id, value) => {
@@ -130,7 +130,7 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       accessorKey: "className",
       header: ({ column }) => <SortHeader label="Class" column={column} />,
       cell: ({ row }) => (
-        <span className="text-sm text-slate-600">{row.original.className}</span>
+        <span className="text-[13px] text-[#1e293b]">{row.original.className}</span>
       ),
     },
     {
@@ -138,7 +138,7 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       accessorKey: "classLevel",
       header: ({ column }) => <SortHeader label="Level" column={column} />,
       cell: ({ row }) => (
-        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-sm text-[11px] font-semibold bg-slate-100 text-[#475569]">
           {row.original.classLevel}
         </span>
       ),
@@ -171,7 +171,7 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       accessorKey: "assessmentCount",
       header: ({ column }) => <SortHeader label="Assessments" column={column} />,
       cell: ({ row }) => (
-        <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-semibold bg-[#002388]/8 text-[#002388]">
+        <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-primary/10 text-primary">
           {row.original.assessmentCount}
         </span>
       ),
@@ -188,7 +188,7 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
               e.stopPropagation()
               router.push(`/lecturer/grades/${row.original.id}`)
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95"
           >
             Profile <ChevronRight size={14} className="opacity-70" />
           </button>
@@ -291,13 +291,13 @@ export default function GradebookClient() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or email…"
-            className="pl-9 h-10 rounded-xl border-slate-200 focus-visible:ring-[#002388] focus-visible:border-[#002388]"
+            className="pl-9 h-10 rounded-sm border-slate-200 focus-visible:ring-[#002388] focus-visible:border-[#002388]"
           />
         </div>
 
         {/* Course filter */}
         <Select value={courseFilter} onValueChange={setCourseFilter}>
-          <SelectTrigger className="h-10 w-full sm:w-56 rounded-xl border-slate-200 text-sm">
+          <SelectTrigger className="h-10 w-full sm:w-56 rounded-sm border-slate-200 text-sm">
             <SelectValue placeholder="All courses" />
           </SelectTrigger>
           <SelectContent>
@@ -312,7 +312,7 @@ export default function GradebookClient() {
 
         {/* Class filter */}
         <Select value={classFilter} onValueChange={setClassFilter}>
-          <SelectTrigger className="h-10 w-full sm:w-48 rounded-xl border-slate-200 text-sm">
+          <SelectTrigger className="h-10 w-full sm:w-48 rounded-sm border-slate-200 text-sm">
             <SelectValue placeholder="All classes" />
           </SelectTrigger>
           <SelectContent>
@@ -327,7 +327,7 @@ export default function GradebookClient() {
 
         {/* Level filter */}
         <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="h-10 w-full sm:w-36 rounded-xl border-slate-200 text-sm">
+          <SelectTrigger className="h-10 w-full sm:w-36 rounded-sm border-slate-200 text-sm">
             <SelectValue placeholder="All levels" />
           </SelectTrigger>
           <SelectContent>
@@ -346,7 +346,7 @@ export default function GradebookClient() {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-10 rounded-xl text-slate-500 gap-1.5 shrink-0 hover:text-slate-800"
+            className="h-10 rounded-sm text-slate-500 gap-1.5 shrink-0 hover:text-slate-800"
           >
             <X className="h-3.5 w-3.5" />
             Clear
@@ -355,34 +355,34 @@ export default function GradebookClient() {
       </div>
 
       {/* Result count */}
-      <p className="text-xs text-slate-500 font-medium">
-        Showing <span className="text-slate-800 font-semibold">{filteredCount}</span> of{" "}
-        <span className="text-slate-800 font-semibold">{totalStudents}</span> students
+      <p className="text-[11px] text-muted-foreground font-medium">
+        Showing <span className="text-[#1e293b] font-semibold">{filteredCount}</span> of{" "}
+        <span className="text-[#1e293b] font-semibold">{totalStudents}</span> students
         {hasFilters && " matching filters"}
       </p>
 
       {/* Table */}
       {filteredCount === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-20 text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+        <div className="flex flex-col items-center justify-center rounded-sm border border-dashed border-border bg-white px-6 py-20 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
             <Users className="h-7 w-7 text-slate-300" />
           </div>
-          <p className="text-sm font-semibold text-slate-600">
+          <p className="text-[14px] font-semibold text-[#1e293b]">
             {hasFilters ? "No students match your filters" : "No students enrolled yet"}
           </p>
-          <p className="text-xs text-slate-400 mt-1 max-w-xs">
+          <p className="text-[12px] text-muted-foreground mt-1 max-w-xs">
             {hasFilters
               ? "Try adjusting your search or filters."
               : "Students will appear here once they are enrolled in your assessment classes."}
           </p>
           {hasFilters && (
-            <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4 rounded-xl">
+            <button type="button" onClick={clearFilters} className="mt-4 rounded-sm border border-border px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors">
               Clear filters
-            </Button>
+            </button>
           )}
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+        <div className="rounded-sm border border-slate-200 overflow-hidden bg-white">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((hg) => (
@@ -434,10 +434,10 @@ export default function GradebookClient() {
                 value={String(table.getState().pagination.pageSize)}
                 onValueChange={(v) => table.setPageSize(Number(v))}
               >
-                <SelectTrigger className="h-8 w-16 rounded-lg border-slate-200 text-xs font-semibold">
+                <SelectTrigger className="h-8 w-16 rounded-sm border-slate-200 text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent side="top" className="rounded-xl">
+                <SelectContent side="top" className="rounded-sm">
                   {[10, 20, 50].map((n) => (
                     <SelectItem key={n} value={String(n)} className="text-xs font-medium">{n}</SelectItem>
                   ))}
@@ -447,16 +447,16 @@ export default function GradebookClient() {
 
             {/* Page buttons */}
             <div className="flex items-center gap-1">
-              <Button variant="outline" className="h-8 w-8 p-0 rounded-lg border-slate-200" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+              <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-slate-200" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" className="h-8 w-8 p-0 rounded-lg border-slate-200" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+              <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-slate-200" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" className="h-8 w-8 p-0 rounded-lg border-slate-200" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+              <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-slate-200" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              <Button variant="outline" className="h-8 w-8 p-0 rounded-lg border-slate-200" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+              <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-slate-200" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
                 <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>

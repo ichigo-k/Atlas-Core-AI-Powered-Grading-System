@@ -14,154 +14,157 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(loginAction, null);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-[#f8f9fa]">
 
-      {/* ── Left panel — hero image ── */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden flex-shrink-0">
+      {/* ── Left panel — scroll image ── */}
+      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden flex-shrink-0">
         <Image
           src="/assests/login.jpeg"
           alt="GCTU Campus"
           fill
-          sizes="55vw"
+          sizes="52vw"
           className="object-cover"
           priority
         />
-        {/* gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a73e8]/80 via-[#174ea6]/60 to-[#0d2d6b]/80" />
+        {/* subtle dark overlay — bottom-heavy so text is readable */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
 
-        {/* branding text on image */}
-        <div className="relative z-10 flex flex-col justify-end p-12 pb-16 text-white">
-          <div className="mb-6 flex items-center gap-3">
-            <Image src="/logos/gctu-logo.png" alt="GCTU" width={48} height={48} className="object-contain brightness-0 invert" />
-            <span className="text-xl font-medium tracking-wide">GCTU</span>
-          </div>
-          <h2 className="text-4xl font-light leading-tight mb-3">
-            Your academic<br />journey, streamlined.
+        {/* branding text */}
+        <div className="relative z-10 flex flex-col justify-end p-12 pb-14 text-white">
+          <h2 className="text-[32px] font-light leading-snug mb-2">
+            Academic Assessment<br />
+            <span className="font-semibold">Portal</span>
           </h2>
-          <p className="text-white/70 text-base font-normal max-w-sm leading-relaxed">
-            Access assessments, track your grades, and stay on top of your schedule — all in one place.
+          <p className="text-white/60 text-[13px] font-normal max-w-[320px] leading-relaxed">
+            Access assessments, track your grades, and stay on top of your
+            schedule — all in one place.
           </p>
-          <div className="flex gap-2 mt-8">
-            <span className="h-1 w-8 rounded-full bg-white" />
-            <span className="h-1 w-2 rounded-full bg-white/40" />
-            <span className="h-1 w-2 rounded-full bg-white/40" />
-          </div>
         </div>
       </div>
 
       {/* ── Right panel — form ── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white px-6 py-12 overflow-y-auto">
-        <div className="w-full max-w-[400px]">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-y-auto">
+        <div className="w-full max-w-[380px]">
 
-          {/* Form Container */}
-          <div className="w-full bg-white border border-[#dadce0] rounded-lg p-10 shadow-sm">
+          {/* Logo + heading above the card */}
+          <div className="flex flex-col items-center mb-6">
+            <Image
+              src="/logos/gctu-logo.png"
+              alt="GCTU"
+              width={52}
+              height={52}
+              className="object-contain mb-4"
+            />
+            <h1 className="text-[22px] font-semibold text-[#1e293b] tracking-tight">
+              Sign in
+            </h1>
+            <p className="text-[13px] text-[#605e5c] mt-1">
+              Use your GCTU account credentials
+            </p>
+          </div>
 
-            {/* Heading */}
-            <div className="flex flex-col items-center text-center mb-8">
-              <div className="mb-4">
-                <Image src="/logos/gctu-logo.png" alt="GCTU" width={56} height={56} className="object-contain" />
-              </div>
-              <h1 className="text-2xl font-normal text-[#202124] tracking-tight">
-                Sign in
-              </h1>
-              <p className="text-[15px] font-normal text-[#5f6368] mt-2">
-                to continue to GCTU Assessment
-              </p>
-            </div>
-
-            <form className="space-y-6" action={formAction}>
+          {/* Card */}
+          <div className="w-full bg-white border border-[#e1dfdd] rounded-sm p-8">
+            <form className="space-y-4" action={formAction}>
 
               {/* Email */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="userId" className="text-[12px] font-semibold text-[#1e293b] uppercase tracking-[0.04em]">
+                  Email or Index Number
+                </Label>
                 <div className="relative group">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5f6368] group-focus-within:text-[#1a73e8] transition-colors z-10">
-                    <Mail size={18} />
-                  </div>
+                  <Mail
+                    size={15}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8886] group-focus-within:text-[#0078d4] transition-colors z-10"
+                  />
                   <Input
                     id="userId"
                     type="text"
                     name="userId"
-                    placeholder="Email or index number"
-                    className="w-full h-14 rounded border border-[#dadce0] bg-transparent pl-11  text-base text-[#202124] transition-all focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] placeholder:text-[#5f6368]"
+                    placeholder="e.g. 22034819"
+                    className="h-[38px] rounded-sm border border-[#8a8886] bg-white pl-9 text-[13px] text-[#1e293b] placeholder:text-[#a19f9d] focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] transition-all"
                   />
                 </div>
               </div>
 
               {/* Password */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-[12px] font-semibold text-[#1e293b] uppercase tracking-[0.04em]">
+                  Password
+                </Label>
                 <div className="relative group">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5f6368] group-focus-within:text-[#1a73e8] transition-colors pointer-events-none">
-                    <Lock size={18} />
-                  </div>
+                  <Lock
+                    size={15}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8886] group-focus-within:text-[#0078d4] transition-colors pointer-events-none"
+                  />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     name="password"
                     placeholder="Enter your password"
-                    className="w-full h-14 rounded border border-[#dadce0] bg-transparent pl-11 pr-11 text-base text-[#202124] transition-all focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] placeholder:text-[#5f6368]"
+                    className="h-[38px] rounded-sm border border-[#8a8886] bg-white pl-9 pr-10 text-[13px] text-[#1e293b] placeholder:text-[#a19f9d] focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-[#5f6368] hover:bg-[#f8f9fa] transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#8a8886] hover:text-[#1e293b] transition-colors rounded"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
-              {/* Options */}
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2.5">
-                  <Checkbox
-                    id="keepLoggedIn"
-                    checked={keepLoggedIn}
-                    onCheckedChange={(v) => setKeepLoggedIn(!!v)}
-                    className="rounded-sm border-[#dadce0] data-[state=checked]:bg-[#1a73e8] data-[state=checked]:border-[#1a73e8]"
-                  />
-                  <Label htmlFor="keepLoggedIn" className="text-sm text-[#202124] cursor-pointer select-none font-normal">
-                    Remember me
-                  </Label>
-                </div>
+              {/* Remember me */}
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox
+                  id="keepLoggedIn"
+                  checked={keepLoggedIn}
+                  onCheckedChange={(v) => setKeepLoggedIn(!!v)}
+                  className="rounded-sm border-[#8a8886] data-[state=checked]:bg-[#0078d4] data-[state=checked]:border-[#0078d4]"
+                />
+                <Label
+                  htmlFor="keepLoggedIn"
+                  className="text-[13px] text-[#323130] cursor-pointer select-none font-normal"
+                >
+                  Keep me signed in
+                </Label>
               </div>
               <input type="hidden" name="keepLoggedIn" value={String(keepLoggedIn)} />
 
               {/* Error */}
               {state?.error && (
-                <div className="flex items-start gap-2 p-3 text-[#d93025] text-[13px]">
-                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                  <span className="font-normal leading-tight">{state.error}</span>
+                <div className="flex items-start gap-2 p-3 bg-[#fde7e9] border border-[#f4abba] rounded-sm text-[#a4262c] text-[12px]">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{state.error}</span>
                 </div>
               )}
 
-              <div className="flex items-center justify-between mt-8 pt-2">
-                <a href="#" className="text-sm font-medium text-[#1a73e8] hover:bg-[#f8f9fa] px-2 py-1.5 rounded transition-colors">
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-3">
+                <a
+                  href="#"
+                  className="text-[13px] text-[#0078d4] hover:underline font-normal"
+                >
                   Forgot password?
                 </a>
                 <button
                   type="submit"
                   disabled={pending}
-                  className="h-10 px-6 rounded text-sm font-medium text-white transition-all hover:bg-[#174ea6] active:bg-[#174ea6] disabled:opacity-50 disabled:pointer-events-none bg-[#1a73e8] flex items-center justify-center"
+                  className="h-[34px] px-5 rounded-sm text-[13px] font-semibold text-white bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
                 >
-                  {pending ? (
-                    <LoaderIcon />
-                  ) : (
-                    "Next"
-                  )}
+                  {pending ? <LoaderIcon /> : "Sign in"}
                 </button>
               </div>
             </form>
           </div>
 
           {/* Footer */}
-          <div className="w-full flex items-center justify-between text-[12px] text-[#5f6368] mt-6 px-1 font-normal">
-            <select className="bg-transparent border-none outline-none cursor-pointer hover:bg-[#f8f9fa] p-1 rounded">
-              <option>English (United States)</option>
-            </select>
+          <div className="flex items-center justify-between text-[11px] text-[#605e5c] mt-5 px-1">
+            <span>© {new Date().getFullYear()} GCTU</span>
             <div className="flex gap-4">
-              <a href="#" className="hover:bg-[#f8f9fa] p-1 rounded transition-colors">Help</a>
-              <a href="#" className="hover:bg-[#f8f9fa] p-1 rounded transition-colors">Privacy</a>
-              <a href="#" className="hover:bg-[#f8f9fa] p-1 rounded transition-colors">Terms</a>
+              <a href="#" className="hover:text-[#1e293b] transition-colors">Help</a>
+              <a href="#" className="hover:text-[#1e293b] transition-colors">Privacy</a>
+              <a href="#" className="hover:text-[#1e293b] transition-colors">Terms</a>
             </div>
           </div>
 
@@ -174,7 +177,15 @@ export default function LoginPage() {
 
 function LoaderIcon() {
   return (
-    <svg className="animate-spin size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className="animate-spin size-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   );

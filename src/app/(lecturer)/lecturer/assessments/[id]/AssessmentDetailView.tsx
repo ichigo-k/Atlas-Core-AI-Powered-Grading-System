@@ -50,9 +50,9 @@ function StatTile({ value, label }: { value: React.ReactNode; label: string }) {
 function MetaRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
-      <div className="w-4 shrink-0 text-slate-400 flex items-center justify-center">{icon}</div>
-      <span className="w-32 shrink-0 text-xs text-slate-400">{label}</span>
-      <span className="text-sm text-slate-800">{value}</span>
+      <div className="w-4 shrink-0 text-muted-foreground flex items-center justify-center">{icon}</div>
+      <span className="w-32 shrink-0 text-[11px] font-medium text-muted-foreground">{label}</span>
+      <span className="text-[13px] text-[#1e293b]">{value}</span>
     </div>
   )
 }
@@ -67,7 +67,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
   const status = statusBadge[assessment.status] ?? statusBadge.DRAFT
 
   return (
-    <div className="mx-auto max-w-4xl pb-16 space-y-6">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
 
       {/* Top nav */}
       <div className="flex items-center justify-between">
@@ -81,7 +81,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
         {assessment.status === "DRAFT" ? (
           <Link
             href={`/lecturer/assessments/${assessment.id}/edit`}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-slate-200 bg-white text-xs text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
             <Edit2 size={12} />
             Edit
@@ -94,7 +94,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
             <EditSettingsModal assessment={assessment} />
             <Link
               href={`/lecturer/assessments/${assessment.id}/results`}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-slate-200 bg-white text-xs text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
             >
               <BarChart2 size={12} />
               Results
@@ -104,7 +104,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
       </div>
 
       {/* Hero card */}
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-sm border border-slate-200 bg-white overflow-hidden">
         <div className={`h-1 w-full ${assessment.status === "PUBLISHED" ? "bg-green-500" : assessment.status === "CLOSED" ? "bg-slate-400" : "bg-[#002388]"}`} />
         <div className="p-6 space-y-2.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -114,8 +114,8 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
               {assessment.status}
             </span>
           </div>
-          <h1 className="text-xl font-semibold text-slate-900">{assessment.title}</h1>
-          <p className="flex items-center gap-1.5 text-sm text-slate-500">
+          <h1 className="text-xl font-semibold text-[#1e293b]">{assessment.title}</h1>
+          <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
             <BookOpen size={13} className="text-[#002388] shrink-0" />
             {assessment.courseCode} — {assessment.courseTitle}
           </p>
@@ -130,7 +130,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
 
       {/* Info grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-sm border border-slate-200 bg-white p-5">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-3">Schedule</p>
           <MetaRow icon={<Calendar size={13} />} label="Opens" value={format(new Date(assessment.startsAt), "MMM d, yyyy · HH:mm")} />
           <MetaRow icon={<Calendar size={13} />} label="Closes" value={format(new Date(assessment.endsAt), "MMM d, yyyy · HH:mm")} />
@@ -138,7 +138,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
           <MetaRow icon={<RotateCcw size={13} />} label="Max Attempts" value={assessment.maxAttempts} />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-sm border border-slate-200 bg-white p-5">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-3">Configuration</p>
           <MetaRow icon={<MapPin size={13} />} label="Location" value={assessment.isLocationBound ? (assessment.location || "Location-Bound") : "Anywhere"} />
           <MetaRow icon={<Lock size={13} />} label="Password" value={assessment.passwordProtected ? "Protected" : "None"} />
@@ -146,7 +146,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
           <MetaRow icon={<Shuffle size={13} />} label="Shuffle Options" value={<span className={assessment.shuffleOptions ? "text-[#002388]" : "text-slate-400"}>{assessment.shuffleOptions ? "Yes" : "No"}</span>} />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 md:col-span-2">
+        <div className="rounded-sm border border-slate-200 bg-white p-5 md:col-span-2">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-3 flex items-center gap-1.5">
             <Users size={12} />
             Assigned Classes
@@ -156,7 +156,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
           ) : (
             <div className="flex flex-wrap gap-2">
               {assessment.classes.map((c) => (
-                <span key={c.id} className="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700">
+                <span key={c.id} className="inline-flex items-center px-3 py-1.5 rounded-sm border border-slate-200 bg-slate-50 text-xs text-slate-700">
                   {c.className}
                 </span>
               ))}
@@ -167,11 +167,11 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
 
       {/* Sections table */}
       {assessment.sections.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
+        <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
           <p className="text-sm text-slate-400">No sections have been added yet.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div className="rounded-sm border border-slate-200 bg-white overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-100">
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Sections</p>
           </div>
@@ -202,22 +202,25 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
                         {secIdx + 1}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-slate-900">
-                      {section.name || <span className="italic text-slate-400">Untitled</span>}
+                    <td className="px-5 py-3.5 text-[13px] text-[#1e293b]">
+                      {section.name || <span className="italic text-muted-foreground">Untitled</span>}
                     </td>
                     <td className="px-5 py-3.5">
-                      <Chip className={isObjective ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-purple-50 text-purple-700 border-purple-200"}>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-[0.04em]"
+                        style={isObjective ? { background: "#dbeafe", color: "#1e40af" } : { background: "#f3e8ff", color: "#6b21a8" }}
+                      >
                         {isObjective ? "Objective" : "Subjective"}
-                      </Chip>
+                      </span>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-500">
+                    <td className="px-5 py-3.5 text-[11px] text-muted-foreground">
                       {section.requiredQuestionsCount
                         ? `Answer ${section.requiredQuestionsCount} of ${section.questions.length}`
                         : `All ${section.questions.length}`}
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      <span className="font-medium text-slate-900">{sectionMarks}</span>
-                      <span className="text-xs text-slate-400 ml-1">({pct}%)</span>
+                      <span className="text-[13px] font-semibold text-[#1e293b]">{sectionMarks}</span>
+                      <span className="text-[11px] text-muted-foreground ml-1">({pct}%)</span>
                     </td>
                   </tr>
                 )
@@ -225,10 +228,10 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
             </tbody>
             <tfoot className="border-t border-slate-200 bg-slate-50">
               <tr>
-                <td colSpan={4} className="px-5 py-2.5 text-xs text-slate-400">
+                <td colSpan={4} className="px-5 py-2.5 text-[11px] text-muted-foreground">
                   {totalQuestions} question{totalQuestions !== 1 ? "s" : ""} across {assessment.sections.length} section{assessment.sections.length !== 1 ? "s" : ""}
                 </td>
-                <td className="px-5 py-2.5 text-right text-sm font-medium text-[#002388]">
+                <td className="px-5 py-2.5 text-right text-[13px] font-semibold text-primary">
                   {assessment.totalMarks} pts
                 </td>
               </tr>

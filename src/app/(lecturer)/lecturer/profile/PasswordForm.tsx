@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Lock, ShieldCheck, KeyRound } from "lucide-react"
 
-export default function PasswordForm() {
+export default function LecturerPasswordForm() {
   const [form, setForm] = useState({ current: "", next: "", confirm: "" })
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [message, setMessage] = useState("")
@@ -29,8 +29,6 @@ export default function PasswordForm() {
 
   return (
     <div className="bg-white border border-border rounded-sm">
-
-      {/* Header */}
       <div className="px-5 py-3 border-b border-border">
         <div className="flex items-center gap-1.5 mb-0.5">
           <KeyRound className="text-primary" size={13} strokeWidth={2} />
@@ -39,21 +37,17 @@ export default function PasswordForm() {
         <p className="text-[11px] text-muted-foreground">Update your password to keep your account secure.</p>
       </div>
 
-      {/* Body — two columns */}
       <form onSubmit={handleSubmit} className="p-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
           {/* Left col */}
           <div className="space-y-4">
-            {/* Warning box */}
             <div className="flex items-start gap-3 rounded-sm border border-border bg-slate-50/50 p-4">
               <ShieldCheck className="text-slate-400 flex-shrink-0 mt-0.5" size={16} strokeWidth={2} />
               <p className="text-[12px] text-muted-foreground leading-relaxed">
                 You must verify your current password to save <strong className="font-semibold text-[#1e293b]">any</strong> changes.
               </p>
             </div>
-
-            {/* Current password */}
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5 text-muted-foreground">
                 Current Password <span className="text-red-500">*</span>
@@ -74,7 +68,6 @@ export default function PasswordForm() {
 
           {/* Right col */}
           <div className="space-y-4">
-            {/* New password */}
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5 text-muted-foreground">
                 New Password
@@ -87,8 +80,6 @@ export default function PasswordForm() {
                 className="w-full px-3 py-2 text-[12px] font-semibold rounded-sm border border-border text-[#1e293b] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-400"
               />
             </div>
-
-            {/* Confirm password */}
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5 text-muted-foreground">
                 Confirm New Password
@@ -104,22 +95,18 @@ export default function PasswordForm() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-5 border-t border-[#f1f5f9] gap-4">
           <div className="flex-1">
             {status !== "idle" && (
-              <p
-                className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm transition-all animate-in fade-in slide-in-from-left-2 ${
-                  status === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                  status === "error" ? "bg-red-50 text-red-700 border border-red-100" :
-                  "bg-slate-100 text-slate-500 border border-slate-200"
-                }`}
-              >
+              <p className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm transition-all animate-in fade-in slide-in-from-left-2 ${
+                status === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                status === "error"   ? "bg-red-50 text-red-700 border border-red-100" :
+                "bg-slate-100 text-slate-500 border border-slate-200"
+              }`}>
                 {status === "loading" ? "Processing update..." : message}
               </p>
             )}
           </div>
-
           <button
             type="submit"
             disabled={status === "loading"}

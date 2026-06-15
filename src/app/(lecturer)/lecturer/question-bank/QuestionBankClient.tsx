@@ -140,7 +140,7 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Data Structures Midterm Pool"
-                className="rounded-xl border-slate-200 focus-visible:ring-[#002388]"
+                className="rounded-sm border-slate-200 focus-visible:ring-[#002388]"
                 autoFocus
               />
             </div>
@@ -150,7 +150,7 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
                 Course (optional)
               </Label>
               <Select value={courseId} onValueChange={setCourseId}>
-                <SelectTrigger className="w-full rounded-xl border-slate-200">
+                <SelectTrigger className="w-full rounded-sm border-slate-200">
                   <SelectValue placeholder="No course filter — available for all" />
                 </SelectTrigger>
                 <SelectContent>
@@ -168,13 +168,13 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
           </div>
 
           <SheetFooter className="px-6 py-4 border-t border-slate-100 flex-row justify-end gap-2">
-            <Button type="button" variant="outline" onClick={handleClose} className="rounded-xl">
+            <Button type="button" variant="outline" onClick={handleClose} className="rounded-sm">
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-[#002388] hover:bg-[#002388]/90 gap-1.5"
+              className="rounded-sm bg-[#002388] hover:bg-[#002388]/90 gap-1.5"
             >
               {isSubmitting ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Creating…</>
@@ -249,16 +249,17 @@ export default function QuestionBankClient() {
     <div className="space-y-6">
       {/* Action bar */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           {loading ? "" : `${banks.length} bank${banks.length !== 1 ? "s" : ""}`}
         </p>
-        <Button
+        <button
+          type="button"
           onClick={() => setShowCreateSheet(true)}
-          className="rounded-xl bg-[#002388] hover:bg-[#002388]/90 gap-1.5"
+          className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
         >
           <Plus className="h-4 w-4" />
           New Bank
-        </Button>
+        </button>
       </div>
 
       {/* Content */}
@@ -272,25 +273,25 @@ export default function QuestionBankClient() {
           </div>
         </div>
       ) : banks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-20 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#002388]/5 border border-[#002388]/10">
-            <Library className="h-8 w-8 text-[#002388]/40" />
+        <div className="flex flex-col items-center justify-center rounded-sm border border-dashed border-border bg-white px-6 py-20 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
+            <Library className="h-7 w-7 text-slate-300" />
           </div>
-          <h3 className="text-base font-semibold text-slate-700">No question banks yet</h3>
-          <p className="mt-1 max-w-sm text-sm text-slate-400">
-            Question banks let you store and reuse questions across multiple assessments. Create
-            your first bank to get started.
+          <p className="text-[14px] font-semibold text-[#1e293b]">No question banks yet</p>
+          <p className="mt-1 max-w-sm text-[12px] text-muted-foreground">
+            Question banks let you store and reuse questions across multiple assessments. Create your first bank to get started.
           </p>
-          <Button
+          <button
+            type="button"
             onClick={() => setShowCreateSheet(true)}
-            className="mt-6 rounded-xl bg-[#002388] hover:bg-[#002388]/90 gap-1.5"
+            className="mt-6 inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
           >
             <Plus className="h-4 w-4" />
             Create your first bank
-          </Button>
+          </button>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+        <div className="rounded-sm border border-slate-200 overflow-hidden bg-white">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50 hover:bg-slate-50">
@@ -318,18 +319,18 @@ export default function QuestionBankClient() {
                 >
                   <TableCell className="pl-5">
                     <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-[#002388] shrink-0" />
-                      <span className="font-medium text-slate-900">{bank.title}</span>
+                      <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-[13px] font-semibold text-[#1e293b]">{bank.title}</span>
                     </div>
                   </TableCell>
 
                   <TableCell>
                     {bank.course ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border bg-blue-50 text-blue-700 border-blue-200">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-[0.04em]" style={{ background: "#dbeafe", color: "#1e40af" }}>
                         {bank.course.code}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400">All courses</span>
+                      <span className="text-[11px] text-muted-foreground">All courses</span>
                     )}
                   </TableCell>
 
@@ -337,24 +338,22 @@ export default function QuestionBankClient() {
                   <TableCell>
                     <div className="flex items-center gap-2 flex-wrap">
                       {bank.typeCounts.OBJECTIVE > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                          <span className="font-bold">{bank.typeCounts.OBJECTIVE}</span>
-                          Objective
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.04em]" style={{ background: "#fef9c3", color: "#854d0e" }}>
+                          {bank.typeCounts.OBJECTIVE} Obj
                         </span>
                       ) : null}
                       {bank.typeCounts.SUBJECTIVE > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                          <span className="font-bold">{bank.typeCounts.SUBJECTIVE}</span>
-                          Subjective
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.04em]" style={{ background: "#f3e8ff", color: "#6b21a8" }}>
+                          {bank.typeCounts.SUBJECTIVE} Subj
                         </span>
                       ) : null}
                       {bank._count.items === 0 && (
-                        <span className="text-xs text-slate-400 italic">No questions yet</span>
+                        <span className="text-[11px] text-muted-foreground italic">No questions yet</span>
                       )}
                     </div>
                   </TableCell>
 
-                  <TableCell className="text-xs text-slate-400">
+                  <TableCell className="text-[11px] text-muted-foreground">
                     {formatDate(bank.createdAt)}
                   </TableCell>
 

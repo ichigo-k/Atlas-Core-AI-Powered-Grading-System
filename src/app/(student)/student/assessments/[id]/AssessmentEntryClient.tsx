@@ -29,11 +29,11 @@ export default function AssessmentEntryClient({
 
   if (isLocked) {
     return (
-      <div className="flex items-center gap-4 rounded-2xl border-2 border-[#F23F42]/10 bg-[#FEE7E9]/30 p-5">
-        <Lock size={20} className="shrink-0 text-[#F23F42]" strokeWidth={3} />
+      <div className="flex items-center gap-3 rounded-sm border border-red-100 bg-red-50 p-4">
+        <Lock size={16} className="shrink-0 text-red-600" strokeWidth={2} />
         <div>
-          <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Access Locked</p>
-          <p className="text-[11px] font-bold text-[#F23F42] mt-0.5 uppercase tracking-widest">Maximum attempts reached</p>
+          <p className="text-[12px] font-semibold text-[#1e293b]">Access Locked</p>
+          <p className="text-[10px] font-bold text-red-600 mt-0.5 uppercase tracking-wider">Maximum attempts reached</p>
         </div>
       </div>
     )
@@ -43,11 +43,11 @@ export default function AssessmentEntryClient({
     return (
       <button
         onClick={() => router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${activeAttemptId}`)}
-        className="w-full flex items-center justify-center gap-3 rounded-2xl bg-discord-blurple px-8 py-4 text-sm font-black text-white shadow-xl shadow-discord-blurple/20 hover:bg-[#4752c4] transition-all active:scale-95"
+        className="w-full flex items-center justify-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
       >
-        <RotateCcw size={18} strokeWidth={3} />
-        RESUME ACTIVE ATTEMPT
-        <ArrowRight size={18} strokeWidth={3} />
+        <RotateCcw size={14} strokeWidth={2} />
+        Resume Active Attempt
+        <ArrowRight size={14} strokeWidth={2} />
       </button>
     )
   }
@@ -81,22 +81,22 @@ export default function AssessmentEntryClient({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <button
         type="button"
         onClick={handleStartClick}
         disabled={isPending}
-        className="w-full flex items-center justify-center gap-3 rounded-2xl bg-discord-blurple px-8 py-4 text-sm font-black text-white shadow-xl shadow-discord-blurple/20 hover:bg-[#4752c4] transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group"
+        className="w-full flex items-center justify-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors disabled:opacity-60 disabled:cursor-not-allowed group"
       >
-        <PlayCircle size={20} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
-        {isPending ? "INITIALIZING SESSION..." : "START NEW ATTEMPT"}
-        <ArrowRight size={20} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+        <PlayCircle size={14} strokeWidth={2} className="group-hover:scale-105 transition-transform" />
+        {isPending ? "Initializing Session..." : "Start New Attempt"}
+        <ArrowRight size={14} strokeWidth={2} className="group-hover:translate-x-0.5 transition-transform" />
       </button>
 
       {error && (
-        <div className="flex items-center gap-3 rounded-xl border-2 border-[#F23F42]/20 bg-[#FEE7E9] p-4 animate-in shake-1">
-          <AlertTriangle size={18} className="shrink-0 text-[#F23F42]" strokeWidth={3} />
-          <p className="text-[10px] font-black text-[#F23F42] uppercase tracking-[0.1em]">{error}</p>
+        <div className="flex items-center gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3 animate-in fade-in">
+          <AlertTriangle size={14} className="shrink-0 text-red-600" strokeWidth={2} />
+          <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide">{error}</p>
         </div>
       )}
     </div>
