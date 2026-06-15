@@ -16,9 +16,10 @@ interface CountdownTimerProps {
   startedAt: string
   durationMinutes: number
   onExpire: () => void
+  compact?: boolean
 }
 
-export default function CountdownTimer({ startedAt, durationMinutes, onExpire }: CountdownTimerProps) {
+export default function CountdownTimer({ startedAt, durationMinutes, onExpire, compact }: CountdownTimerProps) {
   const expiredRef = useRef(false)
   // null on first render so server and client produce identical HTML
   const [remaining, setRemaining] = useState<number | null>(null)
@@ -45,14 +46,18 @@ export default function CountdownTimer({ startedAt, durationMinutes, onExpire }:
 
   // Render a stable placeholder until client hydrates
   if (remaining === null) {
-    return (
-      <div className="flex items-center gap-1.5 font-mono text-[15px] font-semibold text-[#374151]">
-        <span>--:--:--</span>
-      </div>
-    )
+    return <span className="font-mono text-[15px] font-semibold text-[#374151]">--:--:--</span>
   }
 
   const isWarning = remaining < 5 * 60 * 1000
+
+  if (compact) {
+    return (
+      <span className={`font-mono text-[12px] font-bold ${isWarning ? "text-[#dc2626]" : "text-[#374151]"}`}>
+        {formatTime(remaining)}
+      </span>
+    )
+  }
 
   return (
     <div className={`flex items-center gap-1.5 font-mono text-[15px] font-semibold ${isWarning ? "text-[#dc2626]" : "text-[#111827]"}`}>

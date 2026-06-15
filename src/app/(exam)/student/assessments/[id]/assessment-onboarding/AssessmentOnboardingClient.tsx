@@ -52,7 +52,51 @@ function buildSteps(passwordProtected: boolean, proctoringEnabled: boolean) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sidebar
+// Mobile top progress bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+function MobileProgress({
+  current,
+  steps,
+}: {
+  current: number;
+  steps: { label: string; icon: React.ElementType }[];
+}) {
+  return (
+    <div className="md:hidden px-4 pt-4 pb-3 border-b border-border bg-white">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider">
+          Step {current + 1} of {steps.length}
+        </span>
+        <span className="text-[11px] font-semibold text-primary">{steps[current]?.label}</span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-300"
+          style={{ width: `${((current + 1) / steps.length) * 100}%` }}
+        />
+      </div>
+      {/* Step dots */}
+      <div className="flex items-center gap-1.5 mt-2.5">
+        {steps.map((s, i) => {
+          const done = i < current;
+          const active = i === current;
+          return (
+            <div
+              key={s.label}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                done ? "bg-primary flex-1" : active ? "bg-primary w-6" : "bg-slate-200 flex-1"
+              }`}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Desktop Sidebar
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Sidebar({
@@ -63,7 +107,7 @@ function Sidebar({
   steps: { label: string; icon: React.ElementType }[];
 }) {
   return (
-    <aside className="w-52 shrink-0 flex flex-col gap-1 pt-1">
+    <aside className="hidden md:flex w-48 shrink-0 flex-col gap-1 pt-1">
       <div className="flex items-center gap-2 mb-5 px-1">
         <ShieldCheck size={16} className="text-primary" strokeWidth={2} />
         <span className="text-[13px] font-semibold text-[#1e293b]">Assessment Setup</span>
@@ -96,12 +140,9 @@ function Sidebar({
             </div>
 
             <span
-              className={`text-sm transition-colors ${active
-                  ? "font-medium text-[#1a73e8]"
-                  : done
-                    ? "font-medium text-[#5f6368]"
-                    : "text-[#5f6368]"
-                }`}
+              className={`text-sm transition-colors ${
+                active ? "font-medium text-[#1a73e8]" : done ? "font-medium text-[#5f6368]" : "text-[#5f6368]"
+              }`}
             >
               {s.label}
             </span>
@@ -826,8 +867,8 @@ export default function AssessmentOnboardingClient({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col">
-      {/* Minimalist Navbar */}
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
+      {/* Navbar */}
       <header className="h-12 bg-primary flex items-center justify-between px-4 sm:px-6 w-full shrink-0">
         <div className="flex items-center gap-2.5">
           <Image
@@ -839,70 +880,67 @@ export default function AssessmentOnboardingClient({
             priority
           />
           <div className="leading-tight text-left">
-            <div className="text-white font-semibold text-[13px]">
-              GCTU Exam Portal
-            </div>
-            <div className="text-white/55 text-[9.5px]">
+            <div className="text-white font-semibold text-[13px]">GCTU Exam Portal</div>
+            <div className="text-white/55 text-[9.5px] hidden sm:block">
               Ghana Communication Technology University
             </div>
           </div>
         </div>
-
         <Link
           href="/student/assessments"
-          className="flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/15 rounded-sm text-[12px] font-semibold text-white transition-colors border border-white/10"
+          className="flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-sm text-[12px] font-semibold text-white transition-colors border border-white/10"
         >
           Exit Setup
         </Link>
       </header>
 
+      {/* Mobile progress bar */}
+      <MobileProgress current={step} steps={steps} />
+
       {/* Main setup area */}
-      <div className="flex-grow flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-3xl flex flex-col md:flex-row gap-8 md:gap-12">
-          {/* Sidebar */}
-          <Sidebar current={step} steps={steps} />
+      <div className="flex-grow flex items-start md:items-center justify-center px-4 py-6 md:py-10">
+        <div className="w-full max-w-3xl bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+          <div className="flex flex-col md:flex-row">
+            {/* Desktop sidebar */}
+            <div className="md:w-52 md:border-r border-border md:p-6 hidden md:block">
+              <Sidebar current={step} steps={steps} />
+            </div>
 
-          {/* Divider */}
-          <div className="hidden md:block w-px bg-border self-stretch" />
-
-          {/* Content */}
-          <div className="flex-1 min-h-[360px] flex flex-col">
-            {step === 0 && (
-              <StepImportantRules
-                assessmentType={assessmentType}
-                durationMinutes={durationMinutes}
-                onNext={() => setStep(1)}
-                onBack={() => router.push(`/student/assessments`)}
-              />
-            )}
-            {step === 1 && (
-              <StepGeneralRules
-                assessmentType={assessmentType}
-                onNext={handleGeneralRulesNext}
-                onBack={() => setStep(0)}
-              />
-            )}
-            {step === passwordStepIndex && passwordProtected && (
-              <StepPassword
-                assessmentId={assessmentId}
-                onBack={() => setStep(1)}
-                onSuccess={handlePasswordSuccess}
-              />
-            )}
-            {step === proctorStepIndex &&
-              proctoringEnabled &&
-              resolvedAttemptId != null && (
-                <StepCameraCheck
-                  attemptId={resolvedAttemptId}
-                  assessmentId={assessmentId}
-                  onBack={() =>
-                    setStep(passwordProtected ? passwordStepIndex : 1)
-                  }
-                  onCancel={() =>
-                    router.push(`/student/assessments`)
-                  }
+            {/* Content */}
+            <div className="flex-1 p-5 sm:p-7 min-h-[380px] flex flex-col">
+              {step === 0 && (
+                <StepImportantRules
+                  assessmentType={assessmentType}
+                  durationMinutes={durationMinutes}
+                  onNext={() => setStep(1)}
+                  onBack={() => router.push(`/student/assessments`)}
                 />
               )}
+              {step === 1 && (
+                <StepGeneralRules
+                  assessmentType={assessmentType}
+                  onNext={handleGeneralRulesNext}
+                  onBack={() => setStep(0)}
+                />
+              )}
+              {step === passwordStepIndex && passwordProtected && (
+                <StepPassword
+                  assessmentId={assessmentId}
+                  onBack={() => setStep(1)}
+                  onSuccess={handlePasswordSuccess}
+                />
+              )}
+              {step === proctorStepIndex &&
+                proctoringEnabled &&
+                resolvedAttemptId != null && (
+                  <StepCameraCheck
+                    attemptId={resolvedAttemptId}
+                    assessmentId={assessmentId}
+                    onBack={() => setStep(passwordProtected ? passwordStepIndex : 1)}
+                    onCancel={() => router.push(`/student/assessments`)}
+                  />
+                )}
+            </div>
           </div>
         </div>
       </div>

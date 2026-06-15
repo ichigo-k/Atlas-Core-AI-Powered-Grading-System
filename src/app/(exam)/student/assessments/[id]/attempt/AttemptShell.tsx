@@ -18,6 +18,7 @@ import { ProctorLiveKit } from "@/lib/proctor-webrtc"
 import {
   CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight,
   Send, X, BookOpen, Clock, Layers, ListChecks, Video,
+  Menu, PanelLeft,
 } from "lucide-react"
 
 // Single overlay subscribed to the Zustand store — renders for all violation types
@@ -160,7 +161,7 @@ function QuestionSelectionScreen({
   const ready = count === required
 
   return (
-    <div className="flex-1 overflow-y-auto px-16 py-10">
+    <div className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 py-6 lg:py-10">
       {/* Instruction banner */}
       <div className="mb-8">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af] mb-1">
@@ -475,6 +476,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   const [activeSectionId, setActiveSectionId] = useState<number>(firstSection?.id ?? 0)
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // selectedQIds: per-section map of chosen question IDs (only for quota sections)
   // null means "no quota" — all questions are open
@@ -651,13 +653,134 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   const activeSectionIdx = sections.findIndex((s) => s.id === activeSectionId)
   const nextSection = sections[activeSectionIdx + 1]
 
+  // ── Sidebar content (shared between desktop aside and mobile drawer) ──────────
+
+  function SidebarContent({ onClose }: { onClose?: () => void }) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Title */}
+        <div className="px-4 py-4 border-b border-[#ebebeb] flex items-start justify-between gap-2 shrink-0">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#eef2ff]">
+              <BookOpen size={14} className="text-[#002388]" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold text-[#111827] leading-tight">{assessment.title}</p>
+              <p className="mt-0.5 text-[10px] text-[#9ca3af] uppercase tracking-wider font-medium">{assessment.type}</p>
+            </div>
+          </div>
+          {onClose && (
+            <button type="button" onClick={onClose} className="shrink-0 p-1 rounded text-[#9ca3af] hover:text-[#374151] hover:bg-[#f3f4f6] transition-colors">
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        {/* Timer */}
+        {assessment.durationMinutes != null && (
+          <div className="px-4 py-3 border-b border-[#ebebeb] shrink-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-1.5 flex items-center gap-1.5">
+              <Clock size={10} />Time Remaining
+            </p>
+            <CountdownTimer startedAt={attempt.startedAt} durationMinutes={assessment.durationMinutes} onExpire={handleExpire} />
+          </div>
+        )}
+
+        {/* Overall progress */}
+        <div className="px-4 py-2.5 border-b border-[#ebebeb] shrink-0">
+          <div className="flex items-center justify-between text-[11px] text-[#9ca3af] mb-1.5">
+            <span>Overall progress</span>
+            <span className="font-semibold text-[#374151]">{totalAnsweredAll}/{totalRequired}</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-[#f3f4f6] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-[#002388] transition-all"
+              style={{ width: `${totalRequired > 0 ? Math.min((totalAnsweredAll / totalRequired) * 100, 100) : 0}%` }} />
+          </div>
+        </div>
+
+        {/* Sections */}
+        <div className="px-3 py-3 border-b border-[#ebebeb] shrink-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-2 px-1 flex items-center gap-1.5">
+            <Layers size={10} />Sections
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {sectionsWithProgress.map((section) => {
+              const isActive = section.id === activeSectionId
+              const required = section.requiredQuestionsCount ?? section.questions.length
+              const complete = section.answeredCount >= required
+              const sel = getSectionSelectedIds(section.id)
+              const pending = sel === undefined
+              return (
+                <button key={section.id} type="button"
+                  onClick={() => { handleSectionSelect(section.id); onClose?.() }}
+                  className={["flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
+                    isActive ? "bg-[#eef2ff] text-[#002388]" : "text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#374151]",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {complete
+                      ? <CheckCircle2 size={12} className="shrink-0 text-[#16a34a]" />
+                      : pending
+                      ? <ListChecks size={12} className="shrink-0 text-[#d97706]" />
+                      : <div className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 ${isActive ? "border-[#002388]" : "border-[#d1d5db]"}`} />
+                    }
+                    <span className="truncate text-[12px] font-medium">{section.name}</span>
+                  </div>
+                  <span className="shrink-0 text-[11px] text-[#9ca3af]">
+                    {pending ? "choose" : `${section.answeredCount}/${required}`}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Question palette */}
+        {!needsSelection && (
+          <div className="flex-1 overflow-y-auto px-3 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-2 px-1">Questions</p>
+            {activeSection && (
+              <QuestionPalette
+                questions={visibleQuestions}
+                answeredIds={answeredIdsInSection}
+                selectedIds={null}
+                activeIndex={safeActiveIndex}
+                onSelect={(i) => { setActiveQuestionIndex(i); onClose?.() }}
+              />
+            )}
+            <div className="mt-3 flex flex-col gap-1.5 px-1">
+              {[
+                { color: "bg-[#002388]", label: "Current" },
+                { color: "bg-[#dcfce7] border border-[#bbf7d0]", label: "Answered" },
+                { color: "bg-[#f3f4f6] border border-[#e5e7eb]", label: "Not answered" },
+              ].map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-2 text-[10px] text-[#9ca3af]">
+                  <div className={`h-2 w-2 rounded ${color}`} />{label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {needsSelection && <div className="flex-1" />}
+
+        {/* Submit */}
+        <div className="border-t border-[#ebebeb] p-3 shrink-0">
+          <button type="button" onClick={() => { setShowSubmitDialog(true); onClose?.() }} disabled={isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#002388] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#0B4DBB] disabled:opacity-50">
+            <Send size={13} />Submit Assessment
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <>
       <LockdownOverlay ref={lockdownRef} isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
       <AntiCheatGuard isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
-      {/* Single FlagOverlay driven by the Zustand store — covers all violation types */}
       <ViolationOverlay assessmentId={assessmentId} />
 
       {showSubmitDialog && (
@@ -671,157 +794,92 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
         />
       )}
 
+      {/* ── Mobile sidebar drawer ── */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileSidebarOpen(false)} />
+          {/* Sheet slides up from bottom */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col shadow-2xl">
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-[#e5e7eb]" />
+            </div>
+            <SidebarContent onClose={() => setMobileSidebarOpen(false)} />
+          </div>
+        </div>
+      )}
+
       <div className="fixed inset-0 z-50 flex overflow-hidden bg-white">
 
-        {/* ── Left sidebar ── */}
-        <aside className="flex w-60 shrink-0 flex-col overflow-hidden border-r border-[#ebebeb] bg-white">
-          {/* Title */}
-          <div className="px-4 py-4 border-b border-[#ebebeb]">
-            <div className="flex items-start gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#f3f4f6]">
-                <BookOpen size={14} className="text-[#6b7280]" />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold text-[#111827] leading-tight">{assessment.title}</p>
-                <p className="mt-0.5 text-[10px] text-[#9ca3af] uppercase tracking-wider font-medium">{assessment.type}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Timer */}
-          {assessment.durationMinutes != null && (
-            <div className="px-4 py-3 border-b border-[#ebebeb]">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-1.5 flex items-center gap-1.5">
-                <Clock size={10} />Time Remaining
-              </p>
-              <CountdownTimer startedAt={attempt.startedAt} durationMinutes={assessment.durationMinutes} onExpire={handleExpire} />
-            </div>
-          )}
-
-          {/* Sections */}
-          <div className="px-3 py-3 border-b border-[#ebebeb]">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-2 px-1 flex items-center gap-1.5">
-              <Layers size={10} />Sections
-            </p>
-            <div className="flex flex-col gap-0.5">
-              {sectionsWithProgress.map((section) => {
-                const isActive = section.id === activeSectionId
-                const required = section.requiredQuestionsCount ?? section.questions.length
-                const complete = section.answeredCount >= required
-                const sel = getSectionSelectedIds(section.id)
-                const pending = sel === undefined // needs selection
-                return (
-                  <button key={section.id} type="button" onClick={() => handleSectionSelect(section.id)}
-                    className={["flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
-                      isActive ? "bg-[#f3f4f6] text-[#111827]" : "text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#374151]",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {complete
-                        ? <CheckCircle2 size={12} className="shrink-0 text-[#16a34a]" />
-                        : pending
-                        ? <ListChecks size={12} className="shrink-0 text-[#d97706]" />
-                        : <div className={`h-2.5 w-2.5 shrink-0 rounded-full border ${isActive ? "border-[#374151]" : "border-[#d1d5db]"}`} />
-                      }
-                      <span className="truncate text-[12px] font-medium">{section.name}</span>
-                    </div>
-                    <span className="shrink-0 text-[11px] text-[#9ca3af]">
-                      {pending ? "choose" : `${section.answeredCount}/${required}`}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Question palette — only shown when not in selection mode */}
-          {!needsSelection && (
-            <div className="flex-1 overflow-y-auto px-3 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-2 px-1">Questions</p>
-              {activeSection && (
-                <QuestionPalette
-                  questions={visibleQuestions}
-                  answeredIds={answeredIdsInSection}
-                  selectedIds={null}
-                  activeIndex={safeActiveIndex}
-                  onSelect={setActiveQuestionIndex}
-                />
-              )}
-              <div className="mt-3 flex flex-col gap-1.5 px-1">
-                {[
-                  { color: "bg-[#111827]", label: "Current" },
-                  { color: "bg-[#dcfce7] border border-[#bbf7d0]", label: "Answered" },
-                  { color: "bg-[#f3f4f6] border border-[#e5e7eb]", label: "Not answered" },
-                ].map(({ color, label }) => (
-                  <div key={label} className="flex items-center gap-2 text-[10px] text-[#9ca3af]">
-                    <div className={`h-2 w-2 rounded ${color}`} />{label}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {needsSelection && <div className="flex-1" />}
-
-          {/* Submit */}
-          <div className="border-t border-[#ebebeb] p-3">
-            <button type="button" onClick={() => setShowSubmitDialog(true)} disabled={isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#002388] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#0B4DBB] disabled:opacity-50">
-              <Send size={13} />Submit Assessment
-            </button>
-          </div>
+        {/* ── Desktop sidebar ── */}
+        <aside className="hidden lg:flex w-60 shrink-0 flex-col overflow-hidden border-r border-[#ebebeb] bg-[#fafafa]">
+          <SidebarContent />
         </aside>
 
         {/* ── Main content ── */}
-        <main className="flex flex-1 flex-col overflow-hidden bg-white">
+        <main className="flex flex-1 flex-col overflow-hidden bg-white min-w-0">
 
           {/* Top bar */}
-          <header className="flex items-center justify-between border-b border-[#ebebeb] px-16 py-3 shrink-0">
-            <div className="flex items-center gap-3">
+          <header className="flex items-center justify-between border-b border-[#ebebeb] px-3 sm:px-6 lg:px-10 py-2.5 shrink-0 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Mobile menu toggle */}
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="lg:hidden flex items-center justify-center h-8 w-8 rounded-md text-[#6b7280] hover:bg-[#f3f4f6] transition-colors shrink-0"
+                aria-label="Open navigation"
+              >
+                <PanelLeft size={17} />
+              </button>
+
               {activeSection && (
-                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded ${
+                <span className={`hidden sm:inline-flex text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded shrink-0 ${
                   activeSection.type === "OBJECTIVE" ? "bg-[#eff6ff] text-[#1d4ed8]" : "bg-[#f5f3ff] text-[#6d28d9]"
                 }`}>
                   {activeSection.type}
                 </span>
               )}
-              <span className="text-[13px] font-medium text-[#374151]">{activeSection?.name}</span>
+              <span className="text-[13px] font-medium text-[#374151] truncate">{activeSection?.name}</span>
               {!needsSelection && (
-                <>
-                  <span className="text-[#e5e7eb]">·</span>
-                  <span className="text-[12px] text-[#9ca3af]">{safeActiveIndex + 1} / {totalQuestionsInSection}</span>
-                </>
+                <span className="text-[12px] text-[#9ca3af] shrink-0">· {safeActiveIndex + 1}/{totalQuestionsInSection}</span>
               )}
             </div>
 
-            <div className="flex items-center gap-4">
-              {activeSectionHasQuota && !needsSelection && (
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[12px] text-[#6b7280]">
-                    Answering <strong className="text-[#374151]">{activeSectionRequired}</strong> of {activeSection?.questions.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleChangeSelection}
-                    className="flex items-center gap-1.5 rounded-md border border-[#e5e7eb] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#374151] hover:bg-[#f9fafb] hover:border-[#d1d5db] transition-colors"
-                  >
-                    <ListChecks size={13} className="text-[#6b7280]" />
-                    Change selection
-                  </button>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Mobile timer pill */}
+              {assessment.durationMinutes != null && (
+                <div className="flex lg:hidden items-center gap-1 text-[12px] font-semibold text-[#374151] bg-[#f3f4f6] px-2.5 py-1 rounded-full">
+                  <Clock size={12} className="text-[#6b7280]" />
+                  <CountdownTimer startedAt={attempt.startedAt} durationMinutes={assessment.durationMinutes} onExpire={handleExpire} compact />
                 </div>
               )}
+
+              {activeSectionHasQuota && !needsSelection && (
+                <button
+                  type="button"
+                  onClick={handleChangeSelection}
+                  className="hidden sm:flex items-center gap-1.5 rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#374151] hover:bg-[#f9fafb] transition-colors"
+                >
+                  <ListChecks size={12} className="text-[#6b7280]" />
+                  <span className="hidden md:inline">Change selection</span>
+                </button>
+              )}
+
+              {/* Progress pill */}
               <div className="hidden sm:flex items-center gap-2">
-                <div className="h-1 w-24 rounded-full bg-[#f3f4f6] overflow-hidden">
+                <div className="h-1 w-20 rounded-full bg-[#f3f4f6] overflow-hidden">
                   <div className="h-1 rounded-full bg-[#002388] transition-all"
                     style={{ width: `${totalRequired > 0 ? Math.min((totalAnsweredAll / totalRequired) * 100, 100) : 0}%` }} />
                 </div>
                 <span className="text-[11px] text-[#9ca3af]">{totalAnsweredAll}/{totalRequired}</span>
               </div>
+
               {proctorActive && (
-                <div className="flex items-center gap-1.5 rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-2.5 py-1">
+                <div className="flex items-center gap-1 rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-0.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#16a34a]" />
-                  <Video size={11} className="text-[#16a34a]" />
-                  <span className="text-[11px] font-medium text-[#16a34a]">Proctored</span>
+                  <Video size={10} className="text-[#16a34a]" />
+                  <span className="hidden sm:inline text-[10px] font-medium text-[#16a34a]">Proctored</span>
                 </div>
               )}
             </div>
@@ -839,9 +897,9 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
             />
           ) : (
             <>
-              {/* Question area — full width with comfortable side padding */}
+              {/* Question area */}
               <div className="flex-1 overflow-y-auto">
-                <div className="w-full px-16 py-10" style={{ maxWidth: "none" }}>
+                <div className="w-full px-4 sm:px-8 lg:px-16 py-6 lg:py-10">
                   {activeQuestion ? (
                     <QuestionRenderer
                       key={activeQuestion.id}
@@ -861,46 +919,63 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
               </div>
 
               {/* Bottom nav */}
-              <footer className="flex items-center justify-between border-t border-[#ebebeb] px-16 py-3 shrink-0">
+              <footer className="flex items-center justify-between border-t border-[#ebebeb] px-3 sm:px-6 lg:px-10 py-3 shrink-0 gap-2">
                 <button type="button"
                   onClick={() => setActiveQuestionIndex((i) => Math.max(0, i - 1))}
                   disabled={safeActiveIndex === 0}
-                  className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-4 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f9fafb] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-[#e5e7eb] px-3 sm:px-4 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f9fafb] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <ChevronLeft size={15} />Previous
+                  <ChevronLeft size={15} /><span className="hidden sm:inline">Previous</span>
                 </button>
 
-                <div className="hidden sm:flex items-center gap-1">
-                  {visibleQuestions.map((q, i) => (
-                    <button key={q.id} type="button" onClick={() => setActiveQuestionIndex(i)}
-                      className={`rounded-full transition-all ${
-                        i === safeActiveIndex ? "w-5 h-1.5 bg-[#111827]"
-                        : answeredIdsInSection.has(q.id) ? "w-1.5 h-1.5 bg-[#86efac]"
-                        : "w-1.5 h-1.5 bg-[#e5e7eb]"
-                      }`}
-                      aria-label={`Go to question ${i + 1}`}
-                    />
-                  ))}
+                {/* Centre: dot progress on sm+, "Q N" label on mobile */}
+                <div className="flex items-center gap-2">
+                  <span className="sm:hidden text-[12px] text-[#6b7280] font-medium">
+                    Q {safeActiveIndex + 1} of {totalQuestionsInSection}
+                  </span>
+                  <div className="hidden sm:flex items-center gap-1">
+                    {visibleQuestions.slice(0, 20).map((q, i) => (
+                      <button key={q.id} type="button" onClick={() => setActiveQuestionIndex(i)}
+                        className={`rounded-full transition-all ${
+                          i === safeActiveIndex ? "w-5 h-1.5 bg-[#002388]"
+                          : answeredIdsInSection.has(q.id) ? "w-1.5 h-1.5 bg-[#86efac]"
+                          : "w-1.5 h-1.5 bg-[#e5e7eb]"
+                        }`}
+                        aria-label={`Go to question ${i + 1}`}
+                      />
+                    ))}
+                    {visibleQuestions.length > 20 && (
+                      <span className="text-[10px] text-[#9ca3af] ml-1">+{visibleQuestions.length - 20}</span>
+                    )}
+                  </div>
+                  {/* Mobile: open drawer button */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileSidebarOpen(true)}
+                    className="sm:hidden flex items-center gap-1 text-[12px] font-semibold text-[#002388] border border-[#002388]/20 bg-[#eef2ff] px-2.5 py-1 rounded-full"
+                  >
+                    <Menu size={12} />Questions
+                  </button>
                 </div>
 
                 {safeActiveIndex < totalQuestionsInSection - 1 ? (
                   <button type="button"
                     onClick={() => setActiveQuestionIndex((i) => Math.min(totalQuestionsInSection - 1, i + 1))}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#002388] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0B4DBB] transition-colors"
+                    className="flex items-center gap-1 sm:gap-1.5 rounded-lg bg-[#002388] px-3 sm:px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0B4DBB] transition-colors"
                   >
-                    Next<ChevronRight size={15} />
+                    <span className="hidden sm:inline">Next</span><ChevronRight size={15} />
                   </button>
                 ) : nextSection ? (
                   <button type="button" onClick={() => handleSectionSelect(nextSection.id)}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#002388] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0B4DBB] transition-colors"
+                    className="flex items-center gap-1 sm:gap-1.5 rounded-lg bg-[#002388] px-3 sm:px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0B4DBB] transition-colors"
                   >
-                    Next Section<ChevronRight size={15} />
+                    <span className="hidden sm:inline">Next Section</span><ChevronRight size={15} />
                   </button>
                 ) : (
                   <button type="button" onClick={() => setShowSubmitDialog(true)} disabled={isPending}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#002388] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0B4DBB] transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#002388] px-3 sm:px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0B4DBB] transition-colors disabled:opacity-50"
                   >
-                    <Send size={13} />Submit
+                    <Send size={13} /><span className="hidden sm:inline">Submit</span>
                   </button>
                 )}
               </footer>
