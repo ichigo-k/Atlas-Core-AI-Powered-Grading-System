@@ -178,27 +178,32 @@ async function DashboardContent() {
 					</div>
 				</section>
 
-				<section className="rounded-sm border border-border bg-white">
-					<div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
+				<section className="rounded-xl border border-slate-800 bg-slate-900 shadow-md overflow-hidden">
+					<div className="flex items-center justify-between border-b border-slate-800/50 px-4 py-3 bg-slate-950/30">
 						<div className="flex items-center gap-3">
 							<div
-								className={`flex h-9 w-9 items-center justify-center rounded-sm ${
+								className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300 ${
 									isHealthy
-										? "bg-emerald-50 text-emerald-700"
-										: "bg-amber-50 text-amber-700"
+										? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+										: "bg-amber-500/10 border-amber-500/20 text-amber-400"
 								}`}
 							>
 								{isHealthy ? (
-									<CheckCircle2 size={18} />
+									<CheckCircle2 size={18} className="animate-pulse" />
 								) : (
-									<AlertTriangle size={18} />
+									<AlertTriangle size={18} className="animate-bounce" />
 								)}
 							</div>
 							<div>
-								<h2 className="text-[13px] font-semibold text-[#1e293b]">
+								<h2 className="text-[13px] font-bold text-slate-100">
 									System health
 								</h2>
-								<p className="text-[12px] text-muted-foreground">Status: {healthStatus}</p>
+								<div className="flex items-center gap-1.5 mt-0.5">
+									<span className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+									<p className="text-[11px] font-medium text-slate-400">
+										Status: <span className={isHealthy ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{healthStatus}</span>
+									</p>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -207,28 +212,39 @@ async function DashboardContent() {
 							{auditAlerts.map((alert) => (
 								<div
 									key={alert}
-									className="rounded-sm bg-slate-50 px-3 py-2 text-sm text-slate-700"
+									className={`rounded-lg border px-3.5 py-2.5 text-xs font-medium leading-relaxed transition-colors ${
+										isHealthy
+											? "bg-slate-950/30 border-slate-800/40 text-slate-300"
+											: "bg-amber-500/5 border-amber-500/10 text-amber-300"
+									}`}
 								>
 									{alert}
 								</div>
 							))}
 						</div>
-						<div className="border-t border-slate-100 pt-4">
-							<div className="grid gap-3">
-								{structuralStats.map((item) => (
-									<div
-										key={item.label}
-										className="flex items-center justify-between gap-4"
-									>
-										<span className="text-sm text-slate-600">{item.label}</span>
-										<span
-											className="text-sm font-semibold tabular-nums"
-											style={{ color: item.tone }}
+						<div className="border-t border-slate-800/40 pt-4">
+							<div className="grid gap-2.5">
+								{structuralStats.map((item) => {
+									let badgeClass = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+									if (item.tone === "#DC2626") {
+										badgeClass = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+									} else if (item.tone === "#D97706") {
+										badgeClass = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+									}
+									return (
+										<div
+											key={item.label}
+											className="flex items-center justify-between gap-4 bg-slate-950/20 hover:bg-slate-950/40 border border-transparent hover:border-slate-800/30 rounded-lg px-3.5 py-2 transition-all duration-200"
 										>
-											{item.value}
-										</span>
-									</div>
-								))}
+											<span className="text-xs font-medium text-slate-300">{item.label}</span>
+											<span
+												className={`text-xs font-bold tabular-nums px-2.5 py-0.5 rounded-full ${badgeClass}`}
+											>
+												{item.value}
+											</span>
+										</div>
+									);
+								})}
 							</div>
 						</div>
 					</div>

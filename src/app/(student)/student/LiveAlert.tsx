@@ -45,46 +45,36 @@ export default function LiveAlert({ items }: { items: LiveAlertItem[] }) {
 
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] w-full max-w-2xl px-4 pointer-events-none">
-      <div
-        className="pointer-events-auto rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.18)] border border-[#fca5a5] overflow-hidden"
-        style={{ background: "#fff1f2" }}
-      >
-        {/* Red accent bar */}
-        <div className="h-[3px] bg-[#dc2626] w-full" />
-
-        <div className="px-4 py-3 flex items-start gap-3">
-          {/* Pulsing dot */}
-          <div className="flex-shrink-0 mt-1">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#dc2626] opacity-50" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#dc2626]" />
-            </span>
-          </div>
-
-          <div className="flex-1 min-w-0 space-y-2">
+      <div className="pointer-events-auto rounded-xl shadow-[0_15px_40px_-10px_rgba(16,185,129,0.12)] border border-emerald-300 overflow-hidden bg-emerald-50/95 backdrop-blur-md transition-all duration-300">
+        <div className="px-5 py-4 flex items-start gap-4">
+          <div className="flex-1 min-w-0 space-y-3">
             {items.map((item, i) => (
               <div
                 key={item.id}
-                className={`flex items-center gap-3 ${i < items.length - 1 ? "pb-2 border-b border-[#fca5a5]" : ""}`}
+                className={`flex items-center gap-4 ${i < items.length - 1 ? "pb-3 border-b border-emerald-100" : ""}`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#dc2626]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200/60 shadow-sm">
                       Live
                     </span>
-                    <span className="text-[10px] text-[#7f1d1d] font-semibold uppercase">{item.courseCode}</span>
-                    <span className="text-[13px] font-semibold text-[#1e293b] truncate">{item.title}</span>
+                    <span className="text-[10px] text-emerald-800 bg-emerald-100/50 font-mono font-semibold uppercase px-1.5 py-0.5 rounded border border-emerald-200/30">
+                      {item.courseCode}
+                    </span>
+                    <span className="text-[14px] font-semibold text-emerald-950 tracking-tight truncate">
+                      {item.title}
+                    </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[11px] text-[#991b1b]">
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[11px] text-emerald-800/80 font-medium">
                     {item.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin size={10} />
+                      <span className="flex items-center gap-1 bg-emerald-100/40 border border-emerald-200/30 px-1.5 py-0.5 rounded-md">
+                        <MapPin size={11} className="text-emerald-600" />
                         {item.location}
                       </span>
                     )}
                     {item.durationMinutes != null && (
-                      <span className="flex items-center gap-1">
-                        <Clock size={10} />
+                      <span className="flex items-center gap-1 bg-emerald-100/40 border border-emerald-200/30 px-1.5 py-0.5 rounded-md">
+                        <Clock size={11} className="text-emerald-600" />
                         {item.durationMinutes >= 60
                           ? `${Math.floor(item.durationMinutes / 60)}h${item.durationMinutes % 60 > 0 ? ` ${item.durationMinutes % 60}m` : ""}`
                           : `${item.durationMinutes}m`}
@@ -97,21 +87,21 @@ export default function LiveAlert({ items }: { items: LiveAlertItem[] }) {
                   type="button"
                   disabled={isPending && startingId === item.id}
                   onClick={() => handleEnter(item)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#dc2626] text-white text-[12px] font-semibold rounded hover:bg-[#b91c1c] transition-colors disabled:opacity-60 flex-shrink-0"
+                  className="group relative flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[12px] font-semibold rounded-lg shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none flex-shrink-0"
                 >
                   {isPending && startingId === item.id ? "Loading…" : "Enter Exam"}
-                  <ArrowRight size={12} />
+                  <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-200" />
                 </button>
               </div>
             ))}
           </div>
 
-          {/* Close */}
+          {/* Close button */}
           <button
             type="button"
             onClick={() => setDismissed(true)}
             aria-label="Dismiss"
-            className="flex-shrink-0 p-1 text-[#991b1b] hover:text-[#7f1d1d] hover:bg-[#fecaca] rounded transition-colors"
+            className="flex-shrink-0 p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 active:bg-emerald-200 rounded-full transition-colors self-start mt-0.5"
           >
             <X size={14} />
           </button>

@@ -9,12 +9,13 @@ type TrendBar = {
 interface ScoreTrendProps {
   results: TrendBar[];
   average: number | null;
+  darkMode?: boolean;
 }
 
-export default function ScoreTrend({ results, average }: ScoreTrendProps) {
+export default function ScoreTrend({ results, average, darkMode = false }: ScoreTrendProps) {
   if (results.length === 0) {
     return (
-      <p className="text-[13px] text-muted-foreground py-4 text-center">
+      <p className={`text-[13px] py-4 text-center ${darkMode ? "text-slate-400" : "text-muted-foreground"}`}>
         No results yet
       </p>
     );
@@ -24,9 +25,9 @@ export default function ScoreTrend({ results, average }: ScoreTrendProps) {
     <div>
       {/* Average badge */}
       {average != null && (
-        <div className="mb-3 text-[11px] text-muted-foreground">
+        <div className={`mb-3 text-[11px] ${darkMode ? "text-slate-400" : "text-muted-foreground"}`}>
           Average:{" "}
-          <span className="font-bold text-primary">
+          <span className={`font-bold ${darkMode ? "text-amber-400" : "text-primary"}`}>
             {average.toFixed(1)}%
           </span>
         </div>
@@ -44,11 +45,14 @@ export default function ScoreTrend({ results, average }: ScoreTrendProps) {
               title={`${r.fullLabel} · ${r.course}\n${r.score.toFixed(1)}% (${r.grade})`}
             >
               <div
-                className={`w-full rounded-t-sm transition-colors ${
-                  isLast
-                    ? "bg-accent"
-                    : "bg-[#c7e0f4] hover:bg-[#0055A4]"
-                }`}
+                className={`w-full rounded-t-sm transition-all duration-350 ${isLast
+                    ? darkMode
+                      ? "bg-[#FFCC00] shadow-[0_0_12px_rgba(255,204,0,0.4)]"
+                      : "bg-accent"
+                    : darkMode
+                      ? "bg-slate-800 hover:bg-slate-700"
+                      : "bg-[#c7e0f4] hover:bg-[#0055A4]"
+                  }`}
                 style={{ height }}
               />
             </div>
@@ -57,17 +61,20 @@ export default function ScoreTrend({ results, average }: ScoreTrendProps) {
       </div>
 
       {/* Labels */}
-      <div className="flex gap-2 mt-1.5">
+      <div className="flex gap-2 mt-2">
         {results.map((r, i) => {
           const isLast = i === results.length - 1;
           return (
             <div
               key={i}
-              className={`flex-1 text-center text-[9px] truncate ${
-                isLast
-                  ? "text-primary font-bold"
-                  : "text-muted-foreground"
-              }`}
+              className={`flex-1 text-center text-[9px] truncate font-semibold tracking-wide ${isLast
+                  ? darkMode
+                    ? "text-[#FFCC00] font-bold"
+                    : "text-primary font-bold"
+                  : darkMode
+                    ? "text-slate-400"
+                    : "text-muted-foreground"
+                }`}
             >
               {r.label}
             </div>

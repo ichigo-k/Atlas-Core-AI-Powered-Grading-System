@@ -31,8 +31,8 @@ function gradeColor(score: number): string {
 }
 
 const TYPE_BADGE: Record<string, { bg: string; text: string }> = {
-  EXAM:       { bg: "#fde7e9", text: "#a4262c" },
-  QUIZ:       { bg: "#fff4ce", text: "#7a4f00" },
+  EXAM: { bg: "#fde7e9", text: "#a4262c" },
+  QUIZ: { bg: "#fff4ce", text: "#7a4f00" },
   ASSIGNMENT: { bg: "#dff6dd", text: "#107c10" },
 };
 
@@ -61,13 +61,13 @@ export default async function StudentDashboardPage() {
   const data = studentId
     ? await getDashboardData(studentId)
     : {
-        upcomingCount: 0,
-        ongoingCount: 0,
-        completedCount: 0,
-        averageScore: null,
-        upcomingAssessments: [],
-        recentResults: [],
-      };
+      upcomingCount: 0,
+      ongoingCount: 0,
+      completedCount: 0,
+      averageScore: null,
+      upcomingAssessments: [],
+      recentResults: [],
+    };
 
   const {
     upcomingCount,
@@ -174,126 +174,136 @@ export default async function StudentDashboardPage() {
           </div>
         ) : (
           <>
-            {/* ── KPI metric tiles (Azure "essentials" style) ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* ── KPI metric tiles (Modern high-fidelity cards) ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Upcoming */}
-              <div className="bg-white border border-[#edebe9] rounded p-4 hover:border-[#0078d4] transition-colors group">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <Calendar size={15} className="text-[#0078d4]" />
+              <div className="relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 transition-all duration-300 group">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50">
+                    <Calendar size={18} />
                   </div>
-                  <span className="text-[11px] font-semibold text-[#605e5c] uppercase tracking-wide">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Upcoming
                   </span>
                 </div>
-                <p className="text-[32px] font-semibold text-[#323130] leading-none mb-1">
+                <p className="text-3xl font-extrabold text-slate-800 tracking-tight leading-none mb-1">
                   {upcomingCount}
                 </p>
-                <p className="text-[11px] text-[#605e5c]">
+                <p className="text-[12px] text-slate-500 font-medium mt-1">
                   {nextExam
                     ? `Next: ${nextExam.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
                     : "None scheduled"}
                 </p>
-                <div className="mt-3 h-[2px] bg-[#F8F9FA] group-hover:bg-[#0078d4] transition-colors" />
               </div>
 
               {/* Live now */}
               <div
-                className={`bg-white border rounded p-4 transition-colors ${
-                  ongoingCount > 0 ? "border-[#a4262c]" : "border-[#edebe9] hover:border-[#0078d4]"
-                } group`}
+                className={`relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 transition-all duration-300 group ${ongoingCount > 0
+                  ? "hover:border-emerald-300 hover:bg-emerald-50/20"
+                  : "hover:border-emerald-300"
+                  }`}
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <AlertCircle size={15} style={{ color: ongoingCount > 0 ? "#a4262c" : "#0078d4" }} />
+                <div className="flex items-center justify-between mb-4">
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center border transition-colors ${ongoingCount > 0
+                      ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                      : "bg-slate-50 border-slate-100 text-slate-400"
+                      }`}
+                  >
+                    <AlertCircle size={18} />
                   </div>
-                  <span className="text-[11px] font-semibold text-[#605e5c] uppercase tracking-wide">
-                    Live Now
-                  </span>
-                  {ongoingCount > 0 && (
-                    <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-[#a4262c]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#a4262c] animate-pulse" />
+                  {ongoingCount > 0 ? (
+                    <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-100 border border-emerald-200/50 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Active
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Live Now
                     </span>
                   )}
                 </div>
                 <p
-                  className="text-[32px] font-semibold leading-none mb-1"
-                  style={{ color: ongoingCount > 0 ? "#a4262c" : "#323130" }}
+                  className={`text-3xl font-extrabold tracking-tight leading-none mb-1 ${ongoingCount > 0 ? "text-emerald-700" : "text-slate-800"
+                    }`}
                 >
                   {ongoingCount}
                 </p>
-                <p className="text-[11px] text-[#605e5c]">
+                <p
+                  className={`text-[12px] font-medium mt-1 ${ongoingCount > 0 ? "text-emerald-800/80" : "text-slate-500"
+                    }`}
+                >
                   {ongoingCount > 0 ? "Exam in progress" : "None active"}
                 </p>
-                <div className="mt-3 h-[2px]" style={{ background: ongoingCount > 0 ? "#a4262c" : "#F8F9FA" }} />
               </div>
 
               {/* Completed */}
-              <div className="bg-white border border-[#edebe9] rounded p-4 hover:border-[#0078d4] transition-colors group">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <CheckCircle2 size={15} className="text-[#107c10]" />
+              <div className="relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 hover:border-green-300 transition-all duration-300 group">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center text-green-600 border border-green-100/50">
+                    <CheckCircle2 size={18} />
                   </div>
-                  <span className="text-[11px] font-semibold text-[#605e5c] uppercase tracking-wide">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Completed
                   </span>
                 </div>
-                <p className="text-[32px] font-semibold text-[#323130] leading-none mb-1">
+                <p className="text-3xl font-extrabold text-slate-800 tracking-tight leading-none mb-1">
                   {completedCount}
                 </p>
-                <p className="text-[11px] text-[#605e5c]">This semester</p>
-                <div className="mt-3 h-[2px] bg-[#F8F9FA] group-hover:bg-[#107c10] transition-colors" />
+                <p className="text-[12px] text-slate-500 font-medium mt-1">This semester</p>
               </div>
 
               {/* Average score */}
-              <div className="bg-white border border-[#edebe9] rounded p-4 hover:border-[#0078d4] transition-colors group">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <TrendingUp size={15} className="text-[#0078d4]" />
+              <div className="relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 hover:border-indigo-300 transition-all duration-300 group">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/50">
+                    <TrendingUp size={18} />
                   </div>
-                  <span className="text-[11px] font-semibold text-[#605e5c] uppercase tracking-wide">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Avg Score
                   </span>
                 </div>
-                <p className="text-[32px] font-semibold text-[#323130] leading-none mb-1">
+                <p className="text-3xl font-extrabold text-slate-800 tracking-tight leading-none mb-1">
                   {averageScore != null ? `${averageScore.toFixed(1)}%` : "—"}
                 </p>
                 <p
-                  className="text-[11px]"
-                  style={{
-                    color: averageScore != null && averageScore >= 50 ? "#107c10" : averageScore != null ? "#a4262c" : "#605e5c",
-                  }}
+                  className={`text-[12px] font-semibold mt-1 ${averageScore != null && averageScore >= 50
+                    ? "text-emerald-600"
+                    : averageScore != null
+                      ? "text-rose-600"
+                      : "text-slate-500"
+                    }`}
                 >
                   {averageScore != null && averageScore >= 50
                     ? "Passing average"
                     : averageScore != null
-                    ? "Below passing"
-                    : "No data yet"}
+                      ? "Below passing"
+                      : "No data yet"}
                 </p>
-                <div className="mt-3 h-[2px] bg-[#F8F9FA] group-hover:bg-[#0078d4] transition-colors" />
               </div>
             </div>
 
             {/* ── Charts row ── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-2 bg-white border border-[#edebe9] rounded">
-                <div className="px-4 py-3 border-b border-[#edebe9] flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-[#323130]">Score Trend</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Score Trend Accent Card (Slate-900 with Gold accents) */}
+              <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md">
+                <div className="px-4 py-3 border-b border-slate-800/60 flex items-center justify-between bg-slate-800/60">
+                  <span className="text-[13px] font-bold text-slate-100">Score Trend</span>
                   {averageScore != null && (
-                    <span className="text-[12px] text-[#0078d4] font-semibold">
+                    <span className="text-[11px] text-[#FFCC00] bg-[#FFCC00]/10 border border-[#FFCC00]/30 px-2 py-0.5 rounded-full font-semibold">
                       {averageScore.toFixed(1)}% avg
                     </span>
                   )}
                 </div>
-                <div className="px-4 py-4">
-                  <ScoreTrend results={trendBars} average={null} />
+                <div className="px-4 py-4 bg-slate-900">
+                  <ScoreTrend results={trendBars} average={null} darkMode={true} />
                 </div>
               </div>
 
-              <div className="bg-white border border-[#edebe9] rounded">
-                <div className="px-4 py-3 border-b border-[#edebe9]">
-                  <span className="text-[13px] font-semibold text-[#323130]">Grade Distribution</span>
+              {/* Grade Distribution Card */}
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+                  <span className="text-[13px] font-semibold text-slate-700">Grade Distribution</span>
                 </div>
                 <div className="px-4 py-4">
                   <GradeDonut distribution={gradeDistribution} total={completedCount} />
@@ -328,9 +338,8 @@ export default async function StudentDashboardPage() {
                       return (
                         <div
                           key={a.id}
-                          className={`flex items-center gap-3 px-4 py-3 hover:bg-[#F8F9FA] transition-colors ${
-                            isLive ? "border-l-2 border-[#a4262c]" : "border-l-2 border-transparent hover:border-[#0078d4]"
-                          }`}
+                          className={`flex items-center gap-3 px-4 py-3 hover:bg-[#F8F9FA] transition-colors ${isLive ? "border-l-2 border-[#a4262c]" : "border-l-2 border-transparent hover:border-[#0078d4]"
+                            }`}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">

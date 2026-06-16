@@ -27,7 +27,7 @@ export async function getAdminDashboardStats() {
 		prisma.lecturerProfile.count({ where: { courses: { none: {} } } }),
 		prisma.studentProfile.count({ where: { classId: null } }),
 		prisma.course.count({ where: { classes: { none: {} } } }),
-		getRecentAuditLogs(10),
+		getRecentAuditLogs(5),
 	]);
 
 	const stats = [
