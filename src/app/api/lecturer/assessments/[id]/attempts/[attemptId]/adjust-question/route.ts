@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { logAction } from "@/lib/audit"
 
 export async function POST(
   req: Request,
@@ -128,6 +129,12 @@ export async function POST(
       where: { id: attemptId },
       data: { score: newTotal },
     })
+
+    await logAction(
+      "SCORE_ADJUSTED",
+      `Lecturer ${user.id} adjusted question ${questionId} score to ${adjustedScore} on attempt ${attemptId} (assessment ${assessmentId}). Reason: ${reason.trim()}. New total: ${newTotal}.`,
+      "SYSTEM"
+    )
 
     return NextResponse.json({ ok: true, newTotal })
   } catch (err) {

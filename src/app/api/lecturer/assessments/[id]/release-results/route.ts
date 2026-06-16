@@ -10,50 +10,55 @@ async function getLecturerId(email: string) {
 }
 
 // POST /api/lecturer/assessments/[id]/release-results
-// Sets resultsReleased to true so students can see their scores
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth()
-  if (!session || session.user.role !== "LECTURER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== "LECTURER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
-  const lecturerId = await getLecturerId(session.user.email!)
-  if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const lecturerId = await getLecturerId(session.user.email!)
+    if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const { id } = await params
-  const assessmentId = parseInt(id)
-  if (isNaN(assessmentId)) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    const { id } = await params
+    const assessmentId = parseInt(id)
+    if (isNaN(assessmentId)) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  // Verify ownership
-  const assessment = await prisma.assessment.findUnique({
-    where: { id: assessmentId },
-    select: { lecturerId: true, gradingStatus: true, resultsReleased: true },
-  })
-  if (!assessment || assessment.lecturerId !== lecturerId) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
-  }
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { lecturerId: true, gradingStatus: true },
+    })
+    if (!assessment || assessment.lecturerId !== lecturerId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
 
-  // Can only release if grading is complete
-  if (assessment.gradingStatus !== "GRADED") {
-    return NextResponse.json(
-      { error: "Cannot release results before grading is complete" },
-      { status: 409 }
+    if (assessment.gradingStatus !== "GRADED") {
+      return NextResponse.json(
+        { error: "Cannot release results before grading is complete" },
+        { status: 409 }
+      )
+    }
+
+    await prisma.assessment.update({
+      where: { id: assessmentId },
+      data: { resultsReleased: true },
+    })
+
+    await logAction(
+      "RESULTS_RELEASED",
+      `Results released for assessment ${assessmentId} by lecturer ${lecturerId}`,
+      "SYSTEM"
     )
+
+    return NextResponse.json({ success: true, resultsReleased: true })
+  } catch (err) {
+    console.error("[POST /api/lecturer/assessments/[id]/release-results]", {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
+    return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 })
   }
-
-  await prisma.assessment.update({
-    where: { id: assessmentId },
-    data: { resultsReleased: true },
-  })
-
-  await logAction(
-    "RESULTS_RELEASED",
-    `Results released for assessment ${assessmentId} by lecturer ${lecturerId}`,
-    "SYSTEM"
-  )
-
-  return NextResponse.json({ success: true, resultsReleased: true })
 }

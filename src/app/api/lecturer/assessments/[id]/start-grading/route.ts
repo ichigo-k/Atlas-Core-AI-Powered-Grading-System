@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { callGraderBatch } from "@/lib/grader-client"
+import { logAction } from "@/lib/audit"
 
 async function getLecturerId(email: string) {
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
@@ -10,59 +11,99 @@ async function getLecturerId(email: string) {
 }
 
 // POST /api/lecturer/assessments/[id]/start-grading
-// Sets gradingStatus to GRADING so external grader can pick it up
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth()
-  if (!session || session.user.role !== "LECTURER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== "LECTURER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
-  const lecturerId = await getLecturerId(session.user.email!)
-  if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const lecturerId = await getLecturerId(session.user.email!)
+    if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const { id } = await params
-  const assessmentId = parseInt(id)
-  if (isNaN(assessmentId)) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    const { id } = await params
+    const assessmentId = parseInt(id)
+    if (isNaN(assessmentId)) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  // Verify ownership
-  const assessment = await prisma.assessment.findUnique({
-    where: { id: assessmentId },
-    select: { lecturerId: true, gradingStatus: true, status: true },
-  })
-  if (!assessment || assessment.lecturerId !== lecturerId) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
-  }
+    // Verify ownership
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { lecturerId: true, gradingStatus: true, status: true },
+    })
+    if (!assessment || assessment.lecturerId !== lecturerId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
 
-  // Assessment must be CLOSED before grading can begin
-  if (assessment.status !== "CLOSED") {
-    return NextResponse.json(
-      { error: "Assessment must be closed before grading can begin" },
-      { status: 409 }
-    )
-  }
+    if (assessment.status !== "CLOSED") {
+      return NextResponse.json(
+        { error: "Assessment must be closed before grading can begin" },
+        { status: 409 }
+      )
+    }
 
-  // Reject only if grading has already completed — allow re-triggering when stuck in GRADING
-  if (assessment.gradingStatus === "GRADED") {
-    return NextResponse.json({ error: "Assessment has already been graded" }, { status: 409 })
-  }
+    // Reject only if already fully graded — allow re-triggering when stuck in GRADING
+    if (assessment.gradingStatus === "GRADED") {
+      return NextResponse.json({ error: "Assessment has already been graded" }, { status: 409 })
+    }
 
-  // Set status to GRADING
-  await prisma.assessment.update({
-    where: { id: assessmentId },
-    data: { gradingStatus: "GRADING" },
-  })
-
-  // Fire-and-forget: call the Django grader without awaiting
-  callGraderBatch(assessmentId).catch(async (err) => {
     await prisma.assessment.update({
       where: { id: assessmentId },
-      data: { gradingStatus: "NOT_GRADED" },
+      data: { gradingStatus: "GRADING" },
     })
-    console.error("Grader batch call failed for assessment", assessmentId, err)
-  })
 
-  return NextResponse.json({ gradingStatus: "GRADING" })
+    await logAction(
+      "GRADING_STARTED",
+      `Grading started for assessment ${assessmentId} by lecturer ${lecturerId}`,
+      "SYSTEM"
+    )
+
+    // Fire-and-forget: call the Django grader. On failure, reset status and log clearly.
+    callGraderBatch(assessmentId)
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.text().catch(() => "(unreadable)")
+          console.error("[start-grading] Grader returned non-OK status", {
+            assessmentId,
+            status: res.status,
+            body,
+          })
+          await prisma.assessment.update({
+            where: { id: assessmentId },
+            data: { gradingStatus: "NOT_GRADED" },
+          })
+          await logAction(
+            "GRADING_FAILED",
+            `Grader returned HTTP ${res.status} for assessment ${assessmentId}. Status reset to NOT_GRADED.`,
+            "SYSTEM"
+          )
+        }
+      })
+      .catch(async (err) => {
+        console.error("[start-grading] Failed to reach grader service", {
+          assessmentId,
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        })
+        await prisma.assessment.update({
+          where: { id: assessmentId },
+          data: { gradingStatus: "NOT_GRADED" },
+        })
+        await logAction(
+          "GRADING_FAILED",
+          `Could not reach grader service for assessment ${assessmentId}: ${err instanceof Error ? err.message : String(err)}. Status reset to NOT_GRADED.`,
+          "SYSTEM"
+        )
+      })
+
+    return NextResponse.json({ gradingStatus: "GRADING" })
+  } catch (err) {
+    console.error("[POST /api/lecturer/assessments/[id]/start-grading]", {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
+    return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 })
+  }
 }

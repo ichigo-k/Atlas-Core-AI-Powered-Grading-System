@@ -202,62 +202,83 @@ export async function submitAttemptInternal(
   reason?: 'TIMED_OUT' | 'FULLSCREEN_VIOLATION' | 'TAB_SWITCH' | 'PROCTOR_VIOLATION',
 ): Promise<SubmitResult> {
   try {
-    // Fetch all answers for this attempt
-    const answers = await prisma.studentAnswer.findMany({
-      where: { attemptId },
-      select: { id: true, questionId: true, answerText: true, selectedOption: true },
-    })
+    // Fetch all answers and MCQ questions in parallel
+    const [answers, questions, currentAttempt] = await Promise.all([
+      prisma.studentAnswer.findMany({
+        where: { attemptId },
+        select: { id: true, questionId: true, answerText: true, selectedOption: true },
+      }),
+      prisma.question.findMany({
+        where: {
+          assessmentId,
+          section: { type: 'OBJECTIVE' },
+          correctOption: { not: null },
+        },
+        select: { id: true, marks: true, correctOption: true, options: true },
+      }),
+      prisma.assessmentAttempt.findUnique({
+        where: { id: attemptId },
+        select: { tabSwitchLog: true },
+      }),
+    ])
 
-    // Hash subjective answers only — MCQ selectedOption collisions are expected
-    // (many students picking the same option is normal, not plagiarism)
-    for (const answer of answers) {
-      const raw = answer.answerText ?? null
-      await prisma.studentAnswer.update({ where: { id: answer.id }, data: { answerHash: computeHash(raw) } })
+    // Explicit null guard — attempt may have been deleted in a race
+    if (!currentAttempt) {
+      console.error('[submitAttemptInternal] Attempt not found', { attemptId, assessmentId })
+      return { error: 'NOT_FOUND' }
     }
 
-    // Auto-score objective (MCQ) questions only
-    // Subjective questions will be graded by the external grader
-    const questions = await prisma.question.findMany({
-      where: {
-        assessmentId,
-        section: { type: 'OBJECTIVE' },
-        correctOption: { not: null },
-      },
-      select: { id: true, marks: true, correctOption: true },
-    })
-
+    // Auto-score MCQ questions
     const questionMap = new Map(questions.map((q) => [q.id, q]))
     let mcqScore = 0
 
     for (const answer of answers) {
       const question = questionMap.get(answer.questionId)
-      if (question && answer.selectedOption === question.correctOption) {
+      if (!question) continue
+
+      // Bounds guard: warn if correctOption is outside the options array
+      const optCount = Array.isArray(question.options) ? question.options.length : null
+      if (optCount !== null && (question.correctOption! < 0 || question.correctOption! >= optCount)) {
+        console.error('[submitAttemptInternal] correctOption out of bounds', {
+          attemptId,
+          questionId: question.id,
+          correctOption: question.correctOption,
+          optionsLength: optCount,
+        })
+        continue
+      }
+
+      if (answer.selectedOption === question.correctOption) {
         mcqScore += question.marks
       }
     }
 
-    // Append the submission reason to the tab switch log so the detail page can show the right message
-    const currentAttempt = await prisma.assessmentAttempt.findUnique({
-      where: { id: attemptId },
-      select: { tabSwitchLog: true },
-    })
-    const existingLog = Array.isArray(currentAttempt?.tabSwitchLog) ? currentAttempt.tabSwitchLog : []
+    const existingLog = Array.isArray(currentAttempt.tabSwitchLog) ? currentAttempt.tabSwitchLog : []
     const logWithReason = reason
       ? [...existingLog, { timestamp: new Date().toISOString(), event: reason }]
       : existingLog
 
-    // Map all forced-submit reasons to TIMED_OUT (the only non-SUBMITTED status in the DB enum)
     const dbStatus = reason ? 'TIMED_OUT' : 'SUBMITTED'
+    const submittedAt = new Date()
 
-    await prisma.assessmentAttempt.update({
-      where: { id: attemptId },
-      data: {
-        status: dbStatus,
-        submittedAt: new Date(),
-        score: mcqScore,
-        tabSwitchLog: logWithReason,
-      },
-    })
+    // Atomically hash all answers + mark attempt submitted in one transaction
+    await prisma.$transaction([
+      ...answers.map((a) =>
+        prisma.studentAnswer.update({
+          where: { id: a.id },
+          data: { answerHash: computeHash(a.answerText ?? null) },
+        })
+      ),
+      prisma.assessmentAttempt.update({
+        where: { id: attemptId },
+        data: {
+          status: dbStatus,
+          submittedAt,
+          score: mcqScore,
+          tabSwitchLog: logWithReason,
+        },
+      }),
+    ])
 
     // Fire-and-forget: end Oracle proctoring session if one exists for this attempt
     const oracleBaseUrl = process.env.ORACLE_BASE_URL

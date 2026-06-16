@@ -10,42 +10,48 @@ async function getLecturerId(email: string) {
 }
 
 // POST /api/lecturer/assessments/[id]/unrelease-results
-// Sets resultsReleased to false, hiding scores from students
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth()
-  if (!session || session.user.role !== "LECTURER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== "LECTURER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    const lecturerId = await getLecturerId(session.user.email!)
+    if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+    const { id } = await params
+    const assessmentId = parseInt(id)
+    if (isNaN(assessmentId)) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { lecturerId: true },
+    })
+    if (!assessment || assessment.lecturerId !== lecturerId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    await prisma.assessment.update({
+      where: { id: assessmentId },
+      data: { resultsReleased: false },
+    })
+
+    await logAction(
+      "RESULTS_UNRELEASED",
+      `Results hidden for assessment ${assessmentId} by lecturer ${lecturerId}`,
+      "SYSTEM"
+    )
+
+    return NextResponse.json({ resultsReleased: false })
+  } catch (err) {
+    console.error("[POST /api/lecturer/assessments/[id]/unrelease-results]", {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
+    return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 })
   }
-
-  const lecturerId = await getLecturerId(session.user.email!)
-  if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-
-  const { id } = await params
-  const assessmentId = parseInt(id)
-  if (isNaN(assessmentId)) return NextResponse.json({ error: "Not found" }, { status: 404 })
-
-  // Verify ownership
-  const assessment = await prisma.assessment.findUnique({
-    where: { id: assessmentId },
-    select: { lecturerId: true },
-  })
-  if (!assessment || assessment.lecturerId !== lecturerId) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
-  }
-
-  await prisma.assessment.update({
-    where: { id: assessmentId },
-    data: { resultsReleased: false },
-  })
-
-  await logAction(
-    "RESULTS_UNRELEASED",
-    `Results unreleased for assessment ${assessmentId} by lecturer ${lecturerId}`,
-    "SYSTEM"
-  )
-
-  return NextResponse.json({ resultsReleased: false })
 }
