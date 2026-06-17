@@ -9,6 +9,7 @@ import type { LockdownOverlayHandle } from "@/components/student/LockdownOverlay
 import AntiCheatGuard from "@/components/student/AntiCheatGuard"
 import FlagOverlay from "@/components/student/FlagOverlay"
 import type { ViolationReason } from "@/lib/violation-tracker"
+import { MAX_VIOLATIONS } from "@/lib/violation-tracker"
 import { useViolationStore } from "@/lib/violation-store"
 import QuestionRenderer from "@/components/student/QuestionRenderer"
 import CountdownTimer from "@/components/student/CountdownTimer"
@@ -18,6 +19,7 @@ import {
   Send, X, BookOpen, Clock, Layers, ListChecks, Video,
   Menu, PanelLeft,
 } from "lucide-react"
+import { getProctorFlagCount } from "@/lib/proctor-actions"
 
 // Single overlay subscribed to the Zustand store — renders for all violation types
 function ViolationOverlay({ assessmentId }: { assessmentId: number }) {
@@ -393,7 +395,18 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   // ── Violation store ───────────────────────────────────────────────────────
   // Zustand store is the single source of truth — no prop drilling needed.
-  const { reset: resetViolations } = useViolationStore()
+  const { reset: resetViolations, syncCount, showFinalWarning } = useViolationStore()
+
+  // Hydrate violation count from server on mount so page refreshes don't reset the dots.
+  useEffect(() => {
+    getProctorFlagCount(attempt.id).then((serverCount) => {
+      if (serverCount > 0) {
+        syncCount(serverCount)
+        if (serverCount >= MAX_VIOLATIONS) showFinalWarning()
+      }
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt.id])
 
   // Reset store when the attempt page unmounts
   useEffect(() => {
