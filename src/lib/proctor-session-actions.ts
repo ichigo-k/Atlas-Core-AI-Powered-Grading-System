@@ -44,7 +44,7 @@ export async function createProctorSession(
         sessionId,
         consentAt: new Date(),
         flagCount: 0,
-        flagThreshold: 5,
+        flagThreshold: 10,
         proctoringLog: [],
         status: 'ACTIVE',
       },

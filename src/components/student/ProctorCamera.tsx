@@ -11,10 +11,30 @@ const OBJECT_INTERVAL_MS = 3000
 const GRACE_SECONDS = 15
 
 type CameraViolationType = Extract<FlagType,
-  "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "PHONE_DETECTED" | "SUSPICIOUS_OBJECT">
+  "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "PHONE_DETECTED" | "SUSPICIOUS_OBJECT" | "GAZE_AWAY" | "POOR_LIGHTING">
 
 const PHONE_CLASSES = ["cell phone"]
 const SUSPICIOUS_CLASSES = ["book", "laptop", "keyboard", "remote", "mouse"]
+
+// Returns average luminance of the video frame (0–255), or -1 if unreadable.
+function getFrameBrightness(video: HTMLVideoElement): number {
+  if (video.readyState < 2) return -1
+  try {
+    const canvas = document.createElement("canvas")
+    canvas.width = 64; canvas.height = 48
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return -1
+    ctx.drawImage(video, 0, 0, 64, 48)
+    const data = ctx.getImageData(0, 0, 64, 48).data
+    let sum = 0
+    for (let i = 0; i < data.length; i += 4) {
+      sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+    }
+    return sum / (data.length / 4)
+  } catch {
+    return -1
+  }
+}
 
 interface Props {
   attemptId: number
@@ -140,11 +160,41 @@ export default function ProctorCamera({ attemptId }: Props) {
         const video = videoRef.current
         if (video.readyState < 2) return
 
+        // Brightness check — covered camera or very dark environment
+        const brightness = getFrameBrightness(video)
+        if (brightness >= 0 && brightness < 15) {
+          // Frame is almost entirely black — camera is covered
+          handleDetection("POOR_LIGHTING", true)
+          handleDetection("PERSON_ABSENT", true)
+          handleDetection("GAZE_AWAY", false)
+          handleDetection("MULTIPLE_PERSONS", false)
+          return
+        } else {
+          handleDetection("POOR_LIGHTING", false)
+        }
+
         try {
           const predictions = await blazeface.estimateFaces(video, false)
           const count = predictions.length
           handleDetection("PERSON_ABSENT", count === 0)
           handleDetection("MULTIPLE_PERSONS", count > 1)
+
+          // Gaze detection — check eye spread relative to face width
+          // If eyes are very close together the face is in profile (looking away)
+          if (count === 1) {
+            const face = predictions[0]
+            const landmarks = face.landmarks as number[][]
+            const topLeft = face.topLeft as number[]
+            const bottomRight = face.bottomRight as number[]
+            if (landmarks?.length >= 2) {
+              const faceWidth = bottomRight[0] - topLeft[0]
+              const eyeSpread = Math.abs((landmarks[1][0]) - (landmarks[0][0]))
+              // Eye spread < 20% of face width → face is sideways / looking away
+              handleDetection("GAZE_AWAY", faceWidth > 0 && eyeSpread < faceWidth * 0.20)
+            }
+          } else {
+            handleDetection("GAZE_AWAY", false)
+          }
         } catch {
           // ignore frame errors
         }

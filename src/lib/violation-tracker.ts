@@ -4,7 +4,7 @@
 
 import { getProctorFlagCount } from '@/lib/proctor-actions'
 
-export const MAX_VIOLATIONS = 5
+export const MAX_VIOLATIONS = 10
 
 export type ViolationReason =
   | 'FULLSCREEN_EXIT'
@@ -13,6 +13,8 @@ export type ViolationReason =
   | 'MULTIPLE_PERSONS'
   | 'PHONE_DETECTED'
   | 'SUSPICIOUS_OBJECT'
+  | 'GAZE_AWAY'
+  | 'POOR_LIGHTING'
 
 // Local in-memory fallback counter for non-proctored exams (no ProctorRecord).
 // Lives in the browser's module cache — persists across re-renders within the
