@@ -7,14 +7,12 @@ import type { SerializedActiveAttempt, SerializedAssessmentDetail, ProctorSessio
 import LockdownOverlay from "@/components/student/LockdownOverlay"
 import type { LockdownOverlayHandle } from "@/components/student/LockdownOverlay"
 import AntiCheatGuard from "@/components/student/AntiCheatGuard"
-import FlagOverlay, { type FlagType } from "@/components/student/FlagOverlay"
+import FlagOverlay from "@/components/student/FlagOverlay"
 import type { ViolationReason } from "@/lib/violation-tracker"
-import { MAX_VIOLATIONS } from "@/lib/violation-tracker"
 import { useViolationStore } from "@/lib/violation-store"
-import { getProctorStatus } from "@/lib/proctor-actions"
 import QuestionRenderer from "@/components/student/QuestionRenderer"
 import CountdownTimer from "@/components/student/CountdownTimer"
-import { ProctorLiveKit } from "@/lib/proctor-webrtc"
+import ProctorCamera from "@/components/student/ProctorCamera"
 import {
   CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight,
   Send, X, BookOpen, Clock, Layers, ListChecks, Video,
@@ -24,7 +22,6 @@ import {
 // Single overlay subscribed to the Zustand store — renders for all violation types
 function ViolationOverlay({ assessmentId }: { assessmentId: number }) {
   const { activeEvent, terminated, finalWarning, dismissEvent, terminate } = useViolationStore()
-  const router = useRouter()
 
   function handleFinalRedirect() {
     terminate()
@@ -392,68 +389,17 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const lockdownRef = useRef<LockdownOverlayHandle>(null)
-  const proctorRef = useRef<ProctorLiveKit | null>(null)
-  const connectingRef = useRef(false)
-  const [proctorActive, setProctorActive] = useState(false)
+  const [proctorActive] = useState(true)
 
   // ── Violation store ───────────────────────────────────────────────────────
   // Zustand store is the single source of truth — no prop drilling needed.
-  const { syncCount, recordViolation, showFinalWarning, reset: resetViolations } = useViolationStore()
+  const { reset: resetViolations } = useViolationStore()
 
   // Reset store when the attempt page unmounts
   useEffect(() => {
     return () => resetViolations()
   }, [resetViolations])
 
-  // Oracle flag polling removed — now using instant LiveKit Data Channels.
-
-  // ── Initialise LiveKit proctoring connection ──────────────────────────────
-  // Connect immediately after mount; do NOT block exam interaction (Req 2.3).
-  // The connectingRef guard prevents React StrictMode's double-invoke from
-  // creating duplicate participants in the LiveKit room.
-  useEffect(() => {
-    if (!proctorSession) return
-    if (connectingRef.current) return
-
-    let cancelled = false
-    connectingRef.current = true
-
-    const proctor = new ProctorLiveKit(
-      proctorSession.sessionId,
-      proctorSession.livekitToken,
-      proctorSession.livekitUrl,
-      attempt.id,
-      (type, confidence) => {
-        // Instant notification from Oracle via Data Channel
-        const currentCount = useViolationStore.getState().count
-        const newCount = currentCount + 1
-        recordViolation({
-          type: type as FlagType,
-          flagCountAfter: newCount,
-          source: 'ORACLE'
-        })
-        if (newCount >= MAX_VIOLATIONS) {
-          showFinalWarning()
-        }
-      }
-    )
-    proctorRef.current = proctor
-
-    // Fire-and-forget — exam interaction is never blocked (Req 2.3)
-    proctor.connect().then(() => {
-      if (!cancelled) setProctorActive(true)
-    }).catch((err: unknown) => {
-      console.error('[AttemptShell] ProctorLiveKit connect error:', err)
-    })
-
-    return () => {
-      cancelled = true
-      proctor.disconnect()
-      proctorRef.current = null
-      connectingRef.current = false
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // ── Apply saved question order (shuffleQuestions) ─────────────────────────
   // The server saved a randomised order in attempt.questionOrder at creation time.
@@ -615,33 +561,13 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     // Disable the beforeunload prompt so the browser doesn't ask "leave site?"
     // when we redirect after the timer hits zero.
     lockdownRef.current?.allowUnload()
-    // Fire-and-forget: end Oracle proctoring session before navigating away
-    if (proctorSession) {
-      const oracleBaseUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL
-      if (oracleBaseUrl) {
-        fetch(`${oracleBaseUrl}/api/sessions/${proctorSession.sessionId}/end`, { method: 'POST' })
-          .catch(() => {})
-      }
-      proctorRef.current?.disconnect()
-    }
     await submitAttempt(attempt.id, "TIMED_OUT")
     window.location.href = `/student/assessments/${assessmentId}`
   }
 
   function handleSubmitConfirm(reason?: "TIMED_OUT" | "FULLSCREEN_VIOLATION" | "TAB_SWITCH" | ViolationReason) {
     startTransition(async () => {
-      // Disable the beforeunload prompt before navigating away
       lockdownRef.current?.allowUnload()
-      // Fire-and-forget: end Oracle proctoring session before navigating away
-      if (proctorSession) {
-        const oracleBaseUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL
-        if (oracleBaseUrl) {
-          fetch(`${oracleBaseUrl}/api/sessions/${proctorSession.sessionId}/end`, { method: 'POST' })
-            .catch(() => {})
-        }
-        proctorRef.current?.disconnect()
-      }
-      // Map ViolationReason to the DB reason type
       const dbReason = reason === "FULLSCREEN_EXIT" ? "FULLSCREEN_VIOLATION"
         : reason === "TAB_SWITCH" ? "TAB_SWITCH"
         : reason
@@ -782,6 +708,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
       <LockdownOverlay ref={lockdownRef} isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
       <AntiCheatGuard isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
       <ViolationOverlay assessmentId={assessmentId} />
+      {assessment.proctoringEnabled && <ProctorCamera attemptId={attempt.id} />}
 
       {showSubmitDialog && (
         <SubmitDialog

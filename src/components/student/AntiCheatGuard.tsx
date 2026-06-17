@@ -5,6 +5,8 @@ import { logTabSwitch } from "@/lib/assessment-actions"
 import { MAX_VIOLATIONS, ViolationReason, addViolation, readViolationCount } from "@/lib/violation-tracker"
 import { useViolationStore } from "@/lib/violation-store"
 
+const AWAY_GRACE_SECONDS = 15
+
 interface AntiCheatGuardProps {
   isSecured: boolean
   attemptId: number
@@ -12,7 +14,7 @@ interface AntiCheatGuardProps {
 }
 
 export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiCheatGuardProps) {
-  const { count, activeEvent, terminated, recordViolation, syncCount, dismissEvent, terminate, showFinalWarning } = useViolationStore()
+  const { count, terminated, recordViolation, syncCount, dismissEvent, terminate, showFinalWarning, setAwayCountdown } = useViolationStore()
   const onSubmitRef = useRef(onSubmit)
   onSubmitRef.current = onSubmit
 
@@ -62,75 +64,135 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
     }
   }, [isSecured])
 
-    const enforcementActive = useRef(false)
+  const enforcementActive = useRef(false)
 
-    useEffect(() => {
-      if (!isSecured) return
-      let cleanedUp = false
+  useEffect(() => {
+    if (!isSecured) return
+    let cleanedUp = false
 
-      // Delay enforcement by 3 seconds to allow the browser to settle
-      const timer = setTimeout(() => {
-        enforcementActive.current = true
-      }, 3000)
+    const timer = setTimeout(() => {
+      enforcementActive.current = true
+    }, 3000)
 
-      // Sync on mount — resume after reload
-      readViolationCount(attemptId).then((existing) => {
-        if (cleanedUp) return
-        if (existing > 0) syncCount(existing)
-        if (existing >= MAX_VIOLATIONS) {
-          terminate()
-          onSubmitRef.current("TAB_SWITCH")
-        }
-      })
+    readViolationCount(attemptId).then((existing) => {
+      if (cleanedUp) return
+      if (existing > 0) syncCount(existing)
+      if (existing >= MAX_VIOLATIONS) {
+        terminate()
+        onSubmitRef.current("TAB_SWITCH")
+      }
+    })
 
-      let leaveDebounce: ReturnType<typeof setTimeout> | null = null
+    // ── Away-timer state ───────────────────────────────────────────────────
+    // When the student leaves, we flag them immediately and then add another
+    // flag every AWAY_GRACE_SECONDS they remain away.
+    const awayIntervalRef = { current: null as ReturnType<typeof setInterval> | null }
+    const countdownIntervalRef = { current: null as ReturnType<typeof setInterval> | null }
+    const isAwayRef = { current: false }
 
-      const recordLeave = () => {
-        if (!enforcementActive.current) return
-        if (leaveDebounce) return
-        leaveDebounce = setTimeout(() => { leaveDebounce = null }, 500)
+    function clearAwayTimers() {
+      if (awayIntervalRef.current) { clearInterval(awayIntervalRef.current); awayIntervalRef.current = null }
+      if (countdownIntervalRef.current) { clearInterval(countdownIntervalRef.current); countdownIntervalRef.current = null }
+      // Do NOT clear awayCountdown here — let the ring freeze at its last value.
+      // dismissEvent() clears it when the student clicks "Return to exam".
+      isAwayRef.current = false
+    }
 
+    function startAwayTimers() {
+      // Countdown display tick (every second)
+      let remaining = AWAY_GRACE_SECONDS
+      setAwayCountdown(remaining)
+      countdownIntervalRef.current = setInterval(() => {
+        remaining -= 1
+        if (remaining <= 0) remaining = AWAY_GRACE_SECONDS // reset after each flag cycle
+        setAwayCountdown(remaining)
+      }, 1000)
+
+      // Actual violation tick (every AWAY_GRACE_SECONDS)
+      awayIntervalRef.current = setInterval(() => {
+        if (cleanedUp || !isAwayRef.current) return
         logTabSwitch(attemptId, new Date().toISOString())
-
-        // Read current count directly from the store (no stale closure)
         const currentCount = useViolationStore.getState().count
         const optimistic = currentCount + 1
-
         recordViolation({ type: "TAB_SWITCH", flagCountAfter: optimistic, source: "CLIENT" })
-
         addViolation(attemptId, "TAB_SWITCH").then(({ count: serverCount, willAutoSubmit }) => {
           if (cleanedUp) return
           syncCount(serverCount)
           if (willAutoSubmit) showFinalWarning()
         })
-      }
+      }, AWAY_GRACE_SECONDS * 1000)
+    }
 
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === "hidden") recordLeave()
-      }
-      const handleBlur = () => {
-        if (document.visibilityState === "visible") recordLeave()
-      }
+    let leaveDebounce: ReturnType<typeof setTimeout> | null = null
 
-      document.addEventListener("visibilitychange", handleVisibilityChange)
-      window.addEventListener("blur", handleBlur)
+    const recordLeave = () => {
+      if (!enforcementActive.current) return
+      if (leaveDebounce) return
+      leaveDebounce = setTimeout(() => { leaveDebounce = null }, 500)
 
-      return () => {
-        cleanedUp = true
-        clearTimeout(timer)
-        document.removeEventListener("visibilitychange", handleVisibilityChange)
-        window.removeEventListener("blur", handleBlur)
-        if (leaveDebounce) clearTimeout(leaveDebounce)
+      if (isAwayRef.current) return // already tracking
+      isAwayRef.current = true
+
+      logTabSwitch(attemptId, new Date().toISOString())
+
+      const currentCount = useViolationStore.getState().count
+      const optimistic = currentCount + 1
+
+      recordViolation({ type: "TAB_SWITCH", flagCountAfter: optimistic, source: "CLIENT" })
+
+      addViolation(attemptId, "TAB_SWITCH").then(({ count: serverCount, willAutoSubmit }) => {
+        if (cleanedUp) return
+        syncCount(serverCount)
+        if (willAutoSubmit) showFinalWarning()
+      })
+
+      startAwayTimers()
+    }
+
+    const recordReturn = () => {
+      // Intentionally do nothing — timers keep running until the student clicks "Return to exam".
+      // This keeps the countdown visible and flags continue to accumulate until they dismiss.
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        recordLeave()
+      } else {
+        recordReturn()
       }
-    }, [isSecured, attemptId, recordViolation, syncCount, terminate])
+    }
+    const handleBlur = () => {
+      if (document.visibilityState === "visible") recordLeave()
+    }
+    const handleFocus = () => {
+      recordReturn()
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("blur", handleBlur)
+    window.addEventListener("focus", handleFocus)
+
+    return () => {
+      cleanedUp = true
+      clearTimeout(timer)
+      clearAwayTimers()
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("blur", handleBlur)
+      window.removeEventListener("focus", handleFocus)
+      if (leaveDebounce) clearTimeout(leaveDebounce)
+    }
+  }, [isSecured, attemptId, recordViolation, syncCount, terminate, dismissEvent, setAwayCountdown, showFinalWarning])
 
   // ── Termination check ──────────────────────────────────────────────────────
+  // When the flag limit is hit, show the final-warning overlay first so the
+  // student sees what happened. The server already submitted via the flag API;
+  // onSubmit is called here as a safety net for non-proctored exams.
   useEffect(() => {
     if (count >= MAX_VIOLATIONS && !terminated) {
-      terminate()
       onSubmitRef.current("TAB_SWITCH")
+      showFinalWarning()
     }
-  }, [count, terminated, terminate])
+  }, [count, terminated, showFinalWarning])
 
   // ── Devtools detection ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -147,7 +209,6 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
 
   return (
     <>
-      {/* Devtools overlay */}
       <div
         id="anti-cheat-devtools-overlay"
         style={{
@@ -161,7 +222,6 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
           </p>
         </div>
       </div>
-      {/* FlagOverlay is rendered by ViolationOverlay in AttemptShell */}
     </>
   )
 }

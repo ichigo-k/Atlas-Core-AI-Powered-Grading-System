@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Sun,
   SunDim,
+  User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -28,6 +29,7 @@ import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
 
 type CameraState = "idle" | "requesting" | "granted" | "denied";
 type LightingStatus = "checking" | "ok" | "poor" | "unknown";
+type FaceStatus = "checking" | "ok" | "absent" | "unknown";
 
 interface Props {
   assessmentId: number;
@@ -343,10 +345,8 @@ function StepCameraCheck({
   const router = useRouter();
 
   const [cameraState, setCameraState] = useState<CameraState>("idle");
-  const [lightingStatus, setLightingStatus] =
-    useState<LightingStatus>("unknown");
-  const [brightness, setBrightness] = useState<number | null>(null);
-  const [lightingDegraded, setLightingDegraded] = useState(false);
+  const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
+  const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
   const [agreed, setAgreed] = useState(false);
   const [isProceeding, setIsProceeding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -354,15 +354,11 @@ function StepCameraCheck({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const wasOkRef = useRef(false);
 
   const requestCamera = useCallback(async () => {
     setCameraState("requesting");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       streamRef.current = stream;
       setCameraState("granted");
     } catch {
@@ -373,9 +369,7 @@ function StepCameraCheck({
   useEffect(() => {
     requestCamera();
     return () => {
-      streamRef.current?.getTracks().forEach((track) => {
-        track.stop();
-      });
+      streamRef.current?.getTracks().forEach((t) => t.stop());
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [requestCamera]);
@@ -387,42 +381,41 @@ function StepCameraCheck({
     }
   }, [cameraState]);
 
-  const checkLighting = useCallback(async (): Promise<
-    "ok" | "poor" | "unknown"
-  > => {
-    const oracleBaseUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL;
-    if (!oracleBaseUrl) return "ok";
-
+  // Local brightness check via canvas — no external service needed
+  const checkLighting = useCallback((): "ok" | "poor" | "unknown" => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return "unknown";
-
     try {
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 320;
-      canvas.height = video.videoHeight || 240;
-      const context = canvas.getContext("2d");
-      if (!context) return "unknown";
+      canvas.width = 64;
+      canvas.height = 48;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return "unknown";
+      ctx.drawImage(video, 0, 0, 64, 48);
+      const data = ctx.getImageData(0, 0, 64, 48).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        // Perceived luminance
+        sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      }
+      const avg = sum / (data.length / 4);
+      return avg > 40 ? "ok" : "poor";
+    } catch {
+      return "unknown";
+    }
+  }, []);
 
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const frameB64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
-      const response = await fetch(
-        `${oracleBaseUrl}/api/sessions/lighting-check`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ frameB64 }),
-          signal: AbortSignal.timeout(5000),
-        },
-      );
-
-      if (!response.ok) return "unknown";
-
-      const data = (await response.json()) as {
-        result: "OK" | "POOR_LIGHTING";
-        brightness: number;
-      };
-      setBrightness(data.brightness);
-      return data.result === "OK" ? "ok" : "poor";
+  // BlazeFace face-presence check
+  const checkFace = useCallback(async (): Promise<"ok" | "absent" | "unknown"> => {
+    const video = videoRef.current;
+    if (!video || video.readyState < 2) return "unknown";
+    try {
+      const tf = await import("@tensorflow/tfjs");
+      await tf.ready();
+      const bf = await import("@tensorflow-models/blazeface");
+      const model = await bf.load();
+      const predictions = await model.estimateFaces(video, false);
+      return predictions.length > 0 ? "ok" : "absent";
     } catch {
       return "unknown";
     }
@@ -432,21 +425,18 @@ function StepCameraCheck({
     if (cameraState !== "granted") return;
 
     let firstRun = true;
+
     const run = async () => {
       if (firstRun) {
         setLightingStatus("checking");
+        setFaceStatus("checking");
         firstRun = false;
       }
+      const lighting = checkLighting();
+      setLightingStatus(lighting === "unknown" ? "checking" : lighting);
 
-      const result = await checkLighting();
-      if (result === "ok") {
-        wasOkRef.current = true;
-        setLightingDegraded(false);
-        setLightingStatus("ok");
-      } else if (result === "poor") {
-        if (wasOkRef.current) setLightingDegraded(true);
-        setLightingStatus("poor");
-      }
+      const face = await checkFace();
+      if (face !== "unknown") setFaceStatus(face);
     };
 
     run();
@@ -454,7 +444,7 @@ function StepCameraCheck({
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [cameraState, checkLighting]);
+  }, [cameraState, checkLighting, checkFace]);
 
   async function handleProceed() {
     setIsProceeding(true);
@@ -466,10 +456,6 @@ function StepCameraCheck({
         UNAUTHORIZED: "You are not authorised to start this exam.",
         ATTEMPT_NOT_FOUND: "Your exam attempt could not be found.",
         ATTEMPT_NOT_IN_PROGRESS: "This attempt is no longer active.",
-        ORACLE_SESSION_CREATION_FAILED:
-          "The proctoring service could not be started. Please try again.",
-        ORACLE_UNREACHABLE:
-          "The proctoring service is unavailable. Please try again.",
         DB_ERROR: "A server error occurred. Please try again.",
       };
       setError(messages[result.error] ?? "An unexpected error occurred.");
@@ -484,35 +470,27 @@ function StepCameraCheck({
       console.warn("[AssessmentOnboarding] Fullscreen request failed:", err);
     }
 
-    router.push(
-      `/student/assessments/${assessmentId}/attempt?attemptId=${attemptId}`,
-    );
+    router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${attemptId}`);
   }
 
   const lightingOk = lightingStatus === "ok";
-  const canProceed =
-    agreed && cameraState === "granted" && lightingOk && !isProceeding;
+  const faceOk = faceStatus === "ok";
+  const checksComplete = lightingOk && faceOk;
+  const canProceed = agreed && cameraState === "granted" && checksComplete && !isProceeding;
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">
-        Camera check
-      </h2>
+      <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">Camera check</h2>
       <p className="text-[12px] text-muted-foreground mb-5">
-        Make sure your camera is clear and your lighting is good.
+        Make sure your camera is clear, lighting is good, and your face is visible.
       </p>
 
       <div className="relative mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-sm bg-[#1e293b]">
         {cameraState === "granted" ? (
           <>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover"
-            />
+            <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
 
+            {/* Live dot */}
             <div className="absolute left-3 top-3 flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
@@ -523,31 +501,28 @@ function StepCameraCheck({
               </span>
             </div>
 
-            <div
-              className={`absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
-                lightingStatus === "checking"
-                  ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
-                  : lightingOk
-                  ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
-                  : "border-amber-500/40 bg-amber-950/80 text-amber-300"
-              }`}
-            >
-              {lightingStatus === "checking" ? (
-                <>
-                  <Loader2 size={11} className="animate-spin" />
-                  Checking…
-                </>
-              ) : lightingOk ? (
-                <>
-                  <Sun size={11} />
-                  Good lighting
-                </>
-              ) : (
-                <>
-                  <SunDim size={11} />
-                  Too dark
-                </>
-              )}
+            {/* Status badges */}
+            <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1.5">
+              <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
+                lightingStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
+                : lightingOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
+                : "border-amber-500/40 bg-amber-950/80 text-amber-300"
+              }`}>
+                {lightingStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Checking…</>
+                : lightingOk ? <><Sun size={11} /> Good lighting</>
+                : <><SunDim size={11} /> Too dark</>}
+              </div>
+              <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
+                faceStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
+                : faceOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
+                : faceStatus === "absent" ? "border-red-500/40 bg-red-950/80 text-red-300"
+                : "border-slate-500/40 bg-slate-900/80 text-slate-200"
+              }`}>
+                {faceStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Detecting face…</>
+                : faceOk ? <><User size={11} /> Face detected</>
+                : faceStatus === "absent" ? <><User size={11} /> No face detected</>
+                : <><Loader2 size={11} className="animate-spin" /> Detecting face…</>}
+              </div>
             </div>
           </>
         ) : cameraState === "denied" ? (
@@ -575,45 +550,33 @@ function StepCameraCheck({
             </div>
           </div>
         )}
-
-        {lightingDegraded && lightingStatus === "poor" && (
+        {lightingStatus === "poor" && (
           <div className="flex items-start gap-2.5 rounded-sm border border-amber-100 bg-amber-50 p-3">
             <SunDim size={14} className="mt-0.5 shrink-0 text-amber-600" />
             <div>
-              <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wider">
-                Lighting has changed
-              </p>
+              <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wider">Poor lighting</p>
               <p className="mt-0.5 text-[11px] text-amber-700/80 font-semibold leading-relaxed">
-                Your lighting was good but has now dropped. Please turn your lights back on before starting.
+                Move to a brighter area or turn on more lights before starting.
               </p>
             </div>
           </div>
         )}
-
-        {!lightingDegraded && lightingStatus === "poor" && (
-          <div className="flex items-start gap-2.5 rounded-sm border border-amber-100 bg-amber-50 p-3">
-            <SunDim size={14} className="mt-0.5 shrink-0 text-amber-600" />
+        {faceStatus === "absent" && (
+          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+            <User size={14} className="mt-0.5 shrink-0 text-red-600" />
             <div>
-              <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wider">
-                Poor lighting detected
-              </p>
-              <p className="mt-0.5 text-[11px] text-amber-700/80 font-semibold leading-relaxed">
-                Move to a brighter area or turn on more lights. Checking automatically every few seconds.
-                {brightness !== null && (
-                  <span className="ml-1 text-slate-400 font-bold">
-                    ({brightness.toFixed(0)}/255)
-                  </span>
-                )}
+              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Face not detected</p>
+              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
+                Position your face clearly in front of the camera before starting.
               </p>
             </div>
           </div>
         )}
-
-        {cameraState === "granted" && lightingOk && (
+        {cameraState === "granted" && checksComplete && (
           <div className="flex items-center gap-2 px-1">
             <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
             <p className="text-[12px] font-semibold text-emerald-700">
-              Camera verified and lighting is good.
+              Camera, lighting, and face verified.
             </p>
           </div>
         )}
@@ -622,45 +585,28 @@ function StepCameraCheck({
       <div className="mt-auto space-y-4 pt-4 border-t border-border">
         <div className="flex items-center gap-3">
           {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={isProceeding}
-              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <button type="button" onClick={onBack} disabled={isProceeding}
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
               Back
             </button>
           )}
           {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isProceeding}
-              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <button type="button" onClick={onCancel} disabled={isProceeding}
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
               Cancel
             </button>
           )}
         </div>
 
         <label className="group flex cursor-pointer items-start gap-3">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(event) => setAgreed(event.target.checked)}
-            className="sr-only"
-          />
-          <div
-            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors ${
-              agreed
-                ? "border-primary bg-primary"
-                : "border-border bg-white group-hover:border-primary"
-            }`}
-          >
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="sr-only" />
+          <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors ${
+            agreed ? "border-primary bg-primary" : "border-border bg-white group-hover:border-primary"
+          }`}>
             {agreed && <Check size={9} className="text-white" strokeWidth={3} />}
           </div>
           <span className="select-none text-[11px] leading-relaxed text-slate-500">
-            I agree to the exam rules and understand that violations will be logged and may result in automatic submission.
+            I understand that my camera will be monitored for the duration of this exam and violations will be logged.
           </span>
         </label>
 
@@ -671,37 +617,23 @@ function StepCameraCheck({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleProceed}
-          disabled={!canProceed}
-          className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#001570] disabled:cursor-not-allowed disabled:opacity-30 animate-in fade-in"
-        >
+        <button type="button" onClick={handleProceed} disabled={!canProceed}
+          className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#001570] disabled:cursor-not-allowed disabled:opacity-30 animate-in fade-in">
           {isProceeding ? (
-            <>
-              <Loader2 size={13} className="animate-spin" />
-              Starting…
-            </>
+            <><Loader2 size={13} className="animate-spin" />Starting…</>
           ) : (
-            <>
-              <PlayCircle size={13} />
-              Start Exam
-              <ArrowRight size={13} />
-            </>
+            <><PlayCircle size={13} />Start Exam<ArrowRight size={13} /></>
           )}
         </button>
 
         {!canProceed && !isProceeding && (
           <p className="text-[11px] text-muted-foreground">
-            {cameraState === "denied"
-              ? "Camera access is required to proceed."
-              : lightingStatus === "poor"
-              ? "Improve your lighting to continue."
-              : lightingStatus === "checking"
-              ? "Checking lighting…"
-              : !agreed
-              ? "Check the agreement box above to continue."
-              : "Waiting for camera…"}
+            {cameraState === "denied" ? "Camera access is required to proceed."
+            : lightingStatus === "poor" ? "Improve your lighting to continue."
+            : faceStatus === "absent" ? "Position your face in front of the camera."
+            : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"
+            : !agreed ? "Check the agreement box above to continue."
+            : "Waiting for camera…"}
           </p>
         )}
       </div>
@@ -899,15 +831,15 @@ export default function AssessmentOnboardingClient({
 
       {/* Main setup area */}
       <div className="flex-grow flex items-start md:items-center justify-center px-4 py-6 md:py-10">
-        <div className="w-full max-w-3xl bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="w-full max-w-4xl bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="flex flex-col md:flex-row">
             {/* Desktop sidebar */}
-            <div className="md:w-52 md:border-r border-border md:p-6 hidden md:block">
+            <div className="md:w-56 md:border-r border-border md:p-6 hidden md:block shrink-0">
               <Sidebar current={step} steps={steps} />
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-5 sm:p-7 min-h-[380px] flex flex-col">
+            <div className="flex-1 p-5 sm:p-8 min-h-[420px] flex flex-col min-w-0">
               {step === 0 && (
                 <StepImportantRules
                   assessmentType={assessmentType}

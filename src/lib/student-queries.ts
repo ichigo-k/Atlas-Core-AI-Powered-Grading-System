@@ -127,7 +127,7 @@ export type ActiveAttempt = {
     flagCount: number
     flagThreshold: number
     sessionId: string
-    signalingToken: string
+    signalingToken: string | null
   } | null
 }
 

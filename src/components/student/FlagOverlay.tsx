@@ -1,24 +1,7 @@
 "use client"
 
-/**
- * FlagOverlay — unified violation/flag overlay for the exam UI.
- *
- * Handles three distinct states:
- *  - 'fullscreen'  : student exited fullscreen (client-detected)
- *  - 'tab'         : student switched tabs / lost focus (client-detected)
- *  - 'oracle'      : Oracle AI detected an anomaly (server-pushed)
- *  - 'terminated'  : flag limit reached, exam auto-submitted
- *
- * Oracle flags show a 40-second countdown. The student cannot dismiss the
- * overlay until the countdown expires — this gives them time to correct the
- * behaviour before the next flag window opens.
- *
- * All other flags are dismissible immediately.
- */
-
 import { useEffect, useRef, useState } from "react"
 import {
-  AlertTriangle,
   EyeOff,
   Maximize2,
   ShieldAlert,
@@ -28,8 +11,10 @@ import {
   Smartphone,
   ScanEye,
   WifiOff,
+  AlertTriangle,
 } from "lucide-react"
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker"
+import { useViolationStore } from "@/lib/violation-store"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,25 +33,16 @@ export type FlagType =
 
 export interface FlagEvent {
   type: FlagType
-  flagCountAfter: number   // the new total after this flag
-  source: "CLIENT" | "ORACLE"
+  flagCountAfter: number
+  source: "CLIENT" | "CAMERA"
 }
 
 interface FlagOverlayProps {
-  /** Current flag event to display. null = no overlay. */
   event: FlagEvent | null
-  /** Whether the exam has been terminated (flag limit reached). */
   terminated: boolean
-  /**
-   * When true, show the "final warning" screen — submission already happened
-   * server-side. Displays the reason and a 10-second countdown before onFinalRedirect.
-   */
   finalWarning: boolean
-  /** Called when the student dismisses the overlay (non-terminated). */
   onDismiss: () => void
-  /** Called when the student clicks "Return to fullscreen". */
   onReturnFullscreen?: () => void
-  /** Called when the final-warning countdown expires — should redirect away. */
   onFinalRedirect: () => void
 }
 
@@ -76,8 +52,6 @@ const FLAG_CONFIG: Record<FlagType, {
   icon: React.ElementType
   title: string
   description: string
-  /** Seconds to wait before the dismiss button appears. 0 = immediate. */
-  cooldown: number
   accentColor: string
   bgColor: string
 }> = {
@@ -85,55 +59,48 @@ const FLAG_CONFIG: Record<FlagType, {
     icon: Maximize2,
     title: "Fullscreen exited",
     description: "You exited fullscreen mode. This has been logged as a violation.",
-    cooldown: 0,
     accentColor: "#f97316",
     bgColor: "rgba(249,115,22,0.12)",
   },
   TAB_SWITCH: {
     icon: EyeOff,
     title: "Focus lost",
-    description: "You left the exam page or switched applications. This has been logged.",
-    cooldown: 0,
+    description: "You left the exam page. Return immediately — another violation is added every 15 seconds while you're away.",
     accentColor: "#f97316",
     bgColor: "rgba(249,115,22,0.12)",
   },
   PHONE_DETECTED: {
     icon: Smartphone,
     title: "Phone detected",
-    description: "Oracle detected a phone in your camera feed. Please remove it from view.",
-    cooldown: 0,
+    description: "A phone was detected in your camera feed. Please remove it from view.",
     accentColor: "#ef4444",
     bgColor: "rgba(239,68,68,0.12)",
   },
   GAZE_AWAY: {
     icon: ScanEye,
     title: "Gaze away detected",
-    description: "Oracle detected that you are not looking at the screen. Please face forward.",
-    cooldown: 0,
+    description: "You are not looking at the screen. Please face forward.",
     accentColor: "#ef4444",
     bgColor: "rgba(239,68,68,0.12)",
   },
   PERSON_ABSENT: {
     icon: UserX,
     title: "Person absent",
-    description: "Oracle could not detect you in the camera feed. Please ensure you are visible.",
-    cooldown: 0,
+    description: "You are not visible in the camera feed. Please ensure your face is clearly visible.",
     accentColor: "#ef4444",
     bgColor: "rgba(239,68,68,0.12)",
   },
   MULTIPLE_PERSONS: {
     icon: Users,
     title: "Multiple persons detected",
-    description: "Oracle detected more than one person in your camera feed. Only you should be visible.",
-    cooldown: 0,
+    description: "More than one person is visible in your camera feed. Only you should be present.",
     accentColor: "#ef4444",
     bgColor: "rgba(239,68,68,0.12)",
   },
   SUSPICIOUS_OBJECT: {
     icon: ShieldAlert,
     title: "Suspicious object detected",
-    description: "Oracle detected a suspicious object in your camera feed. Please remove it from view.",
-    cooldown: 0,
+    description: "A suspicious object was detected in your camera feed. Please remove it.",
     accentColor: "#ef4444",
     bgColor: "rgba(239,68,68,0.12)",
   },
@@ -141,31 +108,27 @@ const FLAG_CONFIG: Record<FlagType, {
     icon: WifiOff,
     title: "Proctoring connection lost",
     description: "The proctoring connection was lost. This has been logged as a violation.",
-    cooldown: 0,
     accentColor: "#f97316",
     bgColor: "rgba(249,115,22,0.12)",
   },
   POOR_LIGHTING: {
     icon: Camera,
     title: "Poor lighting / Camera covered",
-    description: "Oracle detected poor lighting or the camera is covered. Please ensure your face is clearly visible.",
-    cooldown: 0,
+    description: "Poor lighting or the camera is covered. Please ensure your face is clearly visible.",
     accentColor: "#f97316",
     bgColor: "rgba(249,115,22,0.12)",
   },
   TALKING_DETECTED: {
     icon: AlertTriangle,
     title: "Talking detected",
-    description: "Oracle detected that you are talking. Please remain silent during the assessment.",
-    cooldown: 0,
+    description: "Please remain silent during the assessment.",
     accentColor: "#ef4444",
     bgColor: "rgba(239,68,68,0.12)",
   },
   BLURRY_CAMERA: {
     icon: Camera,
     title: "Blurry camera feed",
-    description: "Your camera feed is too blurry for reliable proctoring. Please clean the lens or adjust focus.",
-    cooldown: 0,
+    description: "Your camera feed is too blurry. Please clean the lens or adjust focus.",
     accentColor: "#f97316",
     bgColor: "rgba(249,115,22,0.12)",
   },
@@ -190,28 +153,42 @@ function FlagDots({ count, max }: { count: number; max: number }) {
 
 // ─── Countdown ring ───────────────────────────────────────────────────────────
 
-function CountdownRing({ seconds, total }: { seconds: number; total: number }) {
-  const r = 20
+function CountdownRing({
+  seconds,
+  total,
+  size = "sm",
+  color = "rgba(255,255,255,0.8)",
+}: {
+  seconds: number
+  total: number
+  size?: "sm" | "lg"
+  color?: string
+}) {
+  const dim = size === "lg" ? 96 : 52
+  const cx = dim / 2
+  const r = size === "lg" ? 40 : 20
+  const strokeW = size === "lg" ? 5 : 3
+  const fontSize = size === "lg" ? 22 : 11
   const circ = 2 * Math.PI * r
-  const progress = seconds / total
+  const progress = Math.max(0, seconds) / total
   return (
-    <svg width="52" height="52" className="rotate-[-90deg]">
-      <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="3" />
+    <svg width={dim} height={dim} className="rotate-[-90deg]">
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={strokeW} />
       <circle
-        cx="26" cy="26" r={r} fill="none"
-        stroke="rgba(255,255,255,0.7)" strokeWidth="3"
+        cx={cx} cy={cx} r={r} fill="none"
+        stroke={color} strokeWidth={strokeW}
         strokeDasharray={circ}
         strokeDashoffset={circ * (1 - progress)}
         strokeLinecap="round"
         style={{ transition: "stroke-dashoffset 1s linear" }}
       />
       <text
-        x="26" y="26"
+        x={cx} y={cx}
         textAnchor="middle" dominantBaseline="central"
-        fill="white" fontSize="11" fontWeight="600"
-        style={{ transform: "rotate(90deg)", transformOrigin: "26px 26px" }}
+        fill="white" fontSize={fontSize} fontWeight="700"
+        style={{ transform: `rotate(90deg)`, transformOrigin: `${cx}px ${cx}px` }}
       >
-        {seconds}
+        {Math.max(0, seconds)}
       </text>
     </svg>
   )
@@ -227,11 +204,7 @@ export default function FlagOverlay({
   onReturnFullscreen,
   onFinalRedirect,
 }: FlagOverlayProps) {
-  const [countdown, setCountdown] = useState(0)
-  const [canDismiss, setCanDismiss] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // Final-warning countdown — 10 seconds then redirect
+  // Final-warning countdown
   const [finalCountdown, setFinalCountdown] = useState(10)
   const finalTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -258,44 +231,44 @@ export default function FlagOverlay({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalWarning])
 
-  // Reset cooldown countdown whenever a new event arrives
+  // Away countdown from store (drives the "next flag in Xs" ring for TAB_SWITCH)
+  const awayCountdown = useViolationStore((s) => s.awayCountdown)
+
+  // Camera violation grace countdown (driven locally — counts 15s before flagging)
+  const [cameraGraceCountdown, setCameraGraceCountdown] = useState<number | null>(null)
+  const cameraGraceRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Camera violations (PERSON_ABSENT, MULTIPLE_PERSONS, PHONE_DETECTED, SUSPICIOUS_OBJECT)
+  // show a local 15s grace countdown. If the event goes away (dismissed), stop the timer.
+  const isCameraViolation = event
+    ? ["PERSON_ABSENT", "MULTIPLE_PERSONS", "PHONE_DETECTED", "SUSPICIOUS_OBJECT", "BLURRY_CAMERA", "POOR_LIGHTING"].includes(event.type)
+    : false
+
   useEffect(() => {
-    if (!event || terminated) {
-      setCountdown(0)
-      setCanDismiss(true)
-      if (timerRef.current) clearInterval(timerRef.current)
+    if (!event || !isCameraViolation) {
+      if (cameraGraceRef.current) clearInterval(cameraGraceRef.current)
+      setCameraGraceCountdown(null)
       return
     }
-
-    const cfg = FLAG_CONFIG[event.type]
-    if (cfg.cooldown === 0) {
-      setCountdown(0)
-      setCanDismiss(true)
-      return
-    }
-
-    setCountdown(cfg.cooldown)
-    setCanDismiss(false)
-
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!)
-          setCanDismiss(true)
-          return 0
-        }
-        return prev - 1
-      })
+    // Start grace countdown for camera violations
+    setCameraGraceCountdown(15)
+    let remaining = 15
+    cameraGraceRef.current = setInterval(() => {
+      remaining -= 1
+      if (remaining <= 0) {
+        clearInterval(cameraGraceRef.current!)
+        setCameraGraceCountdown(0)
+      } else {
+        setCameraGraceCountdown(remaining)
+      }
     }, 1000)
-
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
+      if (cameraGraceRef.current) clearInterval(cameraGraceRef.current)
     }
-  }, [event, terminated])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.type, isCameraViolation])
 
   // ── Final warning screen ──────────────────────────────────────────────────
-  // Shown when the 5th flag is hit. Submission already happened server-side.
-  // We show the reason and count down before redirecting.
   if (finalWarning && event) {
     const cfg = FLAG_CONFIG[event.type]
     const Icon = cfg.icon
@@ -305,16 +278,12 @@ export default function FlagOverlay({
         style={{ background: "rgba(0,0,0,0.97)", backdropFilter: "blur(12px)" }}
       >
         <div className="w-full max-w-sm flex flex-col items-center gap-6 text-center">
-
-          {/* Pulsing red ring */}
           <div className="relative flex items-center justify-center">
             <div className="absolute h-28 w-28 rounded-full bg-red-500/10 animate-ping" />
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-red-500/20 ring-4 ring-red-500/40">
               <Icon size={38} className="text-red-400" />
             </div>
           </div>
-
-          {/* Heading */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-red-400 mb-2">
               Assessment auto-submitted
@@ -326,8 +295,6 @@ export default function FlagOverlay({
               {cfg.description}
             </p>
           </div>
-
-          {/* Reason box */}
           <div className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-red-400 mb-1">
               Reason for submission
@@ -339,13 +306,9 @@ export default function FlagOverlay({
               Your answers have been saved and submitted.
             </p>
           </div>
-
-          {/* Dots */}
           <FlagDots count={MAX_VIOLATIONS} max={MAX_VIOLATIONS} />
-
-          {/* Countdown */}
           <div className="flex flex-col items-center gap-2">
-            <CountdownRing seconds={finalCountdown} total={10} />
+            <CountdownRing seconds={finalCountdown} total={10} size="lg" color="#ef4444" />
             <p className="text-white/40 text-[12px]">
               Redirecting in {finalCountdown}s…
             </p>
@@ -355,7 +318,7 @@ export default function FlagOverlay({
     )
   }
 
-  // ── Terminated state (fallback — shown if finalWarning was skipped) ───────
+  // ── Terminated fallback ───────────────────────────────────────────────────
   if (terminated) {
     return (
       <div
@@ -386,13 +349,12 @@ export default function FlagOverlay({
     )
   }
 
-  // ── No active event ───────────────────────────────────────────────────────
   if (!event) return null
 
   const cfg = FLAG_CONFIG[event.type]
   const Icon = cfg.icon
   const remaining = MAX_VIOLATIONS - event.flagCountAfter
-  const isOracle = event.source === "ORACLE"
+  const isTabSwitch = event.type === "TAB_SWITCH"
   const isFullscreen = event.type === "FULLSCREEN_EXIT"
 
   return (
@@ -402,20 +364,12 @@ export default function FlagOverlay({
     >
       <div className="w-full max-w-sm flex flex-col items-center gap-5 text-center">
 
-        {/* Icon + optional Oracle badge */}
-        <div className="relative">
-          <div
-            className="flex h-20 w-20 items-center justify-center rounded-full"
-            style={{ background: cfg.bgColor, boxShadow: `0 0 0 4px ${cfg.accentColor}22` }}
-          >
-            <Icon size={34} style={{ color: cfg.accentColor }} />
-          </div>
-          {isOracle && (
-            <div className="absolute -top-1 -right-1 flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5">
-              <Camera size={9} className="text-white" />
-              <span className="text-[9px] font-bold text-white uppercase tracking-wider">Oracle</span>
-            </div>
-          )}
+        {/* Icon */}
+        <div
+          className="flex h-20 w-20 items-center justify-center rounded-full"
+          style={{ background: cfg.bgColor, boxShadow: `0 0 0 4px ${cfg.accentColor}22` }}
+        >
+          <Icon size={34} style={{ color: cfg.accentColor }} />
         </div>
 
         {/* Title + description */}
@@ -436,28 +390,93 @@ export default function FlagOverlay({
           </p>
         </div>
 
-        {/* Oracle cooldown or dismiss */}
-        {isOracle && !canDismiss ? (
-          <div className="flex flex-col items-center gap-2">
-            <CountdownRing seconds={countdown} total={cfg.cooldown} />
-            <p className="text-white/40 text-[11px]">
-              Please correct the behaviour. You may dismiss in {countdown}s.
-            </p>
+        {/* TAB_SWITCH: big countdown + return button */}
+        {isTabSwitch && (
+          <div className="flex flex-col items-center gap-4 w-full">
+            <div className="flex flex-col items-center gap-2">
+              <CountdownRing
+                seconds={awayCountdown ?? 15}
+                total={15}
+                size="lg"
+                color="#f97316"
+              />
+              <p className="text-white/70 text-[13px] font-semibold">
+                {awayCountdown !== null && awayCountdown > 0
+                  ? `+1 violation in ${awayCountdown}s if you stay away`
+                  : "Violation recorded — return now"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                document.documentElement.requestFullscreen().catch(() => {})
+                onDismiss()
+              }}
+              className="flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-[15px] font-bold text-[#111827] hover:bg-white/90 active:scale-95 transition-all"
+            >
+              <EyeOff size={16} />
+              Return to exam
+            </button>
           </div>
-        ) : isFullscreen ? (
-          <button
-            type="button"
-            onClick={() => {
-              document.documentElement.requestFullscreen()
-                .then(() => onDismiss())
-                .catch(() => onDismiss())
-            }}
-            className="flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-[14px] font-bold text-[#111827] hover:bg-white/90 transition-colors"
-          >
-            <Maximize2 size={15} />
-            Return to fullscreen
-          </button>
-        ) : (
+        )}
+
+        {/* FULLSCREEN_EXIT: big countdown + return button */}
+        {isFullscreen && (
+          <div className="flex flex-col items-center gap-4 w-full">
+            <div className="flex flex-col items-center gap-2">
+              <CountdownRing
+                seconds={awayCountdown ?? 15}
+                total={15}
+                size="lg"
+                color="#f97316"
+              />
+              <p className="text-white/70 text-[13px] font-semibold">
+                {awayCountdown !== null && awayCountdown > 0
+                  ? `+1 violation in ${awayCountdown}s if you don't return`
+                  : "Violation recorded — return to fullscreen now"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                document.documentElement.requestFullscreen()
+                  .then(() => onDismiss())
+                  .catch(() => onDismiss())
+              }}
+              className="flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-[15px] font-bold text-[#111827] hover:bg-white/90 active:scale-95 transition-all"
+            >
+              <Maximize2 size={16} />
+              Return to fullscreen
+            </button>
+          </div>
+        )}
+
+        {/* Camera violations: grace countdown then dismiss */}
+        {isCameraViolation && (
+          <div className="flex flex-col items-center gap-3 w-full">
+            {cameraGraceCountdown !== null && cameraGraceCountdown > 0 ? (
+              <div className="flex flex-col items-center gap-1">
+                <CountdownRing seconds={cameraGraceCountdown} total={15} />
+                <p className="text-white/40 text-[11px]">
+                  Correct the issue within {cameraGraceCountdown}s to avoid a flag
+                </p>
+              </div>
+            ) : (
+              <p className="text-red-400 text-[12px] font-semibold">Flag recorded</p>
+            )}
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-[14px] font-bold text-[#111827] hover:bg-white/90 transition-colors"
+            >
+              <Icon size={15} />
+              I've fixed it
+            </button>
+          </div>
+        )}
+
+        {/* Other violations (CONNECTION_LOST, etc.) */}
+        {!isTabSwitch && !isFullscreen && !isCameraViolation && (
           <button
             type="button"
             onClick={onDismiss}

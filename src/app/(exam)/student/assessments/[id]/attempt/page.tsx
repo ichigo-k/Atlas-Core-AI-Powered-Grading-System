@@ -10,10 +10,6 @@ import AttemptShell from "./AttemptShell";
 
 export type ProctorSession = {
   sessionId: string;
-  /** LiveKit access token (stored in the signalingToken column, no schema change needed). */
-  livekitToken: string;
-  /** LiveKit server URL passed from Oracle's session-creation response. */
-  livekitUrl: string;
 } | null;
 
 // ─── Serialisation helpers ────────────────────────────────────────────────────
@@ -110,13 +106,7 @@ export default async function AttemptPage({
   // Use proctorRecord included in getActiveAttempt so the client can initialise WebRTC.
   // Returns null when no proctoring session exists (non-proctored exam).
   const proctorSession: ProctorSession = attempt.proctorRecord
-    ? {
-      sessionId: attempt.proctorRecord.sessionId,
-      // signalingToken now holds the livekitToken (reused column, no migration needed).
-      livekitToken: attempt.proctorRecord.signalingToken,
-      // The LiveKit URL comes from the env or falls back to the default.
-      livekitUrl: process.env.LIVEKIT_URL ?? "ws://localhost:7880",
-    }
+    ? { sessionId: attempt.proctorRecord.sessionId }
     : null;
 
   return (

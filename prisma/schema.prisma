@@ -391,7 +391,7 @@ model ProctorRecord {
   attemptId      Int               @unique
   attempt        AssessmentAttempt @relation(fields: [attemptId], references: [id])
   sessionId      String
-  signalingToken String
+  signalingToken String?
   consentAt      DateTime
   flagCount      Int               @default(0)
   flagThreshold  Int               @default(5)
