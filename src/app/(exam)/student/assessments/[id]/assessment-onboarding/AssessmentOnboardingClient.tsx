@@ -257,10 +257,14 @@ function StepGeneralRules({
   assessmentType,
   onNext,
   onBack,
+  isPending,
+  error,
 }: {
   assessmentType: string;
   onNext: () => void;
   onBack: () => void;
+  isPending?: boolean;
+  error?: string | null;
 }) {
   const isSecured = assessmentType === "EXAM" || assessmentType === "QUIZ";
 
@@ -306,22 +310,31 @@ function StepGeneralRules({
         ))}
       </div>
 
-      <div className="pt-6 border-t border-border flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors"
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
-        >
-          Continue
-          <ArrowRight size={13} />
-        </button>
+      <div className="pt-6 border-t border-border flex flex-col gap-3">
+        {error && (
+          <div className="flex items-start gap-2 rounded-sm border border-red-100 bg-red-50 p-2.5">
+            <AlertTriangle size={13} className="mt-0.5 shrink-0 text-red-600" />
+            <p className="text-[11px] font-semibold text-red-700">{error}</p>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors disabled:opacity-40"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors disabled:opacity-60"
+          >
+            {isPending ? <><Loader2 size={13} className="animate-spin" />Starting…</> : <>Continue <ArrowRight size={13} /></>}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -765,25 +778,40 @@ export default function AssessmentOnboardingClient({
   const [createdAttemptId, setCreatedAttemptId] = useState<number | null>(
     attemptId ?? null,
   );
+  const [generalNextPending, setGeneralNextPending] = useState(false);
+  const [generalNextError, setGeneralNextError] = useState<string | null>(null);
 
   const steps = buildSteps(passwordProtected, proctoringEnabled);
   const passwordStepIndex = passwordProtected ? 2 : -1;
   const proctorStepIndex = proctoringEnabled ? (passwordProtected ? 3 : 2) : -1;
   const resolvedAttemptId = createdAttemptId;
 
-  function handleGeneralRulesNext() {
+  async function handleGeneralRulesNext() {
     if (passwordProtected) {
       setStep(passwordStepIndex);
-    } else if (proctoringEnabled) {
-      setStep(proctorStepIndex);
-    } else {
-      if (resolvedAttemptId == null) {
-        router.push(`/student/assessments/${assessmentId}`);
+      return;
+    }
+
+    // For non-password assessments, create the attempt now if not already created.
+    // This covers both proctored and non-proctored paths.
+    let currentAttemptId = resolvedAttemptId;
+    if (currentAttemptId == null) {
+      setGeneralNextPending(true);
+      setGeneralNextError(null);
+      const result = await createOrResumeAttempt(assessmentId);
+      setGeneralNextPending(false);
+      if ("error" in result) {
+        setGeneralNextError("Could not start attempt. Please try again.");
         return;
       }
-      router.push(
-        `/student/assessments/${assessmentId}/attempt?attemptId=${resolvedAttemptId}`,
-      );
+      currentAttemptId = result.attemptId;
+      setCreatedAttemptId(currentAttemptId);
+    }
+
+    if (proctoringEnabled) {
+      setStep(proctorStepIndex);
+    } else {
+      router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${currentAttemptId}`);
     }
   }
 
@@ -853,6 +881,8 @@ export default function AssessmentOnboardingClient({
                   assessmentType={assessmentType}
                   onNext={handleGeneralRulesNext}
                   onBack={() => setStep(0)}
+                  isPending={generalNextPending}
+                  error={generalNextError}
                 />
               )}
               {step === passwordStepIndex && passwordProtected && (
