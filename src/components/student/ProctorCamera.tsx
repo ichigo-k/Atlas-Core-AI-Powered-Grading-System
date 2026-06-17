@@ -1,21 +1,5 @@
 "use client"
 
-/**
- * ProctorCamera — client-side ML proctoring via TensorFlow.js.
- *
- * Runs two detection loops in the background during the exam:
- *  1. BlazeFace (every 1.5s) → PERSON_ABSENT | MULTIPLE_PERSONS
- *  2. COCO-SSD  (every 3s)   → PHONE_DETECTED | SUSPICIOUS_OBJECT
- *
- * Camera violation grace logic:
- *  - Detection fires → soft warning shown (overlay appears, no flag yet).
- *  - Detection clears within 15s → overlay auto-dismisses, no flag.
- *  - Still present at 15s → flag +1, issue stays tracked.
- *
- * The component renders a small live thumbnail in the exam corner so the
- * student knows the camera is active.
- */
-
 import { useEffect, useRef, useState } from "react"
 import { useViolationStore } from "@/lib/violation-store"
 import { addViolation, type ViolationReason } from "@/lib/violation-tracker"
@@ -26,11 +10,9 @@ const FACE_INTERVAL_MS = 1500
 const OBJECT_INTERVAL_MS = 3000
 const GRACE_SECONDS = 15
 
-// Violation types that come from camera — shown as warnings first
 type CameraViolationType = Extract<FlagType,
   "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "PHONE_DETECTED" | "SUSPICIOUS_OBJECT">
 
-// COCO-SSD classes that map to proctoring violations
 const PHONE_CLASSES = ["cell phone"]
 const SUSPICIOUS_CLASSES = ["book", "laptop", "keyboard", "remote", "mouse"]
 
@@ -44,13 +26,37 @@ export default function ProctorCamera({ attemptId }: Props) {
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
 
-  // Tracks active violation grace timers: violationType → { graceTimer, flagTimer }
   const graceTimers = useRef<Map<CameraViolationType, {
     graceTimeout: ReturnType<typeof setTimeout>
     flagFired: boolean
   }>>(new Map())
 
-  const { recordViolation, syncCount, showFinalWarning, dismissEvent } = useViolationStore()
+  const { recordViolation, syncCount, showFinalWarning } = useViolationStore()
+
+  // ── Draggable position ────────────────────────────────────────────────────
+  const [pos, setPos] = useState({ x: 0, y: 0 }) // offset from bottom-right
+  const dragging = useRef(false)
+  const dragStart = useRef({ mouseX: 0, mouseY: 0, posX: 0, posY: 0 })
+
+  function onMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    dragging.current = true
+    dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, posX: pos.x, posY: pos.y }
+
+    function onMove(ev: MouseEvent) {
+      if (!dragging.current) return
+      const dx = ev.clientX - dragStart.current.mouseX
+      const dy = ev.clientY - dragStart.current.mouseY
+      setPos({ x: dragStart.current.posX - dx, y: dragStart.current.posY - dy })
+    }
+    function onUp() {
+      dragging.current = false
+      window.removeEventListener("mousemove", onMove)
+      window.removeEventListener("mouseup", onUp)
+    }
+    window.addEventListener("mousemove", onMove)
+    window.addEventListener("mouseup", onUp)
+  }
 
   // ── Start camera ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -60,10 +66,6 @@ export default function ProctorCamera({ attemptId }: Props) {
       .then((stream) => {
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
         streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          videoRef.current.play().catch(() => { })
-        }
         setCameraReady(true)
       })
       .catch(() => {
@@ -76,27 +78,30 @@ export default function ProctorCamera({ attemptId }: Props) {
     }
   }, [])
 
+  // ── Wire stream to video element once it mounts (after cameraReady = true) ─
+  useEffect(() => {
+    if (!cameraReady || !videoRef.current || !streamRef.current) return
+    videoRef.current.srcObject = streamRef.current
+    videoRef.current.play().catch(() => {})
+  }, [cameraReady])
+
   // ── Grace-period violation handler ────────────────────────────────────────
   function handleDetection(type: CameraViolationType, detected: boolean) {
     const existing = graceTimers.current.get(type)
 
     if (detected) {
-      if (existing) return // already tracking this type
+      if (existing) return // already tracking
 
-      // Show warning overlay immediately (no flag yet)
       const currentCount = useViolationStore.getState().count
       recordViolation({ type, flagCountAfter: currentCount, source: "CAMERA" })
 
-      // Start grace timer — if still detected after GRACE_SECONDS, fire real flag
       const graceTimeout = setTimeout(async () => {
         const entry = graceTimers.current.get(type)
         if (!entry || entry.flagFired) return
 
         entry.flagFired = true
-        // Real flag
         const currentCount2 = useViolationStore.getState().count
-        const optimistic = currentCount2 + 1
-        recordViolation({ type, flagCountAfter: optimistic, source: "CAMERA" })
+        recordViolation({ type, flagCountAfter: currentCount2 + 1, source: "CAMERA" })
 
         const { count: serverCount, willAutoSubmit } = await addViolation(attemptId, type as ViolationReason)
         syncCount(serverCount)
@@ -105,16 +110,11 @@ export default function ProctorCamera({ attemptId }: Props) {
 
       graceTimers.current.set(type, { graceTimeout, flagFired: false })
     } else {
-      if (!existing) return // wasn't tracking
-
+      if (!existing) return
       if (!existing.flagFired) {
-        // Cleared within grace period — no flag, but student must click dismiss manually
         clearTimeout(existing.graceTimeout)
-        graceTimers.current.delete(type)
-      } else {
-        // Flag already fired — stop tracking (don't keep re-flagging same issue)
-        graceTimers.current.delete(type)
       }
+      graceTimers.current.delete(type)
     }
   }
 
@@ -159,7 +159,6 @@ export default function ProctorCamera({ attemptId }: Props) {
     return () => {
       cancelled = true
       cleanup?.()
-      // clear any pending grace timers
       graceTimers.current.forEach(({ graceTimeout }) => clearTimeout(graceTimeout))
       graceTimers.current.clear()
     }
@@ -191,7 +190,6 @@ export default function ProctorCamera({ attemptId }: Props) {
         try {
           const predictions = await cocoSsd.detect(video)
           const classes = predictions.map((p) => p.class.toLowerCase())
-
           handleDetection("PHONE_DETECTED", classes.some((c) => PHONE_CLASSES.includes(c)))
           handleDetection("SUSPICIOUS_OBJECT", classes.some((c) => SUSPICIOUS_CLASSES.includes(c)))
         } catch {
@@ -214,9 +212,16 @@ export default function ProctorCamera({ attemptId }: Props) {
 
   // ── Thumbnail UI ──────────────────────────────────────────────────────────
   return (
-    <div className="fixed bottom-4 right-4 z-[9000] flex flex-col items-end gap-1">
-      <div className="relative overflow-hidden rounded-lg border-2 border-white/20 bg-black shadow-xl"
-        style={{ width: 96, height: 72 }}>
+    <div
+      className="fixed z-[9000] flex flex-col items-end gap-1 select-none"
+      style={{ bottom: 16 + pos.y, right: 16 + pos.x }}
+    >
+      <div
+        className="relative overflow-hidden rounded-lg border-2 border-white/20 bg-black shadow-xl cursor-grab active:cursor-grabbing"
+        style={{ width: 96, height: 72 }}
+        onMouseDown={onMouseDown}
+        title="Drag to move"
+      >
         {cameraReady ? (
           <>
             <video
@@ -226,7 +231,6 @@ export default function ProctorCamera({ attemptId }: Props) {
               muted
               className="h-full w-full object-cover"
             />
-            {/* Live dot */}
             <div className="absolute left-1.5 top-1.5 flex items-center gap-1">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
@@ -240,7 +244,7 @@ export default function ProctorCamera({ attemptId }: Props) {
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <Video size={18} className="text-white/40" />
+            <Video size={18} className="text-white/40 animate-pulse" />
           </div>
         )}
       </div>
