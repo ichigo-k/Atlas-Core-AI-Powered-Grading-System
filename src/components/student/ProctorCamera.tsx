@@ -142,7 +142,7 @@ export default function ProctorCamera({ attemptId }: Props) {
 
         // Brightness check — covered camera or very dark environment
         const brightness = getFrameBrightness(video)
-        if (brightness >= 0 && brightness < 15) {
+        if (brightness >= 0 && brightness < 50) {
           // Frame is almost entirely black — camera is covered
           handleDetection("POOR_LIGHTING", true)
           handleDetection("PERSON_ABSENT", true)

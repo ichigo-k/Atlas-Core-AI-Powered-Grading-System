@@ -442,7 +442,7 @@ function StepCameraCheck({
         sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
       }
       const avg = sum / (data.length / 4);
-      return avg > 40 ? "ok" : "poor";
+      return avg > 80 ? "ok" : "poor";
     } catch {
       return "unknown";
     }
