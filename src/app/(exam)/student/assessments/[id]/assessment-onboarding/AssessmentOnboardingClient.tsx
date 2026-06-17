@@ -14,12 +14,15 @@ import {
   Eye,
   Loader2,
   LockKeyhole,
+  Mic,
+  MicOff,
   Monitor,
   PlayCircle,
   ShieldCheck,
   Sun,
   SunDim,
   User,
+  Volume2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -28,6 +31,7 @@ import { createProctorSession } from "@/lib/proctor-session-actions";
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
 
 type CameraState = "idle" | "requesting" | "granted" | "denied";
+type MicState = "idle" | "requesting" | "granted" | "denied";
 type LightingStatus = "checking" | "ok" | "poor" | "unknown";
 type FaceStatus = "checking" | "ok" | "absent" | "unknown";
 
@@ -255,12 +259,14 @@ function StepImportantRules({
 
 function StepGeneralRules({
   assessmentType,
+  proctoringEnabled,
   onNext,
   onBack,
   isPending,
   error,
 }: {
   assessmentType: string;
+  proctoringEnabled: boolean;
   onNext: () => void;
   onBack: () => void;
   isPending?: boolean;
@@ -283,6 +289,15 @@ function StepGeneralRules({
       title: "Auto-save enabled",
       desc: "Your answers are saved automatically as you type.",
     },
+    ...(proctoringEnabled
+      ? [
+        {
+          icon: Volume2,
+          title: "Be in a quiet place",
+          desc: "Your microphone will be monitored throughout the exam. Sustained noise or talking will be flagged as a violation.",
+        },
+      ]
+      : []),
   ];
 
   return (
@@ -358,6 +373,7 @@ function StepCameraCheck({
   const router = useRouter();
 
   const [cameraState, setCameraState] = useState<CameraState>("idle");
+  const [micState, setMicState] = useState<MicState>("idle");
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
   const [agreed, setAgreed] = useState(false);
@@ -366,6 +382,7 @@ function StepCameraCheck({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const requestCamera = useCallback(async () => {
@@ -379,13 +396,26 @@ function StepCameraCheck({
     }
   }, []);
 
+  const requestMic = useCallback(async () => {
+    setMicState("requesting");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      micStreamRef.current = stream;
+      setMicState("granted");
+    } catch {
+      setMicState("denied");
+    }
+  }, []);
+
   useEffect(() => {
     requestCamera();
+    requestMic();
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [requestCamera]);
+  }, [requestCamera, requestMic]);
 
   useEffect(() => {
     if (cameraState === "granted" && videoRef.current && streamRef.current) {
@@ -489,7 +519,7 @@ function StepCameraCheck({
   const lightingOk = lightingStatus === "ok";
   const faceOk = faceStatus === "ok";
   const checksComplete = lightingOk && faceOk;
-  const canProceed = agreed && cameraState === "granted" && checksComplete && !isProceeding;
+  const canProceed = agreed && cameraState === "granted" && micState === "granted" && checksComplete && !isProceeding;
 
   return (
     <div className="flex flex-col h-full">
@@ -563,6 +593,23 @@ function StepCameraCheck({
             </div>
           </div>
         )}
+        {micState === "denied" && (
+          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+            <MicOff size={14} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Microphone access required</p>
+              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
+                Audio monitoring is required for this exam. Allow microphone access in your browser settings and refresh the page.
+              </p>
+            </div>
+          </div>
+        )}
+        {micState === "granted" && cameraState === "granted" && (
+          <div className="flex items-center gap-2 px-1">
+            <Mic size={13} className="shrink-0 text-emerald-600" />
+            <p className="text-[12px] font-semibold text-emerald-700">Microphone access granted.</p>
+          </div>
+        )}
         {lightingStatus === "poor" && (
           <div className="flex items-start gap-2.5 rounded-sm border border-amber-100 bg-amber-50 p-3">
             <SunDim size={14} className="mt-0.5 shrink-0 text-amber-600" />
@@ -619,7 +666,7 @@ function StepCameraCheck({
             {agreed && <Check size={9} className="text-white" strokeWidth={3} />}
           </div>
           <span className="select-none text-[11px] leading-relaxed text-slate-500">
-            I understand that my camera will be monitored for the duration of this exam and violations will be logged.
+            I understand that my camera and microphone will be monitored for the duration of this exam and any violations will be logged.
           </span>
         </label>
 
@@ -642,6 +689,7 @@ function StepCameraCheck({
         {!canProceed && !isProceeding && (
           <p className="text-[11px] text-muted-foreground">
             {cameraState === "denied" ? "Camera access is required to proceed."
+            : micState === "denied" ? "Microphone access is required to proceed."
             : lightingStatus === "poor" ? "Improve your lighting to continue."
             : faceStatus === "absent" ? "Position your face in front of the camera."
             : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"
@@ -879,6 +927,7 @@ export default function AssessmentOnboardingClient({
               {step === 1 && (
                 <StepGeneralRules
                   assessmentType={assessmentType}
+                  proctoringEnabled={proctoringEnabled}
                   onNext={handleGeneralRulesNext}
                   onBack={() => setStep(0)}
                   isPending={generalNextPending}
