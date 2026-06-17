@@ -14,6 +14,7 @@ import { useViolationStore } from "@/lib/violation-store"
 import QuestionRenderer from "@/components/student/QuestionRenderer"
 import CountdownTimer from "@/components/student/CountdownTimer"
 import ProctorCamera from "@/components/student/ProctorCamera"
+import ProctorAudio from "@/components/student/ProctorAudio"
 import {
   CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight,
   Send, X, BookOpen, Clock, Layers, ListChecks, Video,
@@ -722,6 +723,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
       <AntiCheatGuard isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
       <ViolationOverlay assessmentId={assessmentId} />
       {assessment.proctoringEnabled && <ProctorCamera attemptId={attempt.id} />}
+      {assessment.proctoringEnabled && <ProctorAudio attemptId={attempt.id} />}
 
       {showSubmitDialog && (
         <SubmitDialog

@@ -15,6 +15,7 @@ export type ViolationReason =
   | 'SUSPICIOUS_OBJECT'
   | 'GAZE_AWAY'
   | 'POOR_LIGHTING'
+  | 'TALKING_DETECTED'
 
 // Local in-memory fallback counter for non-proctored exams (no ProctorRecord).
 // Lives in the browser's module cache — persists across re-renders within the
