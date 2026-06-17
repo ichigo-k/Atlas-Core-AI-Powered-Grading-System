@@ -6,9 +6,8 @@ import { addViolation, type ViolationReason } from "@/lib/violation-tracker"
 import type { FlagType } from "@/components/student/FlagOverlay"
 import { Video, VideoOff } from "lucide-react"
 
-const FACE_INTERVAL_MS = 1500
-const OBJECT_INTERVAL_MS = 3000
-const GRACE_SECONDS = 15
+const FACE_INTERVAL_MS = 800
+const OBJECT_INTERVAL_MS = 1500
 
 type CameraViolationType = Extract<FlagType,
   "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "PHONE_DETECTED" | "SUSPICIOUS_OBJECT" | "GAZE_AWAY" | "POOR_LIGHTING">
@@ -46,10 +45,8 @@ export default function ProctorCamera({ attemptId }: Props) {
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
 
-  const graceTimers = useRef<Map<CameraViolationType, {
-    graceTimeout: ReturnType<typeof setTimeout>
-    flagFired: boolean
-  }>>(new Map())
+  // Tracks which violation types are currently active (flagged but not yet cleared)
+  const activeFlags = useRef<Set<CameraViolationType>>(new Set())
 
   const { recordViolation, syncCount, showFinalWarning } = useViolationStore()
 
@@ -105,36 +102,19 @@ export default function ProctorCamera({ attemptId }: Props) {
     videoRef.current.play().catch(() => {})
   }, [cameraReady])
 
-  // ── Grace-period violation handler ────────────────────────────────────────
-  function handleDetection(type: CameraViolationType, detected: boolean) {
-    const existing = graceTimers.current.get(type)
-
+  // ── Immediate violation handler ───────────────────────────────────────────
+  async function handleDetection(type: CameraViolationType, detected: boolean) {
     if (detected) {
-      if (existing) return // already tracking
+      if (activeFlags.current.has(type)) return // already flagged this type
 
+      activeFlags.current.add(type)
+      const { count: serverCount, willAutoSubmit } = await addViolation(attemptId, type as ViolationReason)
       const currentCount = useViolationStore.getState().count
-      recordViolation({ type, flagCountAfter: currentCount, source: "CAMERA" })
-
-      const graceTimeout = setTimeout(async () => {
-        const entry = graceTimers.current.get(type)
-        if (!entry || entry.flagFired) return
-
-        entry.flagFired = true
-        const currentCount2 = useViolationStore.getState().count
-        recordViolation({ type, flagCountAfter: currentCount2 + 1, source: "CAMERA" })
-
-        const { count: serverCount, willAutoSubmit } = await addViolation(attemptId, type as ViolationReason)
-        syncCount(serverCount)
-        if (willAutoSubmit) showFinalWarning()
-      }, GRACE_SECONDS * 1000)
-
-      graceTimers.current.set(type, { graceTimeout, flagFired: false })
+      recordViolation({ type, flagCountAfter: Math.max(currentCount, serverCount), source: "CAMERA" })
+      syncCount(serverCount)
+      if (willAutoSubmit) showFinalWarning()
     } else {
-      if (!existing) return
-      if (!existing.flagFired) {
-        clearTimeout(existing.graceTimeout)
-      }
-      graceTimers.current.delete(type)
+      activeFlags.current.delete(type)
     }
   }
 
@@ -209,8 +189,7 @@ export default function ProctorCamera({ attemptId }: Props) {
     return () => {
       cancelled = true
       cleanup?.()
-      graceTimers.current.forEach(({ graceTimeout }) => clearTimeout(graceTimeout))
-      graceTimers.current.clear()
+      activeFlags.current.clear()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraReady])
