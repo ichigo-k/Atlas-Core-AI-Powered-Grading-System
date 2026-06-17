@@ -4,7 +4,7 @@
 
 import { getProctorFlagCount } from '@/lib/proctor-actions'
 
-export const MAX_VIOLATIONS = 10
+export const MAX_VIOLATIONS = 5
 
 export type ViolationReason =
   | 'FULLSCREEN_EXIT'
