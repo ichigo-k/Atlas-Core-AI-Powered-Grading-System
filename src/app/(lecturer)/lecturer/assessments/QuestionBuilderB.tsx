@@ -22,6 +22,7 @@ interface QuestionBuilderBProps {
   isFirst: boolean
   isLast: boolean
   readonlyMarks?: boolean
+  assessmentType?: string
 }
 
 export default function QuestionBuilderB({
@@ -33,6 +34,7 @@ export default function QuestionBuilderB({
   isFirst,
   isLast,
   readonlyMarks = false,
+  assessmentType,
 }: QuestionBuilderBProps) {
   const addCriterion = () => {
     onChange({
@@ -137,7 +139,9 @@ export default function QuestionBuilderB({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="FILL_IN">Text / Rich Editor</SelectItem>
-                <SelectItem value="PDF_UPLOAD">PDF Upload</SelectItem>
+                {assessmentType === "ASSIGNMENT" && (
+                  <SelectItem value="PDF_UPLOAD">PDF Upload</SelectItem>
+                )}
                 <SelectItem value="CODE">Code Sandbox</SelectItem>
               </SelectContent>
             </Select>

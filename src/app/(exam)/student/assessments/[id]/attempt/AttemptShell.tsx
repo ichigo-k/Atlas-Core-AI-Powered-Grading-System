@@ -834,6 +834,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
                       attemptId={attempt.id}
                       displayNumber={safeActiveIndex + 1}
                       shuffledOptions={optionShuffleMap.get(activeQuestion.id)}
+                      assessmentType={assessment.type}
                       onAnswerChange={handleAnswerChange}
                     />
                   ) : (

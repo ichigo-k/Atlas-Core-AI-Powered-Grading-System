@@ -17,6 +17,7 @@ interface Step3QuestionsProps {
   onChange: (s: Step3State) => void
   errors: Record<string, string>
   courseId: number | null
+  assessmentType?: string
 }
 
 function newQuestion(order: number): QuestionFormState {
@@ -171,7 +172,7 @@ function SectionHeader({ section, index, isOpen, onToggle, onRemove }: SectionHe
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function Step3Questions({ state, onChange, errors, courseId }: Step3QuestionsProps) {
+export default function Step3Questions({ state, onChange, errors, courseId, assessmentType }: Step3QuestionsProps) {
   const [openSectionId, setOpenSectionId] = useState<string | null>(
     state.sections[0]?.id ?? null
   )
@@ -422,6 +423,7 @@ export default function Step3Questions({ state, onChange, errors, courseId }: St
                                   isFirst={idx === 0}
                                   isLast={idx === section.questions.length - 1}
                                   readonlyMarks={!!section.requiredQuestionsCount}
+                                  assessmentType={assessmentType}
                                 />
                               )
                             )}

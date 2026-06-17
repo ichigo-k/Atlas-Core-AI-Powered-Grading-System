@@ -348,6 +348,7 @@ export default function AssessmentForm({
             onChange={setStep3}
             errors={step3Errors}
             courseId={step1.courseId}
+            assessmentType={step1.type}
           />
         )}
         {step === 3 && (
