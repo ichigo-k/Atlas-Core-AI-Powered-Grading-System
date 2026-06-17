@@ -14,9 +14,12 @@ interface AntiCheatGuardProps {
 }
 
 export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiCheatGuardProps) {
-  const { count, terminated, recordViolation, syncCount, dismissEvent, terminate, showFinalWarning, setAwayCountdown } = useViolationStore()
+  const { count, terminated, activeEvent, recordViolation, syncCount, dismissEvent, terminate, showFinalWarning, setAwayCountdown } = useViolationStore()
   const onSubmitRef = useRef(onSubmit)
   onSubmitRef.current = onSubmit
+
+  // Ref so the dismiss-watcher effect can call clearAwayTimers() without re-running the main effect
+  const clearAwayTimersRef = useRef<(() => void) | null>(null)
 
   // ── Block copy/paste/devtools shortcuts ────────────────────────────────────
   useEffect(() => {
@@ -93,12 +96,13 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
     function clearAwayTimers() {
       if (awayIntervalRef.current) { clearInterval(awayIntervalRef.current); awayIntervalRef.current = null }
       if (countdownIntervalRef.current) { clearInterval(countdownIntervalRef.current); countdownIntervalRef.current = null }
-      // Do NOT clear awayCountdown here — let the ring freeze at its last value.
-      // dismissEvent() clears it when the student clicks "Return to exam".
       isAwayRef.current = false
     }
 
-    function startAwayTimers() {
+    // Expose so the dismiss-watcher effect can stop timers when the overlay is dismissed
+    clearAwayTimersRef.current = clearAwayTimers
+
+    function startAwayTimers(violationType: "TAB_SWITCH" | "FULLSCREEN_EXIT" = "TAB_SWITCH") {
       // Countdown display tick (every second)
       let remaining = AWAY_GRACE_SECONDS
       setAwayCountdown(remaining)
@@ -111,11 +115,11 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
       // Actual violation tick (every AWAY_GRACE_SECONDS)
       awayIntervalRef.current = setInterval(() => {
         if (cleanedUp || !isAwayRef.current) return
-        logTabSwitch(attemptId, new Date().toISOString())
+        if (violationType === "TAB_SWITCH") logTabSwitch(attemptId, new Date().toISOString())
         const currentCount = useViolationStore.getState().count
         const optimistic = currentCount + 1
-        recordViolation({ type: "TAB_SWITCH", flagCountAfter: optimistic, source: "CLIENT" })
-        addViolation(attemptId, "TAB_SWITCH").then(({ count: serverCount, willAutoSubmit }) => {
+        recordViolation({ type: violationType, flagCountAfter: optimistic, source: "CLIENT" })
+        addViolation(attemptId, violationType).then(({ count: serverCount, willAutoSubmit }) => {
           if (cleanedUp) return
           syncCount(serverCount)
           if (willAutoSubmit) showFinalWarning()
@@ -146,42 +150,56 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
         if (willAutoSubmit) showFinalWarning()
       })
 
-      startAwayTimers()
+      startAwayTimers("TAB_SWITCH")
     }
 
-    const recordReturn = () => {
-      // Intentionally do nothing — timers keep running until the student clicks "Return to exam".
-      // This keeps the countdown visible and flags continue to accumulate until they dismiss.
+    // Track fullscreen exits — start repeat timer, and debounce the blur that follows
+    let fullscreenExitDebounce = false
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        fullscreenExitDebounce = true
+        setTimeout(() => { fullscreenExitDebounce = false }, 300)
+
+        // Start repeat-violation timer for fullscreen exit.
+        // The initial FULLSCREEN_EXIT flag is fired by LockdownOverlay; we only add the repeats.
+        if (!enforcementActive.current) return
+        if (isAwayRef.current) return // already tracking (e.g. tab switched while out of fullscreen)
+        isAwayRef.current = true
+        startAwayTimers("FULLSCREEN_EXIT")
+      }
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        recordLeave()
-      } else {
-        recordReturn()
-      }
+      if (document.visibilityState === "hidden") recordLeave()
+      // return: timers keep running until student clicks "Return to exam" (dismissEvent clears them)
     }
     const handleBlur = () => {
+      if (fullscreenExitDebounce) return // blur caused by fullscreen exit — LockdownOverlay handles it
       if (document.visibilityState === "visible") recordLeave()
-    }
-    const handleFocus = () => {
-      recordReturn()
     }
 
     document.addEventListener("visibilitychange", handleVisibilityChange)
+    document.addEventListener("fullscreenchange", handleFullscreenChange)
     window.addEventListener("blur", handleBlur)
-    window.addEventListener("focus", handleFocus)
 
     return () => {
       cleanedUp = true
       clearTimeout(timer)
       clearAwayTimers()
       document.removeEventListener("visibilitychange", handleVisibilityChange)
+      document.removeEventListener("fullscreenchange", handleFullscreenChange)
       window.removeEventListener("blur", handleBlur)
-      window.removeEventListener("focus", handleFocus)
       if (leaveDebounce) clearTimeout(leaveDebounce)
     }
-  }, [isSecured, attemptId, recordViolation, syncCount, terminate, dismissEvent, setAwayCountdown, showFinalWarning])
+  }, [isSecured, attemptId, recordViolation, syncCount, terminate, setAwayCountdown, showFinalWarning])
+
+  // ── Stop away timers when student clicks "Return to exam" (overlay dismissed) ──
+  // activeEvent goes null when dismissEvent() is called — that's our signal.
+  useEffect(() => {
+    if (activeEvent === null) {
+      clearAwayTimersRef.current?.()
+    }
+  }, [activeEvent])
 
   // ── Termination check ──────────────────────────────────────────────────────
   // When the flag limit is hit, show the final-warning overlay first so the

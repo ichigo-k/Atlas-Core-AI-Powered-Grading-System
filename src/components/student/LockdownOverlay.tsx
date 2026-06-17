@@ -109,7 +109,7 @@ const LockdownOverlay = forwardRef<LockdownOverlayHandle, LockdownOverlayProps>(
         document.removeEventListener("fullscreenchange", handleFullscreenChange)
         window.removeEventListener("beforeunload", handleBeforeUnload)
       }
-    }, [isSecured, attemptId, recordViolation, syncCount, terminate])
+    }, [isSecured, attemptId, recordViolation, syncCount, terminate, showFinalWarning])
 
     // ── Termination check ────────────────────────────────────────────────────
     useEffect(() => {
@@ -117,10 +117,11 @@ const LockdownOverlay = forwardRef<LockdownOverlayHandle, LockdownOverlayProps>(
         terminate()
         intentionalExitRef.current = true
         allowUnloadRef.current = true
+        const lastReason = (activeEvent?.type ?? "FULLSCREEN_EXIT") as ViolationReason
         const exit = document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
-        exit.catch(() => {}).finally(() => onSubmitRef.current("FULLSCREEN_EXIT"))
+        exit.catch(() => {}).finally(() => onSubmitRef.current(lastReason))
       }
-    }, [count, terminated, terminate])
+    }, [count, terminated, terminate, activeEvent])
 
     return null
   }

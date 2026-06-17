@@ -420,7 +420,7 @@ export default function FlagOverlay({
           </div>
         )}
 
-        {/* FULLSCREEN_EXIT: big countdown + return button */}
+        {/* FULLSCREEN_EXIT: countdown + return button */}
         {isFullscreen && (
           <div className="flex flex-col items-center gap-4 w-full">
             <div className="flex flex-col items-center gap-2">
