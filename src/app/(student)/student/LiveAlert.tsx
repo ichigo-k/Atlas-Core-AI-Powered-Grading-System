@@ -87,7 +87,7 @@ export default function LiveAlert({ items }: { items: LiveAlertItem[] }) {
                   type="button"
                   disabled={isPending && startingId === item.id}
                   onClick={() => handleEnter(item)}
-                  className="group relative flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[12px] font-semibold rounded-lg shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none flex-shrink-0"
+                  className="group relative flex items-center gap-1.5 px-4 py-2 bg-[#ffb900] hover:bg-[#e6a700] text-[#1e293b] text-[12px] font-semibold rounded-sm active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none flex-shrink-0"
                 >
                   {isPending && startingId === item.id ? "Loading…" : "Enter Exam"}
                   <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-200" />

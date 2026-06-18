@@ -903,6 +903,17 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    <div className="bg-[#f8f9fa] min-h-full flex flex-col">
+      {/* Sticky command bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
+        <ClipboardList size={11} />
+        <Link href="/lecturer" className="hover:text-[#1e293b] transition-colors">Lecturer</Link>
+        <ChevronRight size={11} />
+        <Link href="/lecturer/assessments" className="hover:text-[#1e293b] transition-colors">Assessments</Link>
+        <ChevronRight size={11} />
+        <span className="text-[#002388] font-medium truncate max-w-[200px]">{assessment.title}</span>
+      </div>
+
     <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16 space-y-5">
 
       {/* Modals */}
@@ -964,13 +975,9 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
         </SheetContent>
       </Sheet>
 
-      {/* Top bar */}
+      {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link href="/lecturer/assessments"
-            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors mb-1.5">
-            <ArrowLeft size={12} /> Assessments
-          </Link>
           <h1 className="text-xl font-semibold text-[#1e293b]">{assessment.title}</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
             <BookOpen size={12} className="text-primary shrink-0" />
@@ -1048,6 +1055,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
       {activeTab === "overview" && <OverviewTab />}
       {activeTab === "results" && <ResultsTab />}
       {activeTab === "proctoring" && assessment.proctoringEnabled && proctoringContent}
+    </div>
     </div>
   )
 }

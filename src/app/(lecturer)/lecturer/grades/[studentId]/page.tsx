@@ -2,6 +2,8 @@ import { Suspense } from "react"
 import StudentGradeClient from "./StudentGradeClient"
 import LoadingLogo from "@/components/ui/LoadingLogo"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
+import LecturerPageShell from "@/components/layout/LecturerPageShell"
+import { FileCheck } from "lucide-react"
 
 export default async function StudentGradePage({
   params,
@@ -10,7 +12,11 @@ export default async function StudentGradePage({
 }) {
   const { studentId } = await params
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+    <LecturerPageShell
+      title="Student Results"
+      icon={FileCheck}
+      parentCrumbs={[{ label: "Grade Book", href: "/lecturer/grades" }]}
+    >
       <Suspense
         fallback={
           <div className="relative">
@@ -25,6 +31,6 @@ export default async function StudentGradePage({
       >
         <StudentGradeClient studentId={parseInt(studentId)} />
       </Suspense>
-    </div>
+    </LecturerPageShell>
   )
 }

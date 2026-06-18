@@ -5,36 +5,26 @@ import { prisma } from "@/lib/prisma";
 import {
   Calendar,
   Clock,
-  TrendingUp,
-  CheckCircle2,
-  AlertCircle,
   ArrowRight,
   ClipboardList,
   CalendarDays,
-  MapPin,
   ChevronRight,
-  RefreshCw,
-  Plus,
+  BarChart2,
+  MapPin,
+  TrendingUp,
+  CheckCircle2,
+  AlertCircle,
+  LayoutDashboard,
+  BookOpen,
+  User,
 } from "lucide-react";
 import LiveAlert from "./LiveAlert";
 import InlineCountdown from "./InlineCountdown";
-import ScoreTrend from "./ScoreTrend";
-import GradeDonut from "./GradeDonut";
-
-// ── helpers ──────────────────────────────────────────────────────────────────
 
 function gradeColor(score: number): string {
-  if (score >= 70) return "#107c10";
-  if (score >= 50) return "#ca5010";
-  if (score >= 30) return "#d83b01";
-  return "#a4262c";
+  if (score >= 50) return "#107c10";
+  return "#d83b01";
 }
-
-const TYPE_BADGE: Record<string, { bg: string; text: string }> = {
-  EXAM: { bg: "#fde7e9", text: "#a4262c" },
-  QUIZ: { bg: "#fff4ce", text: "#7a4f00" },
-  ASSIGNMENT: { bg: "#dff6dd", text: "#107c10" },
-};
 
 function formatDuration(min: number | null): string {
   if (min == null) return "";
@@ -44,12 +34,16 @@ function formatDuration(min: number | null): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-// ── page ─────────────────────────────────────────────────────────────────────
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export default async function StudentDashboardPage() {
   const session = await getSession();
-  const displayName =
-    session?.user?.name ?? session?.user?.email?.split("@")[0] ?? "Student";
+  const displayName = session?.user?.name ?? session?.user?.email?.split("@")[0] ?? "Student";
   const firstName = displayName.split(" ")[0];
 
   const email = session?.user?.email;
@@ -60,399 +54,282 @@ export default async function StudentDashboardPage() {
 
   const data = studentId
     ? await getDashboardData(studentId)
-    : {
-      upcomingCount: 0,
-      ongoingCount: 0,
-      completedCount: 0,
-      averageScore: null,
-      upcomingAssessments: [],
-      recentResults: [],
-    };
+    : { upcomingCount: 0, ongoingCount: 0, completedCount: 0, averageScore: null, upcomingAssessments: [], recentResults: [], gradeDistribution: {} };
 
   const {
-    upcomingCount,
-    ongoingCount,
-    completedCount,
-    averageScore,
-    upcomingAssessments,
-    recentResults,
-    gradeDistribution,
+    upcomingCount, ongoingCount, completedCount,
+    averageScore, upcomingAssessments, recentResults,
   } = data;
 
-  const ongoingItems = upcomingAssessments.filter((a) => a.status === "ongoing");
+  const ongoingItems  = upcomingAssessments.filter((a) => a.status === "ongoing");
   const upcomingItems = upcomingAssessments.filter((a) => a.status === "upcoming");
   const nextExam = upcomingItems[0] ?? null;
 
-  const trendBars = [...recentResults].reverse().map((r) => ({
-    label: r.title.length > 10 ? r.title.slice(0, 10) : r.title,
-    fullLabel: r.title,
-    course: r.courseCode,
-    score: r.score,
-    grade: r.grade,
-  }));
-
   const dateStr = new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
   const isEmpty =
-    upcomingCount === 0 &&
-    ongoingCount === 0 &&
-    completedCount === 0 &&
-    recentResults.length === 0;
+    upcomingCount === 0 && ongoingCount === 0 &&
+    completedCount === 0 && recentResults.length === 0;
+
+  const stats = [
+    {
+      label: "Upcoming",
+      value: upcomingCount,
+      sub: nextExam
+        ? nextExam.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+        : "None scheduled",
+      Icon: Calendar,
+    },
+    {
+      label: "Live Now",
+      value: ongoingCount,
+      sub: ongoingCount > 0 ? "Exam in progress" : "None active",
+      Icon: AlertCircle,
+      live: ongoingCount > 0,
+    },
+    {
+      label: "Completed",
+      value: completedCount,
+      sub: "This semester",
+      Icon: CheckCircle2,
+    },
+    {
+      label: "Avg Score",
+      value: averageScore != null ? `${averageScore.toFixed(1)}%` : "—",
+      sub: averageScore != null
+        ? averageScore >= 50 ? "Passing average" : "Below passing"
+        : "No results yet",
+      Icon: TrendingUp,
+    },
+  ];
+
+  const quickLinks = [
+    { label: "All assessments", description: "Live, upcoming, and completed", href: "/student/assessments", Icon: ClipboardList },
+    { label: "My schedule",     description: "Assessment dates and times",    href: "/student/schedule",    Icon: CalendarDays },
+    { label: "My grades",       description: "Performance and score history", href: "/student/grades",      Icon: BarChart2 },
+  ];
 
   return (
-    <div className="bg-[#F8F9FA] min-h-full">
+    <div className="bg-[#f8f9fa] min-h-full">
 
-      {/* ── Page command bar ── */}
-      <div className="bg-white border-b border-[#edebe9] px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1 text-[12px] text-[#605e5c] mb-0.5">
-            <span>Home</span>
-            <ChevronRight size={12} />
-            <span className="text-[#0078d4] font-medium">Dashboard</span>
-          </div>
-          <h1 className="text-[18px] font-semibold text-[#323130]">
-            {firstName}&apos;s Dashboard
-          </h1>
-          <p className="text-[11px] text-[#605e5c] mt-0.5">{dateStr}</p>
-        </div>
-
-        {/* Command bar buttons — Azure style */}
-        <div className="flex items-center gap-1">
-          <Link
-            href="/student/assessments"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-[#323130] hover:bg-[#F8F9FA] border border-transparent hover:border-[#8a8886] rounded transition-colors"
-          >
-            <Plus size={14} className="text-[#0078d4]" />
-            New attempt
-          </Link>
-          <Link
-            href="/student/schedule"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-[#323130] hover:bg-[#F8F9FA] border border-transparent hover:border-[#8a8886] rounded transition-colors"
-          >
-            <CalendarDays size={14} className="text-[#0078d4]" />
-            Schedule
-          </Link>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-[#323130] hover:bg-[#F8F9FA] border border-transparent hover:border-[#8a8886] rounded transition-colors">
-            <RefreshCw size={13} className="text-[#605e5c]" />
-            Refresh
-          </button>
-        </div>
+      {/* ── Command bar ── */}
+      <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <LayoutDashboard size={11} />
+        <span>Student</span>
+        <ChevronRight size={11} />
+        <span className="text-[#002388] font-medium">Dashboard</span>
       </div>
 
-      <div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">
+      <div className="px-4 py-5 md:px-6 lg:px-8 pb-12 max-w-[1280px] space-y-6">
 
-        {/* ── Live alert ── */}
-        {ongoingItems.length > 0 && (
-          <LiveAlert
-            items={ongoingItems.map((a) => ({
-              id: a.id,
-              title: a.title,
-              courseTitle: a.courseTitle,
-              courseCode: a.courseCode,
-              durationMinutes: a.durationMinutes,
-              location: a.location,
-              passwordProtected: a.passwordProtected,
-              proctoringEnabled: a.proctoringEnabled,
-            }))}
-          />
-        )}
+        {/* ── Page header ── */}
+        <div>
+          <p className="text-[11px] text-muted-foreground mb-1">{dateStr}</p>
+          <h1 className="text-xl font-semibold text-[#1e293b]">
+            {getGreeting()}, {firstName}
+          </h1>
+          <p className="text-[12px] text-muted-foreground mt-0.5">
+            {ongoingCount > 0
+              ? nextExam
+              ? <>Next exam: <span className="font-medium text-[#1e293b]">{nextExam.title}</span>{" — "}<InlineCountdown targetDate={nextExam.startsAt.toISOString()} /></>
+              : "Check your assessments for live exams."
+              : nextExam
+              ? <>Next exam: <span className="font-medium text-[#1e293b]">{nextExam.title}</span>{" — "}<InlineCountdown targetDate={nextExam.startsAt.toISOString()} /></>
+              : completedCount > 0
+              ? "You're all caught up. Well done."
+              : "No assessments have been scheduled yet."}
+          </p>
+        </div>
 
-        {/* ── Empty state ── */}
+
         {isEmpty ? (
-          <div className="bg-white border border-[#edebe9] rounded py-20 flex flex-col items-center gap-3 text-center">
-            <ClipboardList size={32} className="text-[#c8c6c4]" />
-            <p className="text-[15px] font-semibold text-[#323130]">No assessments yet</p>
-            <p className="max-w-xs text-[13px] text-[#605e5c]">
-              You have not been assigned to a class yet, or no assessments have been scheduled.
+          <div className="rounded-sm border border-border bg-white py-20 flex flex-col items-center gap-3 text-center">
+            <ClipboardList size={32} className="text-slate-300" />
+            <p className="text-[15px] font-semibold text-[#1e293b]">No assessments yet</p>
+            <p className="max-w-xs text-[13px] text-muted-foreground">
+              You haven't been assigned to a class yet, or no assessments have been scheduled.
             </p>
           </div>
         ) : (
           <>
-            {/* ── KPI metric tiles (Modern high-fidelity cards) ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Upcoming */}
-              <div className="relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 transition-all duration-300 group">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50">
-                    <Calendar size={18} />
+            {/* ── Stat tiles ── */}
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {stats.map(({ label, value, sub, Icon, live }, i) => (
+                <div key={label} className="relative rounded-sm border border-border bg-white p-4 overflow-hidden">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#dbeafe] text-[#002388]">
+                      <Icon size={20} />
+                    </div>
+                    {live && (
+                      <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                        Live
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Upcoming
-                  </span>
+                  <p className="mt-4 text-[26px] font-semibold leading-none text-[#1e293b]">{value}</p>
+                  <p className="mt-1.5 text-[12px] text-muted-foreground">{label}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-400">{sub}</p>
                 </div>
-                <p className="text-3xl font-extrabold text-slate-800 tracking-tight leading-none mb-1">
-                  {upcomingCount}
-                </p>
-                <p className="text-[12px] text-slate-500 font-medium mt-1">
-                  {nextExam
-                    ? `Next: ${nextExam.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
-                    : "None scheduled"}
-                </p>
-              </div>
+              ))}
+            </section>
 
-              {/* Live now */}
-              <div
-                className={`relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 transition-all duration-300 group ${ongoingCount > 0
-                  ? "hover:border-emerald-300 hover:bg-emerald-50/20"
-                  : "hover:border-emerald-300"
-                  }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center border transition-colors ${ongoingCount > 0
-                      ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-                      : "bg-slate-50 border-slate-100 text-slate-400"
-                      }`}
-                  >
-                    <AlertCircle size={18} />
-                  </div>
-                  {ongoingCount > 0 ? (
-                    <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-100 border border-emerald-200/50 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Active
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      Live Now
-                    </span>
-                  )}
-                </div>
-                <p
-                  className={`text-3xl font-extrabold tracking-tight leading-none mb-1 ${ongoingCount > 0 ? "text-emerald-700" : "text-slate-800"
-                    }`}
-                >
-                  {ongoingCount}
-                </p>
-                <p
-                  className={`text-[12px] font-medium mt-1 ${ongoingCount > 0 ? "text-emerald-800/80" : "text-slate-500"
-                    }`}
-                >
-                  {ongoingCount > 0 ? "Exam in progress" : "None active"}
-                </p>
-              </div>
+            {/* ── Middle row ── */}
+            <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
 
-              {/* Completed */}
-              <div className="relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 hover:border-green-300 transition-all duration-300 group">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center text-green-600 border border-green-100/50">
-                    <CheckCircle2 size={18} />
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Completed
-                  </span>
-                </div>
-                <p className="text-3xl font-extrabold text-slate-800 tracking-tight leading-none mb-1">
-                  {completedCount}
-                </p>
-                <p className="text-[12px] text-slate-500 font-medium mt-1">This semester</p>
-              </div>
-
-              {/* Average score */}
-              <div className="relative overflow-hidden bg-white border border-slate-200 rounded-xl p-5 hover:border-indigo-300 transition-all duration-300 group">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/50">
-                    <TrendingUp size={18} />
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Avg Score
-                  </span>
-                </div>
-                <p className="text-3xl font-extrabold text-slate-800 tracking-tight leading-none mb-1">
-                  {averageScore != null ? `${averageScore.toFixed(1)}%` : "—"}
-                </p>
-                <p
-                  className={`text-[12px] font-semibold mt-1 ${averageScore != null && averageScore >= 50
-                    ? "text-emerald-600"
-                    : averageScore != null
-                      ? "text-rose-600"
-                      : "text-slate-500"
-                    }`}
-                >
-                  {averageScore != null && averageScore >= 50
-                    ? "Passing average"
-                    : averageScore != null
-                      ? "Below passing"
-                      : "No data yet"}
-                </p>
-              </div>
-            </div>
-
-            {/* ── Charts row ── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Score Trend Accent Card (Slate-900 with Gold accents) */}
-              <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md">
-                <div className="px-4 py-3 border-b border-slate-800/60 flex items-center justify-between bg-slate-800/60">
-                  <span className="text-[13px] font-bold text-slate-100">Score Trend</span>
-                  {averageScore != null && (
-                    <span className="text-[11px] text-[#FFCC00] bg-[#FFCC00]/10 border border-[#FFCC00]/30 px-2 py-0.5 rounded-full font-semibold">
-                      {averageScore.toFixed(1)}% avg
-                    </span>
-                  )}
-                </div>
-                <div className="px-4 py-4 bg-slate-900">
-                  <ScoreTrend results={trendBars} average={null} darkMode={true} />
-                </div>
-              </div>
-
-              {/* Grade Distribution Card */}
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                  <span className="text-[13px] font-semibold text-slate-700">Grade Distribution</span>
-                </div>
-                <div className="px-4 py-4">
-                  <GradeDonut distribution={gradeDistribution} total={completedCount} />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Bottom row ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               {/* Upcoming assessments */}
-              <div className="lg:col-span-2 bg-white border border-[#edebe9] rounded overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#edebe9] flex items-center justify-between bg-[#faf9f8]">
-                  <span className="text-[13px] font-semibold text-[#323130]">Upcoming Assessments</span>
-                  <Link
-                    href="/student/assessments"
-                    className="flex items-center gap-1 text-[12px] text-[#0078d4] hover:underline font-medium"
-                  >
-                    See all <ArrowRight size={11} />
+              <section className="rounded-sm border border-border bg-white">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
+                  <div>
+                    <h2 className="text-[13px] font-semibold text-[#1e293b]">Upcoming assessments</h2>
+                    <p className="text-[12px] text-muted-foreground">Live and scheduled exams, quizzes, and assignments.</p>
+                  </div>
+                  <Link href="/student/assessments" className="text-[12px] font-medium text-[#002388] hover:underline flex-shrink-0">
+                    See all
                   </Link>
                 </div>
 
                 {upcomingAssessments.length === 0 ? (
-                  <div className="px-4 py-10 text-center text-[13px] text-[#605e5c]">
-                    No upcoming assessments.
-                  </div>
+                  <div className="px-5 py-10 text-center text-[12px] text-muted-foreground">Nothing scheduled right now.</div>
                 ) : (
-                  <div className="divide-y divide-[#edebe9]">
-                    {upcomingAssessments.map((a, idx) => {
+                  <div className="divide-y divide-slate-100">
+                    {[...upcomingAssessments].sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()).slice(0, 3).map((a, idx) => {
                       const isLive = a.status === "ongoing";
-                      const isNext = !isLive && idx === upcomingAssessments.findIndex(x => x.status === "upcoming");
-                      const style = TYPE_BADGE[a.type] ?? { bg: "#F8F9FA", text: "#605e5c" };
+                      const isNext = !isLive && idx === 0;
                       return (
                         <div
                           key={a.id}
-                          className={`flex items-center gap-3 px-4 py-3 hover:bg-[#F8F9FA] transition-colors ${isLive ? "border-l-2 border-[#a4262c]" : "border-l-2 border-transparent hover:border-[#0078d4]"
-                            }`}
+                          className="grid gap-2 px-4 py-3 md:grid-cols-[1fr_auto] md:items-center md:px-5 transition-colors hover:bg-slate-50"
                         >
-                          <div className="flex-1 min-w-0">
+                          <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-semibold text-[13px] text-[#323130] truncate">
-                                {a.title}
-                              </span>
-                              <span
-                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm uppercase"
-                                style={{ background: style.bg, color: style.text }}
-                              >
+                              <span className="text-sm font-semibold text-slate-900 truncate">{a.title}</span>
+                              {/* type badge — neutral only */}
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wide bg-slate-100 text-slate-500 flex-shrink-0">
                                 {a.type}
                               </span>
                               {isLive && (
-                                <span className="flex items-center gap-1 text-[10px] font-semibold text-[#a4262c]">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#a4262c] animate-pulse" />
+                                <span className="flex items-center gap-1 text-[9px] font-bold text-[#d83b01] flex-shrink-0">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#d83b01] animate-pulse" />
                                   Live
                                 </span>
                               )}
                             </div>
-                            <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[11px] text-[#605e5c]">
-                              <span className="font-semibold text-[#0078d4] text-[10px] uppercase">
-                                {a.courseCode}
-                              </span>
+                            <div className="flex flex-wrap items-center gap-3 mt-1 text-[11px] text-slate-500">
+                              <span className="font-semibold text-[#002388] uppercase text-[10px]">{a.courseCode}</span>
                               <span className="flex items-center gap-1">
                                 <Calendar size={10} />
                                 {a.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                               </span>
                               {a.durationMinutes != null && (
-                                <span className="flex items-center gap-1">
-                                  <Clock size={10} />
-                                  {formatDuration(a.durationMinutes)}
-                                </span>
+                                <span className="flex items-center gap-1"><Clock size={10} />{formatDuration(a.durationMinutes)}</span>
                               )}
                               {a.location && (
-                                <span className="hidden sm:flex items-center gap-1 max-w-[140px] truncate">
-                                  <MapPin size={10} />
-                                  {a.location}
+                                <span className="hidden sm:flex items-center gap-1 truncate max-w-[100px]">
+                                  <MapPin size={10} />{a.location}
                                 </span>
                               )}
-                              {isNext && (
-                                <InlineCountdown targetDate={a.startsAt.toISOString()} />
-                              )}
+                              {isNext && <InlineCountdown targetDate={a.startsAt.toISOString()} />}
                             </div>
                           </div>
-
                           <Link
                             href={`/student/assessments/${a.id}`}
-                            className={[
-                              "flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded flex-shrink-0 transition-colors",
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-sm flex-shrink-0 transition-colors ${
                               isLive
-                                ? "bg-[#a4262c] text-white hover:bg-[#8c1f24]"
-                                : "border border-[#8a8886] text-[#323130] hover:bg-[#F8F9FA]",
-                            ].join(" ")}
+                                ? "bg-[#ffb900] text-[#1e293b] hover:bg-[#e6a700]"
+                                : "border border-border text-slate-700 hover:bg-slate-50"
+                            }`}
                           >
                             {isLive ? "Enter" : "View"}
-                            <ArrowRight size={11} />
+                            <ArrowRight size={10} />
                           </Link>
                         </div>
                       );
                     })}
                   </div>
                 )}
-              </div>
+              </section>
 
-              {/* Recent results */}
-              <div className="bg-white border border-[#edebe9] rounded overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#edebe9] flex items-center justify-between bg-[#faf9f8]">
-                  <span className="text-[13px] font-semibold text-[#323130]">Recent Results</span>
-                  <Link
-                    href="/student/assessments"
-                    className="flex items-center gap-1 text-[12px] text-[#0078d4] hover:underline font-medium"
-                  >
-                    All <ArrowRight size={11} />
+              {/* Quick links — yellow icon hover */}
+              <section className="rounded-sm border border-border bg-white">
+                <div className="border-b border-border px-4 py-3 md:px-5">
+                  <h2 className="text-[13px] font-semibold text-[#1e293b]">Quick navigation</h2>
+                  <p className="text-[12px] text-muted-foreground">Jump to any section.</p>
+                </div>
+                <div className="grid gap-3 p-4 md:p-5">
+                  {quickLinks.map(({ label, description, href, Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="group rounded-sm border border-border bg-white p-4 transition-colors hover:border-[#002388]/20 hover:bg-slate-50"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-slate-500 group-hover:bg-[#fff8e1] group-hover:text-[#92400e] transition-colors">
+                          <Icon size={18} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-sm font-semibold text-slate-900">{label}</h3>
+                            <ArrowRight size={14} className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-[#92400e]" />
+                          </div>
+                          <p className="mt-0.5 text-[12px] text-slate-500">{description}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            {/* ── Recent results ── */}
+            {recentResults.length > 0 && (
+              <section className="rounded-sm border border-border bg-white">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#fff8e1] text-[#92400e]">
+                      <BookOpen size={18} />
+                    </div>
+                    <div>
+                      <h2 className="text-[13px] font-semibold text-[#1e293b]">Recent results</h2>
+                      <p className="text-[12px] text-muted-foreground">Your latest graded assessments.</p>
+                    </div>
+                  </div>
+                  <Link href="/student/grades" className="text-sm font-medium text-[#002388] hover:underline">
+                    View all
                   </Link>
                 </div>
-
-                {recentResults.length === 0 ? (
-                  <div className="px-4 py-10 text-center text-[13px] text-[#605e5c]">
-                    No results yet.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-[#edebe9]">
-                    {recentResults.map((r) => {
-                      const color = gradeColor(r.score);
-                      return (
-                        <div key={r.id} className="px-4 py-3 hover:bg-[#F8F9FA] transition-colors">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[12px] font-semibold text-[#323130] truncate">{r.title}</p>
-                              <p className="text-[11px] text-[#605e5c] mt-0.5">{r.courseTitle}</p>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <p className="text-[14px] font-bold" style={{ color }}>
-                                {r.score.toFixed(1)}%
-                              </p>
-                              <p className="text-[11px] font-semibold" style={{ color }}>
-                                {r.grade}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-2 h-[3px] bg-[#F8F9FA] rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-700"
-                              style={{ width: `${Math.min(r.score, 100)}%`, background: color }}
-                            />
+                <div className="divide-y divide-slate-100">
+                  {recentResults.slice(0, 5).map((r) => {
+                    const color = gradeColor(r.score);
+                    return (
+                      <div key={r.id} className="grid gap-2 px-4 py-3 md:grid-cols-[1fr_140px_auto] md:items-center md:px-5 hover:bg-slate-50 transition-colors">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{r.title}</p>
+                          <p className="mt-0.5 text-[12px] text-slate-500">{r.courseTitle}</p>
+                        </div>
+                        {/* score bar — yellow fill */}
+                        <div className="hidden md:block">
+                          <div className="h-[5px] bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.min(r.score, 100)}%`, background: "#ffb900" }} />
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+                        <div className="flex items-center gap-2 md:justify-end">
+                          <span className="text-[13px] font-bold tabular-nums text-[#1e293b]">{r.score.toFixed(1)}%</span>
+                          <span
+                            className="text-[11px] font-bold px-2 py-0.5 rounded-full border"
+                            style={{ color, borderColor: color + "40", background: color + "12" }}
+                          >
+                            {r.grade}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>

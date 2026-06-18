@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma"
 import AssessmentsClient from "./AssessmentsClient"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import LoadingLogo from "@/components/ui/LoadingLogo"
+import LecturerPageShell from "@/components/layout/LecturerPageShell"
 import type { AssessmentListItem } from "@/lib/assessment-types"
 
 async function AssessmentsDataWrapper() {
@@ -31,8 +32,10 @@ async function AssessmentsDataWrapper() {
   const assessmentList: AssessmentListItem[] = assessments.map((a) => ({
     id: a.id,
     title: a.title,
-    type: a.type as AssessmentListItem["type"],
-    status: a.status as AssessmentListItem["status"],
+    type: a.type,
+    status: a.status,
+    gradingStatus: a.gradingStatus,
+    resultsReleased: a.resultsReleased,
     courseCode: a.course.code,
     courseTitle: a.course.title,
     classCount: a._count.classes,
@@ -46,26 +49,19 @@ async function AssessmentsDataWrapper() {
 
 export default function LecturerAssessmentsPage() {
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-            <ClipboardList size={11} />
-            <span>Assessments</span>
-          </div>
-          <h1 className="text-xl font-semibold text-[#1e293b]">Assessments</h1>
-          <p className="text-[12px] text-muted-foreground mt-0.5">
-            Create and manage exams, quizzes, and assignments for your courses.
-          </p>
-        </div>
+    <LecturerPageShell
+      title="Assessments"
+      description="Create and manage exams, quizzes, and assignments for your courses."
+      icon={ClipboardList}
+      actions={
         <Link
           href="/lecturer/assessments/new"
           className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-sm text-[12px] font-semibold hover:bg-[#001570] transition-colors"
         >
           <Plus size={13} /> New Assessment
         </Link>
-      </div>
-
+      }
+    >
       <Suspense
         fallback={
           <div className="relative">
@@ -80,6 +76,6 @@ export default function LecturerAssessmentsPage() {
       >
         <AssessmentsDataWrapper />
       </Suspense>
-    </div>
+    </LecturerPageShell>
   )
 }

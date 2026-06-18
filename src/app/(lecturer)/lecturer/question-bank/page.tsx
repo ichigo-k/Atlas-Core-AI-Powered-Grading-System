@@ -3,21 +3,15 @@ import { Library } from "lucide-react"
 import QuestionBankClient from "./QuestionBankClient"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import LoadingLogo from "@/components/ui/LoadingLogo"
+import LecturerPageShell from "@/components/layout/LecturerPageShell"
 
 export default function QuestionBankPage() {
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
-      <div>
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-          <Library size={11} />
-          <span>Question Bank</span>
-        </div>
-        <h1 className="text-xl font-semibold text-[#1e293b]">Question Bank</h1>
-        <p className="text-[12px] text-muted-foreground mt-0.5">
-          Manage reusable question banks to quickly populate new assessments.
-        </p>
-      </div>
-
+    <LecturerPageShell
+      title="Question Bank"
+      description="Manage reusable question banks to quickly populate new assessments."
+      icon={Library}
+    >
       <Suspense
         fallback={
           <div className="relative">
@@ -32,6 +26,6 @@ export default function QuestionBankPage() {
       >
         <QuestionBankClient />
       </Suspense>
-    </div>
+    </LecturerPageShell>
   )
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useActionState } from "react";
 import Image from "next/image";
@@ -75,14 +75,14 @@ export default function LoginPage() {
                 <div className="relative group">
                   <Mail
                     size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8886] group-focus-within:text-[#0078d4] transition-colors z-10"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8886] group-focus-within:text-[#002388] transition-colors z-10"
                   />
                   <Input
                     id="userId"
                     type="text"
                     name="userId"
                     placeholder="e.g. 22034819"
-                    className="h-[38px] rounded-sm border border-[#8a8886] bg-white pl-9 text-[13px] text-[#1e293b] placeholder:text-[#a19f9d] focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] transition-all"
+                    className="h-[38px] rounded-sm border border-[#8a8886] bg-white pl-9 text-[13px] text-[#1e293b] placeholder:text-[#a19f9d] focus:border-[#002388] focus:ring-1 focus:ring-[#002388] transition-all"
                   />
                 </div>
               </div>
@@ -95,14 +95,14 @@ export default function LoginPage() {
                 <div className="relative group">
                   <Lock
                     size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8886] group-focus-within:text-[#0078d4] transition-colors pointer-events-none"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8886] group-focus-within:text-[#002388] transition-colors pointer-events-none"
                   />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     name="password"
                     placeholder="Enter your password"
-                    className="h-[38px] rounded-sm border border-[#8a8886] bg-white pl-9 pr-10 text-[13px] text-[#1e293b] placeholder:text-[#a19f9d] focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] transition-all"
+                    className="h-[38px] rounded-sm border border-[#8a8886] bg-white pl-9 pr-10 text-[13px] text-[#1e293b] placeholder:text-[#a19f9d] focus:border-[#002388] focus:ring-1 focus:ring-[#002388] transition-all"
                   />
                   <button
                     type="button"
@@ -120,7 +120,7 @@ export default function LoginPage() {
                   id="keepLoggedIn"
                   checked={keepLoggedIn}
                   onCheckedChange={(v) => setKeepLoggedIn(!!v)}
-                  className="rounded-sm border-[#8a8886] data-[state=checked]:bg-[#0078d4] data-[state=checked]:border-[#0078d4]"
+                  className="rounded-sm border-[#8a8886] data-[state=checked]:bg-[#002388] data-[state=checked]:border-[#002388]"
                 />
                 <Label
                   htmlFor="keepLoggedIn"
@@ -143,14 +143,14 @@ export default function LoginPage() {
               <div className="flex items-center justify-between pt-3">
                 <a
                   href="#"
-                  className="text-[13px] text-[#0078d4] hover:underline font-normal"
+                  className="text-[13px] text-[#002388] hover:underline font-normal"
                 >
                   Forgot password?
                 </a>
                 <button
                   type="submit"
                   disabled={pending}
-                  className="h-[34px] px-5 rounded-sm text-[13px] font-semibold text-white bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+                  className="h-[34px] px-5 rounded-sm text-[13px] font-semibold text-white bg-[#002388] hover:bg-[#001a66] active:bg-[#005a9e] transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
                 >
                   {pending ? <LoaderIcon /> : "Sign in"}
                 </button>

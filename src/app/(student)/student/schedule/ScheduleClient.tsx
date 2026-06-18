@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useRef, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -107,26 +107,22 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 	}, [activeDates]);
 
 	return (
-		<div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
-
-			{/* ── Page header ── */}
-			<div>
-				<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-					<CalendarClock size={11} />
-					<span>Student</span>
-					<span>›</span>
-					<span>Schedule</span>
-				</div>
-				<h1 className="text-xl font-semibold text-[#1e293b] flex items-center gap-2">
-					<CalendarDays size={18} className="text-primary" strokeWidth={2} />
-					Schedule
-				</h1>
-				<p className="text-[12px] text-muted-foreground mt-0.5">
-					{activeDates.length > 0
-						? `Stay ahead of your next ${activeDates.length} assessment day${activeDates.length !== 1 ? "s" : ""}.`
-						: "Your schedule is currently clear."}
-				</p>
+		<div className="bg-[#f8f9fa] min-h-full">
+		{/* Command bar */}
+		<div className="bg-white border-b border-[#edebe9] px-5 py-3">
+			<div className="flex items-center gap-1 text-[11px] text-[#8a8886] mb-0.5">
+				<span>Student</span>
+				<span className="mx-0.5">›</span>
+				<span className="text-[#002388] font-medium">Schedule</span>
 			</div>
+			<h1 className="text-[17px] font-semibold text-[#323130]">Schedule</h1>
+			<p className="text-[11px] text-[#8a8886] mt-0.5">
+				{activeDates.length > 0
+					? `Stay ahead of your next ${activeDates.length} assessment day${activeDates.length !== 1 ? "s" : ""}.`
+					: "Your schedule is currently clear."}
+			</p>
+		</div>
+		<div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">
 
 			{/* ── Date pills ── */}
 			{pills.length > 0 && (
@@ -178,7 +174,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 								className="space-y-3"
 							>
 								{/* Day header */}
-								<div className="flex items-center gap-3 sticky top-0 bg-[#f8f9fa]/90 backdrop-blur py-2 z-10">
+								<div className="flex items-center gap-3 sticky top-0 bg-[#f8f9fa]/95 backdrop-blur py-2 z-10">
 									<div
 										className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[13px] font-semibold transition-all ${
 											isToday ? "bg-primary text-white" : "bg-white border border-border text-[#1e293b]"
@@ -215,6 +211,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 					})}
 				</div>
 			)}
+		</div>
 		</div>
 	);
 }

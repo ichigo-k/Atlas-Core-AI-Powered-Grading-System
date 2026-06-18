@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
 	CalendarDays,
@@ -110,26 +110,20 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 	const hasActiveFilters = courseFilter !== "all" || typeFilter !== "all";
 
 	return (
-		<div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
-
-			{/* ── Page header ── */}
-			<div className="flex flex-wrap items-start justify-between gap-3">
-				<div>
-					<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-						<ClipboardList size={11} />
-						<span>Student</span>
-						<span>›</span>
-						<span>Assessments</span>
-					</div>
-					<h1 className="text-xl font-semibold text-[#1e293b] flex items-center gap-2">
-						<FileText size={18} className="text-primary" strokeWidth={2} />
-						Assessments
-					</h1>
-					<p className="text-[12px] text-muted-foreground mt-0.5">
-						Track everything in one place, from live tests to completed results.
-					</p>
-				</div>
+		<div className="bg-[#f8f9fa] min-h-full">
+		{/* Command bar */}
+		<div className="bg-white border-b border-[#edebe9] px-5 py-3">
+			<div className="flex items-center gap-1 text-[11px] text-[#8a8886] mb-0.5">
+				<span>Student</span>
+				<span className="mx-0.5">›</span>
+				<span className="text-[#002388] font-medium">Assessments</span>
 			</div>
+			<h1 className="text-[17px] font-semibold text-[#323130]">Assessments</h1>
+			<p className="text-[11px] text-[#8a8886] mt-0.5">
+				Track everything in one place — live tests, upcoming exams, and completed results.
+			</p>
+		</div>
+		<div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">
 
 			{/* ── Tabs ── */}
 			<div className="flex items-center gap-0 border-b border-border">
@@ -294,12 +288,8 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 								key={assessment.id}
 								className="flex flex-col gap-4 p-5 transition-all hover:bg-slate-50/60 sm:flex-row sm:items-center sm:justify-between"
 							>
-								{/* Left stripe + info */}
+								{/* Info */}
 								<div className="flex items-start gap-3 flex-1 min-w-0">
-									<div
-										className="w-[3px] h-10 rounded-sm flex-shrink-0 mt-0.5"
-										style={{ background: isOngoing ? "#EF4444" : "#002388" }}
-									/>
 									<div className="flex-1 min-w-0">
 										<div className="flex flex-wrap items-center gap-2 mb-1.5">
 											<h3 className="text-[14px] font-semibold text-[#1e293b] truncate">
@@ -324,9 +314,9 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 											</span>
 											<span className="flex items-center gap-1">
 												<CalendarDays size={10} />
-												{new Date(assessment.startsAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+												{new Date(assessment.startsAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
 												{" – "}
-												{new Date(assessment.endsAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+												{new Date(assessment.endsAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
 											</span>
 											{assessment.durationMinutes != null && (
 												<span className="flex items-center gap-1">
@@ -379,7 +369,7 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 											<p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
 												{isOngoing
 													? "Available Now"
-													: `Starts ${new Date(assessment.startsAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+													: `Starts ${new Date(assessment.startsAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}`}
 											</p>
 										</div>
 									)}
@@ -415,6 +405,7 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 					)}
 				</div>
 			)}
+		</div>
 		</div>
 	);
 }

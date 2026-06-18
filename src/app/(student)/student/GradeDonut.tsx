@@ -1,4 +1,4 @@
-const GRADE_ORDER = [
+﻿const GRADE_ORDER = [
   "A+", "A", "A-",
   "B+", "B", "B-",
   "C+", "C", "C-",
@@ -8,7 +8,7 @@ const GRADE_ORDER = [
 
 function gradeColor(grade: string): string {
   if (grade.startsWith("A")) return "#107c10";
-  if (grade.startsWith("B")) return "#0078d4";
+  if (grade.startsWith("B")) return "#002388";
   if (grade.startsWith("C")) return "#ca5010";
   if (grade.startsWith("D")) return "#8764b8";
   return "#d13438";

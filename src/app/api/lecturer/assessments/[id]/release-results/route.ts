@@ -42,10 +42,40 @@ export async function POST(
       )
     }
 
-    await prisma.assessment.update({
+    const updatedAssessment = await prisma.assessment.update({
       where: { id: assessmentId },
       data: { resultsReleased: true },
-    })
+      select: {
+        title: true,
+        classes: {
+          select: {
+            class: {
+              select: {
+                students: { select: { id: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Notify every student in the enrolled classes
+    const studentIds = updatedAssessment.classes.flatMap((ac) =>
+      ac.class.students.map((s) => s.id)
+    );
+    if (studentIds.length > 0) {
+      await prisma.notification.createMany({
+        data: studentIds.map((userId) => ({
+          userId,
+          type: "RESULTS_RELEASED" as const,
+          title: "Results available",
+          body: `Your results for "${updatedAssessment.title}" have been released.`,
+          href: `/student/assessments/${assessmentId}/review`,
+          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+        })),
+        skipDuplicates: false,
+      });
+    }
 
     await logAction(
       "RESULTS_RELEASED",

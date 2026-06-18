@@ -12,7 +12,10 @@ import {
   BookOpen,
   Target,
   PenLine,
+  Library,
+  ChevronRight,
 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import LoadingLogo from "@/components/ui/LoadingLogo"
@@ -401,17 +404,10 @@ export default function BankDetailClient({ bankId }: { bankId: number }) {
   if (!bank) return null
 
   return (
-    <div className="space-y-8">
+    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16 space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <button
-            onClick={() => router.push("/lecturer/question-bank")}
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Question Banks
-          </button>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
             <BookOpen className="text-[#002388]" size={24} />
             {bank.title}

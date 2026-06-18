@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { ArrowLeft, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, CheckCircle2, ClipboardList, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Step1Basics from "./Step1Basics"
@@ -260,17 +260,21 @@ export default function AssessmentForm({
   }
 
   return (
+    <div className="bg-[#f8f9fa] min-h-full flex flex-col">
+      {/* Sticky command bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
+        <ClipboardList size={11} />
+        <Link href="/lecturer" className="hover:text-[#1e293b] transition-colors">Lecturer</Link>
+        <ChevronRight size={11} />
+        <Link href="/lecturer/assessments" className="hover:text-[#1e293b] transition-colors">Assessments</Link>
+        <ChevronRight size={11} />
+        <span className="text-[#002388] font-medium">{isEditing ? "Edit Assessment" : "New Assessment"}</span>
+      </div>
+
     <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
         <div>
-          <Link
-            href="/lecturer/assessments"
-            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors mb-1.5"
-          >
-            <ArrowLeft size={12} />
-            Back to Assessments
-          </Link>
           <h1 className="text-xl font-semibold text-[#1e293b]">
             {isEditing ? "Edit Assessment" : "New Assessment"}
           </h1>
@@ -386,6 +390,7 @@ export default function AssessmentForm({
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

@@ -126,7 +126,7 @@ export default function LecturerShell({
         {/* Left sidebar */}
         <div
           className={[
-            "fixed top-12 bottom-0 left-0 z-50 w-56",
+            "fixed top-12 bottom-0 left-0 z-50",
             "transition-transform duration-200 ease-in-out",
             "lg:static lg:top-auto lg:bottom-auto lg:z-auto lg:translate-x-0 lg:flex-shrink-0 lg:h-full",
             mobileOpen ? "translate-x-0" : "-translate-x-full",

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useTransition } from "react"
 import { createPortal } from "react-dom"
@@ -87,7 +87,7 @@ export default function PasswordGateModal({
               aria-invalid={error ? true : undefined}
               disabled={isPending}
               autoFocus
-              className="w-full rounded-lg border border-[#d1d5db] bg-white px-3.5 py-2.5 text-[14px] text-[#111827] placeholder-[#9ca3af] outline-none transition-all focus:border-[#0078d4] focus:ring-2 focus:ring-[#0078d4]/20 disabled:opacity-60"
+              className="w-full rounded-lg border border-[#d1d5db] bg-white px-3.5 py-2.5 text-[14px] text-[#111827] placeholder-[#9ca3af] outline-none transition-all focus:border-[#002388] focus:ring-2 focus:ring-[#002388]/20 disabled:opacity-60"
             />
             {error && (
               <p className="text-xs text-[#dc2626] flex items-center gap-1.5 mt-0.5">

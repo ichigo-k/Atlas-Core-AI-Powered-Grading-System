@@ -2,6 +2,8 @@ import { Suspense } from "react"
 import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import Link from "next/link"
+import { Library, ChevronRight } from "lucide-react"
 import BankDetailClient from "./BankDetailClient"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import LoadingLogo from "@/components/ui/LoadingLogo"
@@ -21,22 +23,33 @@ async function BankDetailData({ id }: { id: string }) {
 
   const bank = await prisma.questionBank.findUnique({
     where: { id: bankId },
-    select: { lecturerId: true },
+    select: { lecturerId: true, title: true },
   })
 
-  // Return 404 — don't reveal whether the bank exists at all
   if (!bank || bank.lecturerId !== user.id) notFound()
 
-  return <BankDetailClient bankId={bankId} />
+  return { bankId, title: bank.title }
 }
 
 export default async function BankDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const { bankId, title } = await BankDetailData({ id })
+
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+    <div className="bg-[#f8f9fa] min-h-full flex flex-col">
+      {/* Sticky command bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
+        <Library size={11} />
+        <Link href="/lecturer" className="hover:text-[#1e293b] transition-colors">Lecturer</Link>
+        <ChevronRight size={11} />
+        <Link href="/lecturer/question-bank" className="hover:text-[#1e293b] transition-colors">Question Bank</Link>
+        <ChevronRight size={11} />
+        <span className="text-[#002388] font-medium truncate max-w-[200px]">{title}</span>
+      </div>
+
       <Suspense
         fallback={
-          <div className="relative">
+          <div className="px-4 py-5 md:px-6 lg:px-8 relative">
             <TableSkeleton />
             <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
               <div className="scale-75 opacity-80">
@@ -46,7 +59,7 @@ export default async function BankDetailPage({ params }: { params: Promise<{ id:
           </div>
         }
       >
-        <BankDetailData id={id} />
+        <BankDetailClient bankId={bankId} />
       </Suspense>
     </div>
   )

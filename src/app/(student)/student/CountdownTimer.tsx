@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Clock, MapPin } from "lucide-react";
@@ -82,7 +82,7 @@ export default function CountdownTimer({
         {BLOCKS.map(({ key, label }) => (
           <div
             key={key}
-            className="flex flex-col items-center justify-center bg-[#f3f2f1] rounded-sm px-3 py-2 min-w-[52px]"
+            className="flex flex-col items-center justify-center bg-[#f8f9fa] rounded-sm px-3 py-2 min-w-[52px]"
           >
             <span className="text-xl font-semibold leading-none tabular-nums text-[#1e293b]">
               {String(timeLeft[key]).padStart(2, "0")}

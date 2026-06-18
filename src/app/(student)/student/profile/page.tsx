@@ -1,76 +1,115 @@
-import { getSession } from "@/lib/session"
-import PasswordForm from "./PasswordForm"
-import { User, ShieldCheck } from "lucide-react"
+﻿import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import PasswordForm from "./PasswordForm";
+import { ChevronRight, ShieldCheck, User, Mail, Hash, GraduationCap, BookOpen, Calendar, Layers } from "lucide-react";
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "S";
+  const parts = name.trim().split(/\s+/);
+  return parts.slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+}
+
+function avatarColor(name: string | null | undefined): string {
+  const colors = [
+    { bg: "#002388", text: "white" },
+    { bg: "#107c10", text: "white" },
+    { bg: "#8764b8", text: "white" },
+    { bg: "#d83b01", text: "white" },
+    { bg: "#038387", text: "white" },
+  ];
+  const seed = (name ?? "S").charCodeAt(0) % colors.length;
+  return colors[seed].bg;
+}
 
 export default async function ProfilePage() {
-  const session = await getSession()
-  const user = session?.user
+  const session = await getSession();
+  const user = session?.user;
 
-  const academicInfo = [
-    { label: "Student ID", value: user?.email?.split("@")[0] ?? "—" },
-    { label: "Full Name", value: user?.name ?? "—" },
-    { label: "Programme", value: "BSc. Computer Science" },
-    { label: "Level", value: "300" },
-    { label: "Class", value: "CS3A" },
-    { label: "Academic Year", value: "2025 / 2026" },
-    { label: "Semester", value: "First Semester" },
-    { label: "Email", value: user?.email ?? "student@gctu.edu.gh" },
-  ]
+  // Load student profile for index number / class / program
+  const dbUser = user?.email
+    ? await prisma.user.findUnique({
+        where: { email: user.email },
+        select: {
+          studentProfile: {
+            select: {
+              indexNumber: true,
+              class: { select: { name: true, level: true } },
+              program: { select: { name: true, faculty: { select: { name: true } } } },
+            },
+          },
+        },
+      })
+    : null;
+
+  const profile = dbUser?.studentProfile;
+
+  const settings = await prisma.systemSettings.findUnique({
+    where: { id: 1 },
+    select: { academicYear: true, semester: true },
+  });
+
+  const initials = getInitials(user?.name);
+  const bgColor = avatarColor(user?.name);
+
+  const details = [
+    { Icon: User,          label: "Full Name",     value: user?.name ?? "—" },
+    { Icon: Mail,          label: "Email",         value: user?.email ?? "—" },
+    { Icon: Hash,          label: "Student ID",    value: profile?.indexNumber ?? user?.email?.split("@")[0] ?? "—" },
+    { Icon: Layers,        label: "Class",         value: profile?.class ? `${profile.class.name} (Level ${profile.class.level})` : "—" },
+    { Icon: GraduationCap, label: "Programme",     value: profile?.program?.name ?? "—" },
+    { Icon: BookOpen,      label: "Faculty",       value: profile?.program?.faculty?.name ?? "—" },
+    { Icon: Calendar,      label: "Academic Year", value: settings?.academicYear ?? "—" },
+    { Icon: Calendar,      label: "Semester",      value: settings?.semester ?? "—" },
+  ];
 
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+    <div className="bg-[#f8f9fa] min-h-full">
 
-      {/* Page header */}
-      <div>
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-          <User size={11} />
+      {/* ── Command bar ── */}
+      <div className="bg-white border-b border-[#edebe9] px-5 py-3">
+        <div className="flex items-center gap-1 text-[11px] text-[#8a8886]">
           <span>Student</span>
-          <span>›</span>
-          <span>Profile</span>
+          <ChevronRight size={11} />
+          <span className="text-[#002388] font-medium">My Profile</span>
         </div>
-        <h1 className="text-xl font-semibold text-[#1e293b]">
-          My Profile
-        </h1>
-        <p className="text-[12px] text-muted-foreground mt-0.5">Manage your academic credentials and account security.</p>
       </div>
 
-      {/* Academic info card */}
-      <div className="bg-white border border-border rounded-sm">
-        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-          <div>
-            <h2 className="text-[13px] font-semibold text-[#1e293b]">
-              Personal Information
-            </h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Your academic details as registered with GCTU.</p>
+      <div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[900px]">
+
+        {/* ── Academic details ── */}
+        <div className="bg-white border border-[#edebe9] rounded overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#edebe9] flex items-center justify-between bg-[#faf9f8]">
+            <h2 className="text-[13px] font-semibold text-[#323130]">Academic Information</h2>
+            <span className="text-[9px] font-bold uppercase tracking-[0.05em] px-2 py-0.5 rounded bg-[#f8f9fa] border border-[#edebe9] text-[#8a8886]">
+              Read only
+            </span>
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-[0.05em] px-2 py-0.5 rounded-sm bg-slate-100 border border-border text-slate-500">
-            Read only
-          </span>
+
+          <div className="divide-y divide-[#f8f9fa]">
+            {details.map(({ Icon, label, value }) => (
+              <div key={label} className="flex items-center gap-4 px-5 py-3 hover:bg-[#faf9f8] transition-colors">
+                <Icon size={14} className="text-[#8a8886] flex-shrink-0" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8886] w-28 flex-shrink-0">
+                  {label}
+                </span>
+                <span className="text-[13px] font-medium text-[#323130]">{value}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-0">
-          {academicInfo.map((item, i) => (
-            <div
-              key={item.label}
-              className={`flex items-center justify-between py-3 ${
-                i < academicInfo.length - (academicInfo.length % 2 === 0 ? 2 : 1) ? "border-b border-[#f1f5f9]" : ""
-              }`}
-            >
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</span>
-              <span className="text-[12px] font-semibold text-[#1e293b]">{item.value}</span>
-            </div>
-          ))}
+        {/* ── Security ── */}
+        <div className="bg-white border border-[#edebe9] rounded overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#edebe9] bg-[#faf9f8] flex items-center gap-2">
+            <ShieldCheck size={14} className="text-[#002388]" />
+            <h2 className="text-[13px] font-semibold text-[#323130]">Security Settings</h2>
+          </div>
+          <div className="p-5">
+            <PasswordForm />
+          </div>
         </div>
+
       </div>
-
-      {/* Password section header */}
-      <h2 className="flex items-center gap-2 text-[13px] font-semibold text-[#1e293b] pt-2">
-        <ShieldCheck className="text-primary" size={14} strokeWidth={2} />
-        Security Settings
-      </h2>
-
-      <PasswordForm />
-
     </div>
-  )
+  );
 }

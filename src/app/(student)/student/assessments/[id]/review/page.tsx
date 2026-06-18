@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation"
+﻿import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import {
   ChevronLeft,
@@ -352,30 +352,28 @@ export default async function AssessmentReviewPage({
       : null
 
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
-      {/* Back nav */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-            <ClipboardList size={11} />
-            <span>Student</span>
-            <span>›</span>
-            <span>Assessments</span>
-            <span>›</span>
-            <span>Review</span>
-          </div>
-          <h1 className="text-xl font-semibold text-[#1e293b]">
-            Assessment Review
-          </h1>
+    <div className="bg-[#f8f9fa] min-h-full">
+    {/* Command bar */}
+    <div className="bg-white border-b border-[#edebe9] px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div className="flex items-center gap-1 text-[11px] text-[#8a8886] mb-0.5">
+          <span>Student</span>
+          <span className="mx-0.5">›</span>
+          <span>Assessments</span>
+          <span className="mx-0.5">›</span>
+          <span className="text-[#002388] font-medium">Review</span>
         </div>
-        <Link
-          href={`/student/assessments/${assessmentId}`}
-          className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-sm text-[12px] font-medium text-[#323130] hover:bg-slate-50 transition-colors"
-        >
-          <ChevronLeft size={13} />
-          Back to Assessment
-        </Link>
+        <h1 className="text-[17px] font-semibold text-[#323130]">Assessment Review</h1>
       </div>
+      <Link
+        href={`/student/assessments/${assessmentId}`}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#323130] hover:bg-[#f8f9fa] border border-transparent hover:border-[#8a8886] rounded transition-colors"
+      >
+        <ChevronLeft size={13} />
+        Back to Assessment
+      </Link>
+    </div>
+    <div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">
 
       {/* Header card */}
       <div className="bg-white border border-border rounded-sm p-6 space-y-5">
@@ -475,11 +473,12 @@ export default async function AssessmentReviewPage({
       ))}
 
       {sections.every((s) => s.questions.length === 0) && (
-        <div className="bg-white border border-border rounded-sm p-16 text-center flex flex-col items-center gap-3">
-           <AlertTriangle size={36} className="text-slate-300" strokeWidth={2} />
-           <p className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wider">Assessment data unavailable.</p>
+        <div className="bg-white border border-[#edebe9] rounded p-16 text-center flex flex-col items-center gap-3">
+           <AlertTriangle size={36} className="text-[#c8c6c4]" strokeWidth={2} />
+           <p className="text-[13px] font-semibold text-[#8a8886] uppercase tracking-wider">Assessment data unavailable.</p>
         </div>
       )}
+    </div>
     </div>
   )
 }

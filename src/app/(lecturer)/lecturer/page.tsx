@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
-import { Plus, ArrowRight, Clock, BookOpen, Users, ClipboardList, FileText, Zap } from "lucide-react"
+import { Plus, ArrowRight, Clock, BookOpen, Users, ClipboardList, FileText, Zap, LayoutDashboard, ChevronRight } from "lucide-react"
 import { format, isAfter, isBefore } from "date-fns"
 import DashboardCharts from "./DashboardCharts"
 
@@ -232,7 +232,16 @@ function DashboardContent({ data }: { data: DashboardData }) {
   })
 
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+    <div className="bg-[#f8f9fa] min-h-full flex flex-col">
+      {/* Sticky command bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
+        <LayoutDashboard size={11} />
+        <span>Lecturer</span>
+        <ChevronRight size={11} />
+        <span className="text-[#002388] font-medium">Dashboard</span>
+      </div>
+
+      <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -370,6 +379,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

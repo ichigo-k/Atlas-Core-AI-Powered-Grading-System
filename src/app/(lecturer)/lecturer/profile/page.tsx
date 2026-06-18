@@ -1,35 +1,25 @@
 import { getSession } from "@/lib/session"
 import { User, ShieldCheck } from "lucide-react"
 import LecturerPasswordForm from "./PasswordForm"
+import LecturerPageShell from "@/components/layout/LecturerPageShell"
 
 export default async function LecturerProfilePage() {
   const session = await getSession()
   const user = session?.user
 
   const info = [
-    { label: "Staff ID",      value: user?.email?.split("@")[0] ?? "—" },
-    { label: "Full Name",     value: user?.name ?? "—" },
-    { label: "Role",          value: "Lecturer" },
-    { label: "Email",         value: user?.email ?? "lecturer@gctu.edu.gh" },
+    { label: "Staff ID",  value: user?.email?.split("@")[0] ?? "—" },
+    { label: "Full Name", value: user?.name ?? "—" },
+    { label: "Role",      value: "Lecturer" },
+    { label: "Email",     value: user?.email ?? "lecturer@gctu.edu.gh" },
   ]
 
   return (
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
-
-      {/* Page header */}
-      <div>
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-          <User size={11} />
-          <span>Lecturer</span>
-          <span>›</span>
-          <span>Profile</span>
-        </div>
-        <h1 className="text-xl font-semibold text-[#1e293b]">My Profile</h1>
-        <p className="text-[12px] text-muted-foreground mt-0.5">
-          Manage your account information and security settings.
-        </p>
-      </div>
-
+    <LecturerPageShell
+      title="My Profile"
+      description="Manage your account information and security settings."
+      icon={User}
+    >
       {/* Personal info card */}
       <div className="bg-white border border-border rounded-sm">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
@@ -70,7 +60,6 @@ export default async function LecturerProfilePage() {
       </h2>
 
       <LecturerPasswordForm />
-
-    </div>
+    </LecturerPageShell>
   )
 }
