@@ -74,7 +74,8 @@ model User {
   lecturerProfile LecturerProfile?
   adminProfile    AdminProfile?
 
-  attempts AssessmentAttempt[]
+  attempts      AssessmentAttempt[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -304,6 +305,7 @@ model QuestionBank {
   courseId   Int?
   course     Course?         @relation(fields: [courseId], references: [id])
   title      String
+  isShared   Boolean         @default(false)
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
@@ -437,3 +439,31 @@ model AnswerFeedback {
 
   @@map("grader_answerfeedback")
 }
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+enum NotificationType {
+  ASSESSMENT_LIVE
+  RESULTS_RELEASED
+  REMINDER
+  SYSTEM
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String           @default("")
+  href      String?
+  readAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+

@@ -10,6 +10,8 @@ import {
   Library,
   Loader2,
   ArrowRight,
+  Globe,
+  Lock,
 } from "lucide-react"
 import LoadingLogo from "@/components/ui/LoadingLogo"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
@@ -48,6 +50,9 @@ interface Bank {
   title: string
   courseId: number | null
   course: { code: string; title: string } | null
+  lecturerId: number
+  isShared: boolean
+  isOwn: boolean
   _count: { items: number }
   typeCounts: { OBJECTIVE: number; SUBJECTIVE: number }
   createdAt: string
@@ -81,11 +86,13 @@ interface CreateBankSheetProps {
 function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetProps) {
   const [title, setTitle] = useState("")
   const [courseId, setCourseId] = useState<string>("")
+  const [isShared, setIsShared] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleClose = () => {
     setTitle("")
     setCourseId("")
+    setIsShared(false)
     onClose()
   }
 
@@ -97,7 +104,7 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
       const res = await fetch("/api/lecturer/question-banks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), courseId: courseId ? parseInt(courseId) : null }),
+        body: JSON.stringify({ title: title.trim(), courseId: courseId ? parseInt(courseId) : null, isShared }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -109,6 +116,7 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
       onCreated({
         ...bank,
         course: course ? { code: course.code, title: course.title } : null,
+        isOwn: true,
         _count: { items: 0 },
         typeCounts: { OBJECTIVE: 0, SUBJECTIVE: 0 },
       })
@@ -165,6 +173,31 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
                 Linking to a course makes this bank easier to find when creating assessments.
               </p>
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Visibility
+              </Label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsShared(false)}
+                  className={`flex-1 flex items-center justify-center gap-2 h-9 rounded-sm border text-[12px] font-semibold transition-colors ${!isShared ? "border-[#002388] bg-[#dbeafe] text-[#002388]" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                >
+                  <Lock size={13} /> Private
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsShared(true)}
+                  className={`flex-1 flex items-center justify-center gap-2 h-9 rounded-sm border text-[12px] font-semibold transition-colors ${isShared ? "border-[#16a34a] bg-[#dcfce7] text-[#16a34a]" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                >
+                  <Globe size={13} /> Shared
+                </button>
+              </div>
+              <p className="text-xs text-slate-400">
+                Shared banks are visible to all lecturers (read-only for others).
+              </p>
+            </div>
           </div>
 
           <SheetFooter className="px-6 py-4 border-t border-slate-100 flex-row justify-end gap-2">
@@ -199,12 +232,13 @@ export default function QuestionBankClient() {
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Bank | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [togglingId, setTogglingId] = useState<number | null>(null)
 
   const fetchBanks = useCallback(async () => {
     try {
       const res = await fetch("/api/lecturer/question-banks")
       if (!res.ok) throw new Error()
-      const data = await res.json()
+      const data: Bank[] = await res.json()
       setBanks(data)
     } catch {
       toast.error("Failed to load question banks")
@@ -212,6 +246,24 @@ export default function QuestionBankClient() {
       setLoading(false)
     }
   }, [])
+
+  const handleToggleShare = async (bank: Bank) => {
+    setTogglingId(bank.id)
+    try {
+      const res = await fetch(`/api/lecturer/question-banks/${bank.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isShared: !bank.isShared }),
+      })
+      if (!res.ok) throw new Error()
+      setBanks((prev) => prev.map((b) => b.id === bank.id ? { ...b, isShared: !bank.isShared } : b))
+      toast.success(bank.isShared ? "Bank set to private" : "Bank shared with all lecturers")
+    } catch {
+      toast.error("Failed to update sharing")
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   useEffect(() => {
     fetchBanks()
@@ -305,77 +357,109 @@ export default function QuestionBankClient() {
                   Questions
                 </TableHead>
                 <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Visibility
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Created
                 </TableHead>
                 <TableHead className="w-10 pr-4" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {banks.map((bank) => (
-                <TableRow
-                  key={bank.id}
-                  className="group cursor-pointer hover:bg-slate-50/80"
-                  onClick={() => router.push(`/lecturer/question-bank/${bank.id}`)}
-                >
-                  <TableCell className="pl-5">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-[13px] font-semibold text-[#1e293b]">{bank.title}</span>
-                    </div>
-                  </TableCell>
+              {banks.map((bank) => {
+                const isOwner = bank.isOwn
+                return (
+                  <TableRow
+                    key={bank.id}
+                    className="group cursor-pointer hover:bg-slate-50/80"
+                    onClick={() => router.push(`/lecturer/question-bank/${bank.id}`)}
+                  >
+                    <TableCell className="pl-5">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-[13px] font-semibold text-[#1e293b]">{bank.title}</span>
+                        {!isOwner && (
+                          <span className="text-[10px] font-semibold text-slate-400 px-1.5 py-0.5 rounded-sm bg-slate-100">Shared with you</span>
+                        )}
+                      </div>
+                    </TableCell>
 
-                  <TableCell>
-                    {bank.course ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-[0.04em]" style={{ background: "#dbeafe", color: "#1e40af" }}>
-                        {bank.course.code}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">All courses</span>
-                    )}
-                  </TableCell>
-
-                  {/* Summary badges */}
-                  <TableCell>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {bank.typeCounts.OBJECTIVE > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.04em]" style={{ background: "#fef9c3", color: "#854d0e" }}>
-                          {bank.typeCounts.OBJECTIVE} Obj
+                    <TableCell>
+                      {bank.course ? (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-[0.04em]" style={{ background: "#dbeafe", color: "#1e40af" }}>
+                          {bank.course.code}
                         </span>
-                      ) : null}
-                      {bank.typeCounts.SUBJECTIVE > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.04em]" style={{ background: "#f3e8ff", color: "#6b21a8" }}>
-                          {bank.typeCounts.SUBJECTIVE} Subj
-                        </span>
-                      ) : null}
-                      {bank._count.items === 0 && (
-                        <span className="text-[11px] text-muted-foreground italic">No questions yet</span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">All courses</span>
                       )}
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  <TableCell className="text-[11px] text-muted-foreground">
-                    {formatDate(bank.createdAt)}
-                  </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {bank.typeCounts.OBJECTIVE > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.04em]" style={{ background: "#fef9c3", color: "#854d0e" }}>
+                            {bank.typeCounts.OBJECTIVE} Obj
+                          </span>
+                        ) : null}
+                        {bank.typeCounts.SUBJECTIVE > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.04em]" style={{ background: "#f3e8ff", color: "#6b21a8" }}>
+                            {bank.typeCounts.SUBJECTIVE} Subj
+                          </span>
+                        ) : null}
+                        {bank._count.items === 0 && (
+                          <span className="text-[11px] text-muted-foreground italic">No questions yet</span>
+                        )}
+                      </div>
+                    </TableCell>
 
-                  <TableCell className="pr-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteTarget(bank)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <ArrowRight className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {isOwner ? (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleShare(bank)}
+                          disabled={togglingId === bank.id}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border text-[11px] font-semibold transition-colors disabled:opacity-50 ${
+                            bank.isShared
+                              ? "border-[#bbf7d0] bg-[#dcfce7] text-[#166534] hover:bg-[#bbf7d0]"
+                              : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100"
+                          }`}
+                        >
+                          {bank.isShared ? <Globe size={11} /> : <Lock size={11} />}
+                          {bank.isShared ? "Shared" : "Private"}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-[#bbf7d0] bg-[#dcfce7] text-[#166534] text-[11px] font-semibold">
+                          <Globe size={11} /> Shared
+                        </span>
+                      )}
+                    </TableCell>
+
+                    <TableCell className="text-[11px] text-muted-foreground">
+                      {formatDate(bank.createdAt)}
+                    </TableCell>
+
+                    <TableCell className="pr-4">
+                      <div className="flex items-center justify-end gap-1">
+                        {isOwner && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteTarget(bank)
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <ArrowRight className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>

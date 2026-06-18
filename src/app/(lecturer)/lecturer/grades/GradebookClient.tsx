@@ -24,7 +24,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   X,
-  ExternalLink,
+  ArrowRight,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -78,8 +78,6 @@ interface GradebookData {
   levels: number[]
 }
 
-
-
 // ─── Sort button ──────────────────────────────────────────────────────────────
 
 function SortHeader({ label, column }: { label: string; column: { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | "asc" | "desc" } }) {
@@ -114,7 +112,7 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       cell: ({ row }) => (
         <div>
           <p className="text-[13px] font-semibold text-[#1e293b]">{row.original.name}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{row.original.email}</p>
+          <p className="text-[11px] text-muted-foreground">{row.original.email}</p>
         </div>
       ),
       filterFn: (row, _id, value) => {
@@ -130,18 +128,18 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       accessorKey: "className",
       header: ({ column }) => <SortHeader label="Class" column={column} />,
       cell: ({ row }) => (
-        <span className="text-[13px] text-[#1e293b]">{row.original.className}</span>
+        <div>
+          <p className="text-[13px] font-medium text-[#1e293b]">{row.original.className}</p>
+          <p className="text-[11px] text-slate-400">Level {row.original.classLevel}</p>
+        </div>
       ),
     },
     {
       id: "classLevel",
       accessorKey: "classLevel",
-      header: ({ column }) => <SortHeader label="Level" column={column} />,
-      cell: ({ row }) => (
-        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-sm text-[11px] font-semibold bg-slate-100 text-[#475569]">
-          {row.original.classLevel}
-        </span>
-      ),
+      header: () => null,
+      cell: () => null,
+      enableHiding: false,
       filterFn: (row, _id, value) => {
         if (!value || value === "all") return true
         return row.original.classLevel === Number(value)
@@ -170,27 +168,35 @@ function buildColumns(router: ReturnType<typeof useRouter>): ColumnDef<Student>[
       id: "assessmentCount",
       accessorKey: "assessmentCount",
       header: ({ column }) => <SortHeader label="Assessments" column={column} />,
-      cell: ({ row }) => (
-        <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-primary/10 text-primary">
-          {row.original.assessmentCount}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const n = row.original.assessmentCount
+        return (
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-20 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#002388]"
+                style={{ width: `${Math.min((n / 10) * 100, 100)}%` }}
+              />
+            </div>
+            <span className="text-[12px] font-semibold text-[#1e293b] tabular-nums">{n}</span>
+          </div>
+        )
+      },
     },
-
     {
       id: "actions",
       header: () => null,
       cell: ({ row }) => (
-        <div className="flex justify-end pr-2">
+        <div className="flex justify-end pr-1">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation()
               router.push(`/lecturer/grades/${row.original.id}`)
             }}
-            className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-sm bg-[#ffb900] hover:bg-[#e6a700] text-[#1e293b] px-3 py-1.5 text-[11px] font-semibold transition-colors"
           >
-            Profile <ChevronRight size={14} className="opacity-70" />
+            View Results <ArrowRight size={12} />
           </button>
         </div>
       ),
@@ -207,7 +213,6 @@ export default function GradebookClient() {
   const [data, setData] = useState<GradebookData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Filter state (controlled outside TanStack so we can drive multiple columns)
   const [search, setSearch] = useState("")
   const [courseFilter, setCourseFilter] = useState("all")
   const [classFilter, setClassFilter] = useState("all")
@@ -225,9 +230,8 @@ export default function GradebookClient() {
 
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility] = useState({ courseIds: false, classId: false })
+  const [columnVisibility] = useState({ courseIds: false, classId: false, classLevel: false })
 
-  // Sync external filter state → TanStack column filters
   useEffect(() => {
     const filters: ColumnFiltersState = []
     if (search) filters.push({ id: "name", value: search })
@@ -264,9 +268,7 @@ export default function GradebookClient() {
       <div className="relative">
         <TableSkeleton />
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-          <div className="scale-75 opacity-80">
-            <LoadingLogo />
-          </div>
+          <div className="scale-75 opacity-80"><LoadingLogo /></div>
         </div>
       </div>
     )
@@ -280,82 +282,68 @@ export default function GradebookClient() {
   return (
     <div className="space-y-5">
 
-
-
       {/* Filter bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-        {/* Search */}
+      <div className="rounded-sm border border-border bg-white p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
         <div className="relative flex-1 min-w-[200px] group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 transition-colors group-focus-within:text-[#002388]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 transition-colors group-focus-within:text-[#002388]" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or email…"
-            className="pl-9 h-10 rounded-sm border-slate-200 focus-visible:ring-[#002388] focus-visible:border-[#002388]"
+            className="pl-9 h-9 rounded-sm border-slate-200 text-[13px] focus-visible:ring-[#002388] focus-visible:border-[#002388]"
           />
         </div>
 
-        {/* Course filter */}
         <Select value={courseFilter} onValueChange={setCourseFilter}>
-          <SelectTrigger className="h-10 w-full sm:w-56 rounded-sm border-slate-200 text-sm">
+          <SelectTrigger className="h-9 w-full sm:w-52 rounded-sm border-slate-200 text-[13px]">
             <SelectValue placeholder="All courses" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All courses</SelectItem>
             {data.courses.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>
-                {c.code} — {c.title}
-              </SelectItem>
+              <SelectItem key={c.id} value={String(c.id)}>{c.code} — {c.title}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Class filter */}
         <Select value={classFilter} onValueChange={setClassFilter}>
-          <SelectTrigger className="h-10 w-full sm:w-48 rounded-sm border-slate-200 text-sm">
+          <SelectTrigger className="h-9 w-full sm:w-44 rounded-sm border-slate-200 text-[13px]">
             <SelectValue placeholder="All classes" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All classes</SelectItem>
             {data.classes.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>
-                {c.name}
-              </SelectItem>
+              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Level filter */}
         <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="h-10 w-full sm:w-36 rounded-sm border-slate-200 text-sm">
+          <SelectTrigger className="h-9 w-full sm:w-32 rounded-sm border-slate-200 text-[13px]">
             <SelectValue placeholder="All levels" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All levels</SelectItem>
             {data.levels.map((l) => (
-              <SelectItem key={l} value={String(l)}>
-                Level {l}
-              </SelectItem>
+              <SelectItem key={l} value={String(l)}>Level {l}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Clear */}
         {hasFilters && (
           <Button
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-10 rounded-sm text-slate-500 gap-1.5 shrink-0 hover:text-slate-800"
+            className="h-9 rounded-sm text-slate-500 gap-1.5 shrink-0 hover:text-slate-800"
           >
-            <X className="h-3.5 w-3.5" />
-            Clear
+            <X className="h-3.5 w-3.5" /> Clear
           </Button>
         )}
       </div>
 
       {/* Result count */}
-      <p className="text-[11px] text-muted-foreground font-medium">
+      <p className="text-[11px] text-muted-foreground">
         Showing <span className="text-[#1e293b] font-semibold">{filteredCount}</span> of{" "}
         <span className="text-[#1e293b] font-semibold">{totalStudents}</span> students
         {hasFilters && " matching filters"}
@@ -382,13 +370,13 @@ export default function GradebookClient() {
           )}
         </div>
       ) : (
-        <div className="rounded-sm border border-slate-200 overflow-hidden bg-white">
+        <div className="rounded-sm border border-border overflow-hidden bg-white">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((hg) => (
-                <TableRow key={hg.id} className="bg-slate-50/80 hover:bg-slate-50/80 border-b border-slate-200">
+                <TableRow key={hg.id} className="bg-slate-50 hover:bg-slate-50 border-b border-border">
                   {hg.headers.map((header) => (
-                    <TableHead key={header.id} className="h-11 px-5">
+                    <TableHead key={header.id} className="h-10 px-5">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
@@ -399,7 +387,7 @@ export default function GradebookClient() {
               {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="group cursor-pointer hover:bg-slate-50/60 transition-colors border-b border-slate-100 last:border-0"
+                  className="cursor-pointer hover:bg-slate-50/70 transition-colors border-b border-slate-100 last:border-0"
                   onClick={() => router.push(`/lecturer/grades/${row.original.id}`)}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -417,23 +405,16 @@ export default function GradebookClient() {
       {/* Pagination */}
       {filteredCount > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
-          <p className="text-xs text-slate-500">
+          <p className="text-[11px] text-slate-500">
             Page{" "}
-            <span className="font-semibold text-slate-700">
-              {table.getState().pagination.pageIndex + 1}
-            </span>{" "}
-            of{" "}
+            <span className="font-semibold text-slate-700">{table.getState().pagination.pageIndex + 1}</span>
+            {" "}of{" "}
             <span className="font-semibold text-slate-700">{table.getPageCount()}</span>
           </p>
-
           <div className="flex items-center gap-3">
-            {/* Rows per page */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-medium">Rows</span>
-              <Select
-                value={String(table.getState().pagination.pageSize)}
-                onValueChange={(v) => table.setPageSize(Number(v))}
-              >
+              <span className="text-[11px] text-slate-500 font-medium">Rows</span>
+              <Select value={String(table.getState().pagination.pageSize)} onValueChange={(v) => table.setPageSize(Number(v))}>
                 <SelectTrigger className="h-8 w-16 rounded-sm border-slate-200 text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>
@@ -444,8 +425,6 @@ export default function GradebookClient() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Page buttons */}
             <div className="flex items-center gap-1">
               <Button variant="outline" className="h-8 w-8 p-0 rounded-sm border-slate-200" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
                 <ChevronsLeft className="h-4 w-4" />

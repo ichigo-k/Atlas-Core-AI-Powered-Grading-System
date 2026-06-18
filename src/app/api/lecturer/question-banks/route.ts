@@ -18,9 +18,15 @@ export async function GET() {
   if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const banks = await prisma.questionBank.findMany({
-    where: { lecturerId },
+    where: {
+      OR: [
+        { lecturerId },
+        { isShared: true },
+      ],
+    },
     include: {
       course: { select: { code: true, title: true } },
+      lecturer: { select: { title: true } },
       _count: { select: { items: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -42,6 +48,7 @@ export async function GET() {
 
   const result = banks.map((b) => ({
     ...b,
+    isOwn: b.lecturerId === lecturerId,
     typeCounts: countMap[b.id] ?? { OBJECTIVE: 0, SUBJECTIVE: 0 },
   }))
 
@@ -57,7 +64,7 @@ export async function POST(request: NextRequest) {
   const lecturerId = await getLecturerId(session.user.email!)
   if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  let body: { title: string; courseId?: number | null }
+  let body: { title: string; courseId?: number | null; isShared?: boolean }
   try {
     body = await request.json()
   } catch {
@@ -73,6 +80,7 @@ export async function POST(request: NextRequest) {
       lecturerId,
       title: body.title,
       courseId: body.courseId ?? null,
+      isShared: body.isShared ?? false,
     },
   })
 
