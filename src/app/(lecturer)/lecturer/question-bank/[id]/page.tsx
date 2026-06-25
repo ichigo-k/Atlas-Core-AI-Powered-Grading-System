@@ -36,7 +36,7 @@ export default async function BankDetailPage({ params }: { params: Promise<{ id:
   const { bankId, title } = await BankDetailData({ id })
 
   return (
-    <div className="bg-[#f8f9fa] min-h-full flex flex-col">
+    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full flex flex-col">
       {/* Sticky command bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
         <Library size={11} />

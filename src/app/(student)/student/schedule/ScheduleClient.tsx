@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useRef, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Clock, MapPin, CalendarClock } from "lucide-react";
+import { CalendarDays, Clock, MapPin, CalendarClock, ChevronRight } from "lucide-react";
 
 export type ScheduleItemSerialized = {
 	id: number;
@@ -31,9 +31,9 @@ function getTodayIso(): string {
 }
 
 const TYPE_BADGE: Record<string, { bg: string; text: string }> = {
-	EXAM:       { bg: "#fee2e2", text: "#991b1b" },
-	QUIZ:       { bg: "#fef9c3", text: "#854d0e" },
-	ASSIGNMENT: { bg: "#dcfce7", text: "#166534" },
+	EXAM: { bg: "#fbeaea", text: "#a4262c" },
+	QUIZ: { bg: "#fdf3e2", text: "#8a6d1c" },
+	ASSIGNMENT: { bg: "#e6f2ea", text: "#1d6b3f" },
 };
 
 export default function ScheduleClient({ items }: { items: ScheduleItemSerialized[] }) {
@@ -107,111 +107,112 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 	}, [activeDates]);
 
 	return (
-		<div className="bg-[#f8f9fa] min-h-full">
-		{/* Command bar */}
-		<div className="bg-white border-b border-[#edebe9] px-5 py-3">
-			<div className="flex items-center gap-1 text-[11px] text-[#8a8886] mb-0.5">
+		<div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
+			{/* Command bar */}
+			<div className="sticky top-0 z-20 bg-white dark:bg-[#2b2b30] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+				<CalendarDays size={11} />
 				<span>Student</span>
-				<span className="mx-0.5">›</span>
+				<ChevronRight size={11} />
 				<span className="text-[#002388] font-medium">Schedule</span>
 			</div>
-			<h1 className="text-[17px] font-semibold text-[#323130]">Schedule</h1>
-			<p className="text-[11px] text-[#8a8886] mt-0.5">
-				{activeDates.length > 0
-					? `Stay ahead of your next ${activeDates.length} assessment day${activeDates.length !== 1 ? "s" : ""}.`
-					: "Your schedule is currently clear."}
-			</p>
-		</div>
-		<div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">
+			<div className="px-4 py-5 md:px-6 lg:px-8 space-y-5 pb-12 max-w-[1280px]">
 
-			{/* ── Date pills ── */}
-			{pills.length > 0 && (
-				<div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-					{pills.map((p) => (
-						<button
-							key={p.iso}
-							onClick={() => handlePillClick(p.iso)}
-							className={`flex flex-col items-center min-w-[52px] gap-0.5 rounded-sm px-3 py-2.5 transition-all ${
-								activePill === p.iso
-									? "bg-primary text-white"
-									: p.isToday
-									? "bg-primary/10 text-primary border border-primary/20"
-									: "bg-white border border-border text-muted-foreground hover:bg-slate-50"
-							}`}
-						>
-							<span className="text-[9px] font-semibold uppercase tracking-widest leading-none">{p.weekday}</span>
-							<span className="text-[18px] font-semibold leading-none mt-0.5">{p.day}</span>
-							{p.count > 0 && (
-								<div className={`w-1 h-1 rounded-full mt-1 ${activePill === p.iso ? "bg-white" : "bg-primary"}`} />
-							)}
-						</button>
-					))}
-				</div>
-			)}
-
-			{/* ── Content ── */}
-			{activeDates.length === 0 ? (
-				<div className="bg-white border border-border rounded-sm py-20 flex flex-col items-center gap-4 text-center">
-					<div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
-						<CalendarDays size={28} className="text-slate-300" strokeWidth={2} />
-					</div>
-					<p className="text-[15px] font-semibold text-[#1e293b]">No assessments scheduled</p>
-					<p className="max-w-xs text-[13px] text-muted-foreground">
-						Check back later when assessments have been scheduled for you.
+				{/* -- Page header -- */}
+				<div>
+					<h1 className="text-xl font-semibold text-[#1e293b]">Schedule</h1>
+					<p className="text-[12px] text-muted-foreground mt-0.5">
+						{activeDates.length > 0
+							? `Stay ahead of your next ${activeDates.length} assessment day${activeDates.length !== 1 ? "s" : ""}.`
+							: "Your schedule is currently clear."}
 					</p>
 				</div>
-			) : (
-				<div className="space-y-8">
-					{activeDates.map((date) => {
-						const dayItems = grouped[date];
-						const isToday  = date === todayIso;
-						const d = new Date(`${date}T00:00:00`);
-						return (
-							<div
-								key={date}
-								data-date={date}
-								ref={(el) => { sectionRefs.current[date] = el; }}
-								className="space-y-3"
-							>
-								{/* Day header */}
-								<div className="flex items-center gap-3 sticky top-0 bg-[#f8f9fa]/95 backdrop-blur py-2 z-10">
-									<div
-										className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[13px] font-semibold transition-all ${
-											isToday ? "bg-primary text-white" : "bg-white border border-border text-[#1e293b]"
-										}`}
-									>
-										{d.getDate()}
-									</div>
-									<div className="flex flex-col">
-										<span className="text-[12px] font-semibold text-[#1e293b]">
-											{isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "long" })}
-										</span>
-										<span className="text-[11px] text-muted-foreground">
-											{d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-										</span>
-									</div>
-									<div className="flex-1 h-px bg-border" />
-									<span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-white border border-border px-2 py-0.5 rounded-sm">
-										{dayItems.length} item{dayItems.length !== 1 ? "s" : ""}
-									</span>
-								</div>
 
-								{/* Day items */}
-								<div className="grid gap-2">
-									{dayItems.map((a) => (
-										<AssessmentCard
-											key={a.id}
-											item={a}
-											onClick={() => router.push(`/student/assessments/${a.id}`)}
-										/>
-									))}
+				{/* -- Date pills -- */}
+				{pills.length > 0 && (
+					<div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+						{pills.map((p) => (
+							<button
+								key={p.iso}
+								onClick={() => handlePillClick(p.iso)}
+								className={`flex flex-col items-center min-w-[52px] gap-0.5 rounded-sm px-3 py-2.5 transition-all ${activePill === p.iso
+									? "bg-primary text-white"
+									: p.isToday
+										? "bg-primary/10 text-primary border border-primary/20"
+										: "bg-white border border-border text-muted-foreground hover:bg-slate-50"
+									}`}
+							>
+								<span className="text-[9px] font-semibold uppercase tracking-widest leading-none">{p.weekday}</span>
+								<span className="text-[18px] font-semibold leading-none mt-0.5">{p.day}</span>
+								{p.count > 0 && (
+									<div className={`w-1 h-1 rounded-full mt-1 ${activePill === p.iso ? "bg-white" : "bg-primary"}`} />
+								)}
+							</button>
+						))}
+					</div>
+				)}
+
+				{/* -- Content -- */}
+				{activeDates.length === 0 ? (
+					<div className="bg-white border border-border rounded-sm py-20 flex flex-col items-center gap-4 text-center">
+						<div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+							<CalendarDays size={28} className="text-slate-300" strokeWidth={2} />
+						</div>
+						<p className="text-[15px] font-semibold text-[#1e293b]">No assessments scheduled</p>
+						<p className="max-w-xs text-[13px] text-muted-foreground">
+							Check back later when assessments have been scheduled for you.
+						</p>
+					</div>
+				) : (
+					<div className="space-y-8">
+						{activeDates.map((date) => {
+							const dayItems = grouped[date];
+							const isToday = date === todayIso;
+							const d = new Date(`${date}T00:00:00`);
+							return (
+								<div
+									key={date}
+									data-date={date}
+									ref={(el) => { sectionRefs.current[date] = el; }}
+									className="space-y-3"
+								>
+									{/* Day header */}
+									<div className="flex items-center gap-3 sticky top-[42px] bg-[#f8f9fa]/95 backdrop-blur py-2 z-10">
+										<div
+											className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[13px] font-semibold transition-all ${isToday ? "bg-primary text-white" : "bg-white border border-border text-[#1e293b]"
+												}`}
+										>
+											{d.getDate()}
+										</div>
+										<div className="flex flex-col">
+											<span className="text-[12px] font-semibold text-[#1e293b]">
+												{isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "long" })}
+											</span>
+											<span className="text-[11px] text-muted-foreground">
+												{d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+											</span>
+										</div>
+										<div className="flex-1 h-px bg-border" />
+										<span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-white border border-border px-2 py-0.5 rounded-sm">
+											{dayItems.length} item{dayItems.length !== 1 ? "s" : ""}
+										</span>
+									</div>
+
+									{/* Day items */}
+									<div className="grid gap-2">
+										{dayItems.map((a) => (
+											<AssessmentCard
+												key={a.id}
+												item={a}
+												onClick={() => router.push(`/student/assessments/${a.id}`)}
+											/>
+										))}
+									</div>
 								</div>
-							</div>
-						);
-					})}
-				</div>
-			)}
-		</div>
+							);
+						})}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -234,7 +235,7 @@ function AssessmentCard({
 		<button
 			type="button"
 			onClick={onClick}
-			className="bg-white border border-border rounded-sm w-full text-left p-4 flex items-center gap-4 transition-colors hover:bg-slate-50/60 group"
+			className="bg-white border border-border rounded-md w-full text-left p-4 flex items-center gap-4 transition-all duration-200 hover:bg-slate-50/60 hover:border-[#c7d0e0] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] group"
 		>
 			{/* Left stripe */}
 			<div

@@ -61,7 +61,7 @@ export default async function StudentDashboardPage() {
     averageScore, upcomingAssessments, recentResults,
   } = data;
 
-  const ongoingItems  = upcomingAssessments.filter((a) => a.status === "ongoing");
+  const ongoingItems = upcomingAssessments.filter((a) => a.status === "ongoing");
   const upcomingItems = upcomingAssessments.filter((a) => a.status === "upcoming");
   const nextExam = upcomingItems[0] ?? null;
 
@@ -81,6 +81,8 @@ export default async function StudentDashboardPage() {
         ? nextExam.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
         : "None scheduled",
       Icon: Calendar,
+      accent: "#002388",
+      chip: "from-[#002388] to-[#1746c4]",
     },
     {
       label: "Live Now",
@@ -88,12 +90,16 @@ export default async function StudentDashboardPage() {
       sub: ongoingCount > 0 ? "Exam in progress" : "None active",
       Icon: AlertCircle,
       live: ongoingCount > 0,
+      accent: "#d13438",
+      chip: "from-[#d13438] to-[#e85a5e]",
     },
     {
       label: "Completed",
       value: completedCount,
       sub: "This semester",
       Icon: CheckCircle2,
+      accent: "#107c10",
+      chip: "from-[#107c10] to-[#2aa02a]",
     },
     {
       label: "Avg Score",
@@ -102,20 +108,22 @@ export default async function StudentDashboardPage() {
         ? averageScore >= 50 ? "Passing average" : "Below passing"
         : "No results yet",
       Icon: TrendingUp,
+      accent: "#ca8a04",
+      chip: "from-[#b8860b] to-[#e0a82e]",
     },
   ];
 
   const quickLinks = [
     { label: "All assessments", description: "Live, upcoming, and completed", href: "/student/assessments", Icon: ClipboardList },
-    { label: "My schedule",     description: "Assessment dates and times",    href: "/student/schedule",    Icon: CalendarDays },
-    { label: "My grades",       description: "Performance and score history", href: "/student/grades",      Icon: BarChart2 },
+    { label: "My schedule", description: "Assessment dates and times", href: "/student/schedule", Icon: CalendarDays },
+    { label: "My grades", description: "Performance and score history", href: "/student/grades", Icon: BarChart2 },
   ];
 
   return (
-    <div className="bg-[#f8f9fa] min-h-full">
+    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
 
       {/* ── Command bar ── */}
-      <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="sticky top-0 z-10 bg-white dark:bg-[#2b2b30] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <LayoutDashboard size={11} />
         <span>Student</span>
         <ChevronRight size={11} />
@@ -125,22 +133,24 @@ export default async function StudentDashboardPage() {
       <div className="px-4 py-5 md:px-6 lg:px-8 pb-12 max-w-[1280px] space-y-6">
 
         {/* ── Page header ── */}
-        <div>
-          <p className="text-[11px] text-muted-foreground mb-1">{dateStr}</p>
-          <h1 className="text-xl font-semibold text-[#1e293b]">
-            {getGreeting()}, {firstName}
-          </h1>
-          <p className="text-[12px] text-muted-foreground mt-0.5">
-            {ongoingCount > 0
-              ? nextExam
-              ? <>Next exam: <span className="font-medium text-[#1e293b]">{nextExam.title}</span>{" — "}<InlineCountdown targetDate={nextExam.startsAt.toISOString()} /></>
-              : "Check your assessments for live exams."
-              : nextExam
-              ? <>Next exam: <span className="font-medium text-[#1e293b]">{nextExam.title}</span>{" — "}<InlineCountdown targetDate={nextExam.startsAt.toISOString()} /></>
-              : completedCount > 0
-              ? "You're all caught up. Well done."
-              : "No assessments have been scheduled yet."}
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[11px] text-muted-foreground mb-1">{dateStr}</p>
+            <h1 className="text-xl font-semibold text-[#1e293b]">
+              {getGreeting()}, {firstName}
+            </h1>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
+              {ongoingCount > 0
+                ? nextExam
+                  ? <>Next exam: <span className="font-medium text-[#1e293b]">{nextExam.title}</span>{" — "}<InlineCountdown targetDate={nextExam.startsAt.toISOString()} /></>
+                  : "Check your assessments for live exams."
+                : nextExam
+                  ? <>Next exam: <span className="font-medium text-[#1e293b]">{nextExam.title}</span>{" — "}<InlineCountdown targetDate={nextExam.startsAt.toISOString()} /></>
+                  : completedCount > 0
+                    ? "You're all caught up. Well done."
+                    : "No assessments have been scheduled yet."}
+            </p>
+          </div>
         </div>
 
 
@@ -156,8 +166,8 @@ export default async function StudentDashboardPage() {
           <>
             {/* ── Stat tiles ── */}
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {stats.map(({ label, value, sub, Icon, live }, i) => (
-                <div key={label} className="relative rounded-sm border border-border bg-white p-4 overflow-hidden">
+              {stats.map(({ label, value, sub, Icon, live }) => (
+                <div key={label} className="relative rounded-sm border border-border bg-white p-4 overflow-hidden transition-colors hover:bg-slate-50/40">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#dbeafe] text-[#002388]">
                       <Icon size={20} />
@@ -180,7 +190,7 @@ export default async function StudentDashboardPage() {
             <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
 
               {/* Upcoming assessments */}
-              <section className="rounded-sm border border-border bg-white">
+              <section className="rounded-md border border-border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.05)]">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
                   <div>
                     <h2 className="text-[13px] font-semibold text-[#1e293b]">Upcoming assessments</h2>
@@ -236,11 +246,10 @@ export default async function StudentDashboardPage() {
                           </div>
                           <Link
                             href={`/student/assessments/${a.id}`}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-sm flex-shrink-0 transition-colors ${
-                              isLive
-                                ? "bg-[#ffb900] text-[#1e293b] hover:bg-[#e6a700]"
-                                : "border border-border text-slate-700 hover:bg-slate-50"
-                            }`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-sm flex-shrink-0 transition-colors ${isLive
+                              ? "bg-[#ffb900] text-[#1e293b] hover:bg-[#e6a700]"
+                              : "border border-border text-slate-700 hover:bg-slate-50"
+                              }`}
                           >
                             {isLive ? "Enter" : "View"}
                             <ArrowRight size={10} />
@@ -253,7 +262,7 @@ export default async function StudentDashboardPage() {
               </section>
 
               {/* Quick links — yellow icon hover */}
-              <section className="rounded-sm border border-border bg-white">
+              <section className="rounded-md border border-border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.05)]">
                 <div className="border-b border-border px-4 py-3 md:px-5">
                   <h2 className="text-[13px] font-semibold text-[#1e293b]">Quick navigation</h2>
                   <p className="text-[12px] text-muted-foreground">Jump to any section.</p>
@@ -263,7 +272,7 @@ export default async function StudentDashboardPage() {
                     <Link
                       key={href}
                       href={href}
-                      className="group rounded-sm border border-border bg-white p-4 transition-colors hover:border-[#002388]/20 hover:bg-slate-50"
+                      className="group rounded-md border border-border bg-white p-4 transition-all duration-200 hover:border-[#c7d0e0] hover:bg-slate-50 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06)]"
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-slate-500 group-hover:bg-[#fff8e1] group-hover:text-[#92400e] transition-colors">
@@ -285,7 +294,7 @@ export default async function StudentDashboardPage() {
 
             {/* ── Recent results ── */}
             {recentResults.length > 0 && (
-              <section className="rounded-sm border border-border bg-white">
+              <section className="rounded-md border border-border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.05)]">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3 md:px-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#fff8e1] text-[#92400e]">

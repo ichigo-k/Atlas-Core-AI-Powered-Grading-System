@@ -1,4 +1,4 @@
-﻿import { getSession } from "@/lib/session";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import PasswordForm from "./PasswordForm";
 import { ChevronRight, ShieldCheck, User, Mail, Hash, GraduationCap, BookOpen, Calendar, Layers } from "lucide-react";
@@ -28,17 +28,17 @@ export default async function ProfilePage() {
   // Load student profile for index number / class / program
   const dbUser = user?.email
     ? await prisma.user.findUnique({
-        where: { email: user.email },
-        select: {
-          studentProfile: {
-            select: {
-              indexNumber: true,
-              class: { select: { name: true, level: true } },
-              program: { select: { name: true, faculty: { select: { name: true } } } },
-            },
+      where: { email: user.email },
+      select: {
+        studentProfile: {
+          select: {
+            indexNumber: true,
+            class: { select: { name: true, level: true } },
+            program: { select: { name: true, faculty: { select: { name: true } } } },
           },
         },
-      })
+      },
+    })
     : null;
 
   const profile = dbUser?.studentProfile;
@@ -52,21 +52,21 @@ export default async function ProfilePage() {
   const bgColor = avatarColor(user?.name);
 
   const details = [
-    { Icon: User,          label: "Full Name",     value: user?.name ?? "—" },
-    { Icon: Mail,          label: "Email",         value: user?.email ?? "—" },
-    { Icon: Hash,          label: "Student ID",    value: profile?.indexNumber ?? user?.email?.split("@")[0] ?? "—" },
-    { Icon: Layers,        label: "Class",         value: profile?.class ? `${profile.class.name} (Level ${profile.class.level})` : "—" },
-    { Icon: GraduationCap, label: "Programme",     value: profile?.program?.name ?? "—" },
-    { Icon: BookOpen,      label: "Faculty",       value: profile?.program?.faculty?.name ?? "—" },
-    { Icon: Calendar,      label: "Academic Year", value: settings?.academicYear ?? "—" },
-    { Icon: Calendar,      label: "Semester",      value: settings?.semester ?? "—" },
+    { Icon: User, label: "Full Name", value: user?.name ?? "�" },
+    { Icon: Mail, label: "Email", value: user?.email ?? "�" },
+    { Icon: Hash, label: "Student ID", value: profile?.indexNumber ?? user?.email?.split("@")[0] ?? "�" },
+    { Icon: Layers, label: "Class", value: profile?.class ? `${profile.class.name} (Level ${profile.class.level})` : "�" },
+    { Icon: GraduationCap, label: "Programme", value: profile?.program?.name ?? "�" },
+    { Icon: BookOpen, label: "Faculty", value: profile?.program?.faculty?.name ?? "�" },
+    { Icon: Calendar, label: "Academic Year", value: settings?.academicYear ?? "�" },
+    { Icon: Calendar, label: "Semester", value: settings?.semester ?? "�" },
   ];
 
   return (
-    <div className="bg-[#f8f9fa] min-h-full">
+    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
 
-      {/* ── Command bar ── */}
-      <div className="bg-white border-b border-[#edebe9] px-5 py-3">
+      {/* -- Command bar -- */}
+      <div className="bg-white dark:bg-[#2b2b30] border-b border-[#edebe9] dark:border-white/10 px-5 py-3">
         <div className="flex items-center gap-1 text-[11px] text-[#8a8886]">
           <span>Student</span>
           <ChevronRight size={11} />
@@ -76,7 +76,7 @@ export default async function ProfilePage() {
 
       <div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[900px]">
 
-        {/* ── Academic details ── */}
+        {/* -- Academic details -- */}
         <div className="bg-white border border-[#edebe9] rounded overflow-hidden">
           <div className="px-5 py-3 border-b border-[#edebe9] flex items-center justify-between bg-[#faf9f8]">
             <h2 className="text-[13px] font-semibold text-[#323130]">Academic Information</h2>
@@ -98,7 +98,7 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        {/* ── Security ── */}
+        {/* -- Security -- */}
         <div className="bg-white border border-[#edebe9] rounded overflow-hidden">
           <div className="px-5 py-3 border-b border-[#edebe9] bg-[#faf9f8] flex items-center gap-2">
             <ShieldCheck size={14} className="text-[#002388]" />

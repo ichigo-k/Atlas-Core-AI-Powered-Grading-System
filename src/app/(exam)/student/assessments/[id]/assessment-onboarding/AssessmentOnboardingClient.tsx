@@ -53,6 +53,7 @@ function buildSteps(passwordProtected: boolean, proctoringEnabled: boolean) {
     { label: "Important rules", icon: AlertTriangle },
     { label: "General rules", icon: BookOpen },
     ...(passwordProtected ? [{ label: "Password", icon: LockKeyhole }] : []),
+    { label: "Microphone", icon: Mic },
     ...(proctoringEnabled ? [{ label: "Camera check", icon: Camera }] : []),
   ];
 }
@@ -90,9 +91,8 @@ function MobileProgress({
           return (
             <div
               key={s.label}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                done ? "bg-primary flex-1" : active ? "bg-primary w-6" : "bg-slate-200 flex-1"
-              }`}
+              className={`h-1.5 rounded-full transition-all duration-300 ${done ? "bg-primary flex-1" : active ? "bg-primary w-6" : "bg-slate-200 flex-1"
+                }`}
             />
           );
         })}
@@ -127,28 +127,25 @@ function Sidebar({
         return (
           <div
             key={s.label}
-            className={`flex items-center gap-3 px-2.5 py-2 rounded-sm transition-all border ${
-              active
+            className={`flex items-center gap-3 px-2.5 py-2 rounded-sm transition-all border ${active
                 ? "bg-primary/10 text-primary border-primary/20"
                 : "border-transparent text-slate-500"
-            }`}
+              }`}
           >
             <div
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-[10px] font-bold transition-all ${
-                done
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-[10px] font-bold transition-all ${done
                   ? "bg-primary text-white"
                   : active
-                  ? "bg-primary/20 text-primary"
-                  : "bg-slate-100 text-slate-500 border border-slate-200"
-              }`}
+                    ? "bg-primary/20 text-primary"
+                    : "bg-slate-100 text-slate-500 border border-slate-200"
+                }`}
             >
               {done ? <Check size={11} strokeWidth={3} /> : <Icon size={11} />}
             </div>
 
             <span
-              className={`text-sm transition-colors ${
-                active ? "font-medium text-[#1a73e8]" : done ? "font-medium text-[#5f6368]" : "text-[#5f6368]"
-              }`}
+              className={`text-sm transition-colors ${active ? "font-medium text-[#1a73e8]" : done ? "font-medium text-[#5f6368]" : "text-[#5f6368]"
+                }`}
             >
               {s.label}
             </span>
@@ -289,15 +286,11 @@ function StepGeneralRules({
       title: "Auto-save enabled",
       desc: "Your answers are saved automatically as you type.",
     },
-    ...(proctoringEnabled
-      ? [
-        {
-          icon: Volume2,
-          title: "Be in a quiet place",
-          desc: "Your microphone will be monitored throughout the exam. Sustained noise or talking will be flagged as a violation.",
-        },
-      ]
-      : []),
+    {
+      icon: Volume2,
+      title: "Be in a quiet place",
+      desc: "Your microphone will be monitored throughout the exam. Any talking or sustained noise will be flagged as a violation.",
+    },
   ];
 
   return (
@@ -356,6 +349,122 @@ function StepGeneralRules({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Mic check step — shown for ALL exams
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StepMicCheck({
+  onNext,
+  onBack,
+}: {
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const [micState, setMicState] = useState<MicState>("idle");
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const requestMic = useCallback(async () => {
+    setMicState("requesting");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      streamRef.current = stream;
+      setMicState("granted");
+    } catch {
+      setMicState("denied");
+    }
+  }, []);
+
+  useEffect(() => {
+    requestMic();
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, [requestMic]);
+
+  const canContinue = micState === "granted";
+
+  return (
+    <div className="flex flex-col h-full">
+      <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">Microphone check</h2>
+      <p className="text-[12px] text-muted-foreground mb-6">
+        Your microphone is required for all exams. Audio is monitored to enforce silence during the assessment.
+      </p>
+
+      <div className="flex-1 space-y-4">
+        {/* Notice */}
+        <div className="flex items-start gap-3 rounded-sm border border-amber-100 bg-amber-50 p-4">
+          <Volume2 size={16} className="mt-0.5 shrink-0 text-amber-600" />
+          <div>
+            <p className="text-[12px] font-bold text-amber-800 mb-1">Audio monitoring is active on all exams</p>
+            <p className="text-[11px] text-amber-700/90 leading-relaxed">
+              Your microphone will be recorded throughout the exam. Any talking, whispering, or sustained noise will be logged as a violation. Make sure you are in a quiet room before proceeding.
+            </p>
+          </div>
+        </div>
+
+        {/* Mic status */}
+        <div className={`flex items-center gap-3 rounded-sm border p-4 transition-colors ${micState === "granted"
+            ? "border-emerald-200 bg-emerald-50"
+            : micState === "denied"
+              ? "border-red-200 bg-red-50"
+              : "border-slate-200 bg-slate-50"
+          }`}>
+          {micState === "granted" ? (
+            <Mic size={18} className="shrink-0 text-emerald-600" />
+          ) : micState === "denied" ? (
+            <MicOff size={18} className="shrink-0 text-red-600" />
+          ) : (
+            <Loader2 size={18} className="shrink-0 text-slate-400 animate-spin" />
+          )}
+          <div>
+            <p className={`text-[12px] font-bold ${micState === "granted" ? "text-emerald-700"
+                : micState === "denied" ? "text-red-700"
+                  : "text-slate-500"
+              }`}>
+              {micState === "granted" ? "Microphone access granted"
+                : micState === "denied" ? "Microphone access denied"
+                  : micState === "requesting" ? "Requesting microphone access…"
+                    : "Waiting for microphone…"}
+            </p>
+            {micState === "denied" && (
+              <p className="text-[11px] text-red-700/80 mt-0.5 leading-relaxed">
+                Allow microphone access in your browser settings then{" "}
+                <button type="button" onClick={requestMic} className="underline font-semibold">try again</button>.
+              </p>
+            )}
+            {micState === "granted" && (
+              <p className="text-[11px] text-emerald-700/80 mt-0.5">Ready. You may proceed.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-border flex items-center gap-2 mt-auto">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!canContinue}
+          className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          Continue <ArrowRight size={13} />
+        </button>
+        {!canContinue && micState !== "requesting" && (
+          <p className="text-[11px] text-muted-foreground ml-1">
+            {micState === "denied" ? "Microphone access is required to proceed." : "Waiting for microphone…"}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Step 3 — Camera check
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -373,7 +482,6 @@ function StepCameraCheck({
   const router = useRouter();
 
   const [cameraState, setCameraState] = useState<CameraState>("idle");
-  const [micState, setMicState] = useState<MicState>("idle");
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
   const [agreed, setAgreed] = useState(false);
@@ -382,7 +490,6 @@ function StepCameraCheck({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const requestCamera = useCallback(async () => {
@@ -396,26 +503,13 @@ function StepCameraCheck({
     }
   }, []);
 
-  const requestMic = useCallback(async () => {
-    setMicState("requesting");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      micStreamRef.current = stream;
-      setMicState("granted");
-    } catch {
-      setMicState("denied");
-    }
-  }, []);
-
   useEffect(() => {
     requestCamera();
-    requestMic();
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      micStreamRef.current?.getTracks().forEach((t) => t.stop());
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [requestCamera, requestMic]);
+  }, [requestCamera]);
 
   useEffect(() => {
     if (cameraState === "granted" && videoRef.current && streamRef.current) {
@@ -519,7 +613,7 @@ function StepCameraCheck({
   const lightingOk = lightingStatus === "ok";
   const faceOk = faceStatus === "ok";
   const checksComplete = lightingOk && faceOk;
-  const canProceed = agreed && cameraState === "granted" && micState === "granted" && checksComplete && !isProceeding;
+  const canProceed = agreed && cameraState === "granted" && checksComplete && !isProceeding;
 
   return (
     <div className="flex flex-col h-full">
@@ -546,25 +640,23 @@ function StepCameraCheck({
 
             {/* Status badges */}
             <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1.5">
-              <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
-                lightingStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
-                : lightingOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
-                : "border-amber-500/40 bg-amber-950/80 text-amber-300"
-              }`}>
+              <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${lightingStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
+                  : lightingOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
+                    : "border-amber-500/40 bg-amber-950/80 text-amber-300"
+                }`}>
                 {lightingStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Checking…</>
-                : lightingOk ? <><Sun size={11} /> Good lighting</>
-                : <><SunDim size={11} /> Too dark</>}
+                  : lightingOk ? <><Sun size={11} /> Good lighting</>
+                    : <><SunDim size={11} /> Too dark</>}
               </div>
-              <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
-                faceStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
-                : faceOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
-                : faceStatus === "absent" ? "border-red-500/40 bg-red-950/80 text-red-300"
-                : "border-slate-500/40 bg-slate-900/80 text-slate-200"
-              }`}>
+              <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${faceStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
+                  : faceOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
+                    : faceStatus === "absent" ? "border-red-500/40 bg-red-950/80 text-red-300"
+                      : "border-slate-500/40 bg-slate-900/80 text-slate-200"
+                }`}>
                 {faceStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Detecting face…</>
-                : faceOk ? <><User size={11} /> Face detected</>
-                : faceStatus === "absent" ? <><User size={11} /> No face detected</>
-                : <><Loader2 size={11} className="animate-spin" /> Detecting face…</>}
+                  : faceOk ? <><User size={11} /> Face detected</>
+                    : faceStatus === "absent" ? <><User size={11} /> No face detected</>
+                      : <><Loader2 size={11} className="animate-spin" /> Detecting face…</>}
               </div>
             </div>
           </>
@@ -591,23 +683,6 @@ function StepCameraCheck({
                 Allow camera access in your browser settings and refresh the page.
               </p>
             </div>
-          </div>
-        )}
-        {micState === "denied" && (
-          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
-            <MicOff size={14} className="mt-0.5 shrink-0 text-red-600" />
-            <div>
-              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Microphone access required</p>
-              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
-                Audio monitoring is required for this exam. Allow microphone access in your browser settings and refresh the page.
-              </p>
-            </div>
-          </div>
-        )}
-        {micState === "granted" && cameraState === "granted" && (
-          <div className="flex items-center gap-2 px-1">
-            <Mic size={13} className="shrink-0 text-emerald-600" />
-            <p className="text-[12px] font-semibold text-emerald-700">Microphone access granted.</p>
           </div>
         )}
         {lightingStatus === "poor" && (
@@ -660,9 +735,8 @@ function StepCameraCheck({
 
         <label className="group flex cursor-pointer items-start gap-3">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="sr-only" />
-          <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors ${
-            agreed ? "border-primary bg-primary" : "border-border bg-white group-hover:border-primary"
-          }`}>
+          <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors ${agreed ? "border-primary bg-primary" : "border-border bg-white group-hover:border-primary"
+            }`}>
             {agreed && <Check size={9} className="text-white" strokeWidth={3} />}
           </div>
           <span className="select-none text-[11px] leading-relaxed text-slate-500">
@@ -689,12 +763,11 @@ function StepCameraCheck({
         {!canProceed && !isProceeding && (
           <p className="text-[11px] text-muted-foreground">
             {cameraState === "denied" ? "Camera access is required to proceed."
-            : micState === "denied" ? "Microphone access is required to proceed."
-            : lightingStatus === "poor" ? "Improve your lighting to continue."
-            : faceStatus === "absent" ? "Position your face in front of the camera."
-            : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"
-            : !agreed ? "Check the agreement box above to continue."
-            : "Waiting for camera…"}
+              : lightingStatus === "poor" ? "Improve your lighting to continue."
+                : faceStatus === "absent" ? "Position your face in front of the camera."
+                  : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"
+                    : !agreed ? "Check the agreement box above to continue."
+                      : "Waiting for camera…"}
           </p>
         )}
       </div>
@@ -831,7 +904,8 @@ export default function AssessmentOnboardingClient({
 
   const steps = buildSteps(passwordProtected, proctoringEnabled);
   const passwordStepIndex = passwordProtected ? 2 : -1;
-  const proctorStepIndex = proctoringEnabled ? (passwordProtected ? 3 : 2) : -1;
+  const micStepIndex = passwordProtected ? 3 : 2;
+  const proctorStepIndex = proctoringEnabled ? micStepIndex + 1 : -1;
   const resolvedAttemptId = createdAttemptId;
 
   async function handleGeneralRulesNext() {
@@ -856,28 +930,18 @@ export default function AssessmentOnboardingClient({
       setCreatedAttemptId(currentAttemptId);
     }
 
-    if (proctoringEnabled) {
-      setStep(proctorStepIndex);
-    } else {
-      router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${currentAttemptId}`);
-    }
+    setStep(micStepIndex);
   }
 
   function handlePasswordSuccess(newAttemptId: number) {
     setCreatedAttemptId(newAttemptId);
-    if (proctoringEnabled) {
-      setStep(proctorStepIndex);
-      return;
-    }
-    router.push(
-      `/student/assessments/${assessmentId}/attempt?attemptId=${newAttemptId}`,
-    );
+    setStep(micStepIndex);
   }
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
       {/* Navbar */}
-      <header className="h-12 bg-primary flex items-center justify-between px-4 sm:px-6 w-full shrink-0">
+      <header className="h-12 bg-primary dark:bg-[#002388] flex items-center justify-between px-4 sm:px-6 w-full shrink-0">
         <div className="flex items-center gap-2.5">
           <Image
             src="/logos/gctu-logo.png"
@@ -941,13 +1005,25 @@ export default function AssessmentOnboardingClient({
                   onSuccess={handlePasswordSuccess}
                 />
               )}
+              {step === micStepIndex && resolvedAttemptId != null && (
+                <StepMicCheck
+                  onNext={() => {
+                    if (proctoringEnabled) {
+                      setStep(proctorStepIndex);
+                    } else {
+                      router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${resolvedAttemptId}`);
+                    }
+                  }}
+                  onBack={() => setStep(passwordProtected ? passwordStepIndex : 1)}
+                />
+              )}
               {step === proctorStepIndex &&
                 proctoringEnabled &&
                 resolvedAttemptId != null && (
                   <StepCameraCheck
                     attemptId={resolvedAttemptId}
                     assessmentId={assessmentId}
-                    onBack={() => setStep(passwordProtected ? passwordStepIndex : 1)}
+                    onBack={() => setStep(micStepIndex)}
                     onCancel={() => router.push(`/student/assessments`)}
                   />
                 )}

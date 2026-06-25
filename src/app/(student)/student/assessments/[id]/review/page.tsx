@@ -1,4 +1,4 @@
-﻿import { notFound, redirect } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import {
   ChevronLeft,
@@ -325,21 +325,21 @@ export default async function AssessmentReviewPage({
         correctOption: correctOptionMap.get(q.id) ?? null,
         answer: answer
           ? {
-              answerText: answer.answerText,
-              selectedOption: answer.selectedOption,
-              fileUrl: answer.fileUrl,
-              lecturerNotes: answer.lecturerNotes,
-            }
+            answerText: answer.answerText,
+            selectedOption: answer.selectedOption,
+            fileUrl: answer.fileUrl,
+            lecturerNotes: answer.lecturerNotes,
+          }
           : null,
         feedback: feedback
           ? {
-              totalScore: feedback.totalScore,
-              maxScore: feedback.maxScore,
-              flag: feedback.flag,
-              flagReason: feedback.flagReason,
-              bedrockError: feedback.bedrockError,
-              criteriaFeedback: feedback.criteriaFeedback,
-            }
+            totalScore: feedback.totalScore,
+            maxScore: feedback.maxScore,
+            flag: feedback.flag,
+            flagReason: feedback.flagReason,
+            bedrockError: feedback.bedrockError,
+            criteriaFeedback: feedback.criteriaFeedback,
+          }
           : null,
       }
     }),
@@ -352,133 +352,133 @@ export default async function AssessmentReviewPage({
       : null
 
   return (
-    <div className="bg-[#f8f9fa] min-h-full">
-    {/* Command bar */}
-    <div className="bg-white border-b border-[#edebe9] px-5 py-3 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <div className="flex items-center gap-1 text-[11px] text-[#8a8886] mb-0.5">
-          <span>Student</span>
-          <span className="mx-0.5">›</span>
-          <span>Assessments</span>
-          <span className="mx-0.5">›</span>
-          <span className="text-[#002388] font-medium">Review</span>
-        </div>
-        <h1 className="text-[17px] font-semibold text-[#323130]">Assessment Review</h1>
-      </div>
-      <Link
-        href={`/student/assessments/${assessmentId}`}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#323130] hover:bg-[#f8f9fa] border border-transparent hover:border-[#8a8886] rounded transition-colors"
-      >
-        <ChevronLeft size={13} />
-        Back to Assessment
-      </Link>
-    </div>
-    <div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">
-
-      {/* Header card */}
-      <div className="bg-white border border-border rounded-sm p-6 space-y-5">
+    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
+      {/* Command bar */}
+      <div className="bg-white border-b border-[#edebe9] px-5 py-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-bold text-[#1e293b] leading-tight">{assessment.title}</h1>
-          <p className="mt-1.5 flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-            <BookOpen size={12} className="text-primary" strokeWidth={2} />
-            {assessment.courseTitle}
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-            <span className="text-[#1e293b]">{assessment.courseCode}</span>
-          </p>
+          <div className="flex items-center gap-1 text-[11px] text-[#8a8886] mb-0.5">
+            <span>Student</span>
+            <span className="mx-0.5">›</span>
+            <span>Assessments</span>
+            <span className="mx-0.5">›</span>
+            <span className="text-[#002388] font-medium">Review</span>
+          </div>
+          <h1 className="text-[17px] font-semibold text-[#323130]">Assessment Review</h1>
         </div>
+        <Link
+          href={`/student/assessments/${assessmentId}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#323130] hover:bg-[#f8f9fa] border border-transparent hover:border-[#8a8886] rounded transition-colors"
+        >
+          <ChevronLeft size={13} />
+          Back to Assessment
+        </Link>
+      </div>
+      <div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">
 
-        {/* Score summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 border-t border-[#f1f5f9] pt-5">
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Your Performance
+        {/* Header card */}
+        <div className="bg-white border border-border rounded-sm p-6 space-y-5">
+          <div>
+            <h1 className="text-lg font-bold text-[#1e293b] leading-tight">{assessment.title}</h1>
+            <p className="mt-1.5 flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <BookOpen size={12} className="text-primary" strokeWidth={2} />
+              {assessment.courseTitle}
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+              <span className="text-[#1e293b]">{assessment.courseCode}</span>
             </p>
-            {score != null ? (
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-[#1e293b] leading-none">{score}</span>
-                <span className="text-sm font-semibold text-slate-400 leading-none">/ {assessment.totalMarks}</span>
-              </div>
-            ) : (
-              <p className="text-sm font-semibold text-slate-400 italic">Not yet scored</p>
-            )}
           </div>
 
-          <div className="flex flex-col justify-center gap-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Pct</p>
-            {scorePct !== null && score != null ? (
-               <ScoreBar score={score} max={assessment.totalMarks} />
-            ) : <div className="h-2 bg-slate-100 rounded-sm" />}
-          </div>
-
-          <div className="space-y-0.5 sm:text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-right">
-              Final Grade
-            </p>
-            <div className="flex sm:justify-end mt-1">
-              {latestSubmitted.grade ? (
-                <div className="h-10 w-10 rounded-sm bg-primary flex items-center justify-center text-white text-lg font-bold">
-                  {latestSubmitted.grade}
+          {/* Score summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 border-t border-[#f1f5f9] pt-5">
+            <div className="space-y-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Your Performance
+              </p>
+              {score != null ? (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-[#1e293b] leading-none">{score}</span>
+                  <span className="text-sm font-semibold text-slate-400 leading-none">/ {assessment.totalMarks}</span>
                 </div>
               ) : (
-                <div className="h-10 w-10 rounded-sm bg-slate-100 border border-border" />
+                <p className="text-sm font-semibold text-slate-400 italic">Not yet scored</p>
               )}
             </div>
+
+            <div className="flex flex-col justify-center gap-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Pct</p>
+              {scorePct !== null && score != null ? (
+                <ScoreBar score={score} max={assessment.totalMarks} />
+              ) : <div className="h-2 bg-slate-100 rounded-sm" />}
+            </div>
+
+            <div className="space-y-0.5 sm:text-right">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-right">
+                Final Grade
+              </p>
+              <div className="flex sm:justify-end mt-1">
+                {latestSubmitted.grade ? (
+                  <div className="h-10 w-10 rounded-sm bg-primary flex items-center justify-center text-white text-lg font-bold">
+                    {latestSubmitted.grade}
+                  </div>
+                ) : (
+                  <div className="h-10 w-10 rounded-sm bg-slate-100 border border-border" />
+                )}
+              </div>
+            </div>
           </div>
+
+          {gradingDetail?.plagiarismFlagged && (
+            <div className="flex items-center gap-3 rounded-sm border border-red-100 bg-red-50 p-4">
+              <ShieldAlert size={16} className="text-red-600 shrink-0" strokeWidth={2} />
+              <p className="text-[11px] font-bold uppercase tracking-wider text-red-700">Security Alert: Plagiarism Detected</p>
+            </div>
+          )}
         </div>
 
-        {gradingDetail?.plagiarismFlagged && (
-          <div className="flex items-center gap-3 rounded-sm border border-red-100 bg-red-50 p-4">
-             <ShieldAlert size={16} className="text-red-600 shrink-0" strokeWidth={2} />
-             <p className="text-[11px] font-bold uppercase tracking-wider text-red-700">Security Alert: Plagiarism Detected</p>
+        {/* Questions by section */}
+        {sections.map((section) => (
+          <div key={section.id} className="space-y-4">
+            <div className="flex items-center gap-3 px-1">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#1e293b]">{section.name}</h2>
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border border-border px-2 py-0.5 rounded-sm">{section.questions.length} Items</span>
+            </div>
+
+            <div className="grid gap-4">
+              {section.questions.map((q, qi) => (
+                <div key={q.id} className="bg-white border border-border rounded-sm p-5 space-y-4 transition-all hover:border-slate-300">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-sm bg-[#1e293b] text-white text-xs font-bold">
+                        {qi + 1}
+                      </span>
+                      <p className="text-sm font-semibold text-slate-800 leading-relaxed pt-0.5">{q.body}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[12px] font-bold text-[#1e293b] tabular-nums">{q.marks} Pts</p>
+                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Weighting</p>
+                    </div>
+                  </div>
+
+                  <div className="pl-0 sm:pl-9">
+                    {section.type === "OBJECTIVE" ? (
+                      <McqQuestion q={q} />
+                    ) : (
+                      <SubjectiveQuestion q={q} />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {sections.every((s) => s.questions.length === 0) && (
+          <div className="bg-white border border-[#edebe9] rounded p-16 text-center flex flex-col items-center gap-3">
+            <AlertTriangle size={36} className="text-[#c8c6c4]" strokeWidth={2} />
+            <p className="text-[13px] font-semibold text-[#8a8886] uppercase tracking-wider">Assessment data unavailable.</p>
           </div>
         )}
       </div>
-
-      {/* Questions by section */}
-      {sections.map((section) => (
-        <div key={section.id} className="space-y-4">
-          <div className="flex items-center gap-3 px-1">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#1e293b]">{section.name}</h2>
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border border-border px-2 py-0.5 rounded-sm">{section.questions.length} Items</span>
-          </div>
-
-          <div className="grid gap-4">
-            {section.questions.map((q, qi) => (
-              <div key={q.id} className="bg-white border border-border rounded-sm p-5 space-y-4 transition-all hover:border-slate-300">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-sm bg-[#1e293b] text-white text-xs font-bold">
-                      {qi + 1}
-                    </span>
-                    <p className="text-sm font-semibold text-slate-800 leading-relaxed pt-0.5">{q.body}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[12px] font-bold text-[#1e293b] tabular-nums">{q.marks} Pts</p>
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Weighting</p>
-                  </div>
-                </div>
-
-                <div className="pl-0 sm:pl-9">
-                  {section.type === "OBJECTIVE" ? (
-                    <McqQuestion q={q} />
-                  ) : (
-                    <SubjectiveQuestion q={q} />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {sections.every((s) => s.questions.length === 0) && (
-        <div className="bg-white border border-[#edebe9] rounded p-16 text-center flex flex-col items-center gap-3">
-           <AlertTriangle size={36} className="text-[#c8c6c4]" strokeWidth={2} />
-           <p className="text-[13px] font-semibold text-[#8a8886] uppercase tracking-wider">Assessment data unavailable.</p>
-        </div>
-      )}
-    </div>
     </div>
   )
 }

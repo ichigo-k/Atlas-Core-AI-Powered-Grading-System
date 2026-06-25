@@ -256,9 +256,10 @@ function QuestionSelectionScreen({
   )
 }
 
-// ─── Submit Dialog ────────────────────────────────────────────────────────────
+// ─── Submit Review Screen (full page) ─────────────────────────────────────────
 
-function SubmitDialog({ sections, totalRequired, answeredCount, isPending, onConfirm, onCancel }: {
+function SubmitReviewScreen({ assessment, sections, totalRequired, answeredCount, isPending, onConfirm, onCancel }: {
+  assessment: SerializedAssessmentDetail
   sections: SectionWithProgress[]
   totalRequired: number
   answeredCount: number
@@ -266,87 +267,124 @@ function SubmitDialog({ sections, totalRequired, answeredCount, isPending, onCon
   onConfirm: () => void
   onCancel: () => void
 }) {
-  const unanswered = totalRequired - answeredCount
+  const answered = Math.min(answeredCount, totalRequired)
+  const unanswered = Math.max(0, totalRequired - answeredCount)
   const allAnswered = unanswered <= 0
+  const pct = totalRequired > 0 ? Math.min((answeredCount / totalRequired) * 100, 100) : 0
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
-      <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border border-[#e5e7eb] overflow-hidden">
-        <div className="px-6 py-5 border-b border-[#e5e7eb]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${allAnswered ? "bg-[#eff6ff]" : "bg-[#fffbeb]"}`}>
-                {allAnswered ? <Send size={17} className="text-[#1d4ed8]" /> : <AlertTriangle size={17} className="text-[#d97706]" />}
-              </div>
-              <div>
-                <h2 className="text-[15px] font-semibold text-[#111827]">
-                  {allAnswered ? "Submit assessment?" : "Unanswered questions"}
-                </h2>
-                <p className="text-xs text-[#6b7280] mt-0.5">
-                  {allAnswered ? "This action cannot be undone." : "You still have required questions unanswered."}
-                </p>
-              </div>
-            </div>
-            <button type="button" onClick={onCancel}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:text-[#374151] hover:bg-[#f3f4f6] transition-colors" aria-label="Close">
-              <X size={15} />
-            </button>
+    <div className="fixed inset-0 z-[200] bg-[#f8f9fa] flex flex-col overflow-hidden">
+      {/* Top bar */}
+      <header className="flex items-center justify-between border-b border-[#ebebeb] bg-white px-4 sm:px-8 py-3 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#eef2ff]">
+            <BookOpen size={15} className="text-[#002388]" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold text-[#111827] leading-tight">{assessment.title}</p>
+            <p className="text-[10px] uppercase tracking-wider font-medium text-[#9ca3af]">Review &amp; Submit</p>
           </div>
         </div>
+        <button type="button" onClick={onCancel} disabled={isPending}
+          className="flex items-center gap-1.5 rounded-md border border-[#e5e7eb] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#374151] hover:bg-[#f9fafb] transition-colors disabled:opacity-50">
+          <ChevronLeft size={14} />Back to assessment
+        </button>
+      </header>
 
-        <div className="px-6 py-5 space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[#6b7280]">Required questions answered</span>
-              <span className={`font-semibold ${allAnswered ? "text-[#16a34a]" : "text-[#d97706]"}`}>
-                {Math.min(answeredCount, totalRequired)} / {totalRequired}
-              </span>
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-4 py-8 sm:py-12">
+        <div className="mx-auto w-full max-w-2xl">
+
+          {/* Heading */}
+          <div className="flex items-start gap-4 mb-8">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${allAnswered ? "bg-[#dcfce7]" : "bg-[#fef3c7]"}`}>
+              {allAnswered
+                ? <CheckCircle2 size={24} className="text-[#16a34a]" />
+                : <AlertTriangle size={24} className="text-[#d97706]" />}
             </div>
-            <div className="h-1.5 w-full rounded-full bg-[#f3f4f6] overflow-hidden">
-              <div className={`h-1.5 rounded-full transition-all ${allAnswered ? "bg-[#16a34a]" : "bg-[#f59e0b]"}`}
-                style={{ width: `${totalRequired > 0 ? Math.min((answeredCount / totalRequired) * 100, 100) : 0}%` }} />
+            <div className="min-w-0 pt-0.5">
+              <h1 className="text-[24px] font-semibold text-[#111827] leading-tight">
+                {allAnswered ? "You're ready to submit" : "You have unanswered questions"}
+              </h1>
+              <p className="mt-1 text-[14px] text-[#6b7280]">
+                {allAnswered
+                  ? "You've answered all required questions. Review the breakdown below, then submit when you're ready."
+                  : `You can still go back and complete them. Once you submit, this attempt is final and cannot be changed.`}
+              </p>
             </div>
           </div>
 
-          <div className="rounded-lg border border-[#e5e7eb] divide-y divide-[#f3f4f6] overflow-hidden">
+          {/* Progress summary card */}
+          <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 mb-5">
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9ca3af]">Required questions answered</p>
+                <p className="mt-1 text-[32px] font-bold leading-none text-[#111827] font-mono tabular-nums">
+                  {answered}<span className="text-[#9ca3af] text-[20px] font-semibold"> / {totalRequired}</span>
+                </p>
+              </div>
+              <span className={`text-[13px] font-semibold ${allAnswered ? "text-[#16a34a]" : "text-[#d97706]"}`}>
+                {Math.round(pct)}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-[#f3f4f6] overflow-hidden">
+              <div className={`h-2 rounded-full transition-all ${allAnswered ? "bg-[#16a34a]" : "bg-[#f59e0b]"}`}
+                style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+
+          {/* Section breakdown */}
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-2 px-1">By section</p>
+          <div className="rounded-xl border border-[#e5e7eb] bg-white divide-y divide-[#f3f4f6] overflow-hidden mb-5">
             {sections.map((section) => {
               const required = section.requiredQuestionsCount ?? section.questions.length
-              const done = section.answeredCount
+              const done = Math.min(section.answeredCount, required)
               const complete = done >= required
               return (
-                <div key={section.id} className="flex items-center justify-between px-4 py-2.5 bg-white">
-                  <span className="text-sm text-[#374151] truncate flex-1 mr-3">{section.name}</span>
-                  <span className={`shrink-0 flex items-center gap-1.5 text-xs font-semibold ${complete ? "text-[#16a34a]" : "text-[#d97706]"}`}>
+                <div key={section.id} className="flex items-center justify-between px-5 py-3.5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {complete
+                      ? <CheckCircle2 size={16} className="shrink-0 text-[#16a34a]" />
+                      : <AlertTriangle size={16} className="shrink-0 text-[#d97706]" />}
+                    <span className="text-[14px] text-[#374151] truncate">{section.name}</span>
+                  </div>
+                  <span className={`shrink-0 text-[13px] font-semibold font-mono tabular-nums ${complete ? "text-[#16a34a]" : "text-[#d97706]"}`}>
                     {done}/{required}
-                    {complete && <CheckCircle2 size={12} />}
                   </span>
                 </div>
               )
             })}
           </div>
 
+          {/* Unanswered warning */}
           {!allAnswered && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-[#fde68a] bg-[#fffbeb] px-4 py-3">
-              <AlertTriangle size={14} className="shrink-0 text-[#d97706] mt-0.5" />
-              <p className="text-sm text-[#92400e]">
-                <strong>{Math.max(0, unanswered)}</strong> required question{unanswered !== 1 ? "s" : ""} still unanswered.
-              </p>
+            <div className="flex items-start gap-3 rounded-xl border border-[#fde68a] bg-[#fffbeb] px-5 py-4 mb-5">
+              <AlertTriangle size={18} className="shrink-0 text-[#d97706] mt-0.5" />
+              <div>
+                <p className="text-[14px] font-semibold text-[#92400e]">
+                  {unanswered} required question{unanswered !== 1 ? "s" : ""} still unanswered
+                </p>
+                <p className="text-[13px] text-[#a16207] mt-0.5">
+                  Unanswered questions will be scored as zero. Go back to complete them if you have time remaining.
+                </p>
+              </div>
             </div>
           )}
-        </div>
 
-        <div className="flex gap-2.5 border-t border-[#e5e7eb] px-6 py-4 bg-[#f9fafb]">
-          <button type="button" onClick={onCancel} disabled={isPending}
-            className="flex-1 rounded-lg border border-[#d1d5db] bg-white px-4 py-2.5 text-sm font-medium text-[#374151] hover:bg-[#f9fafb] transition-colors disabled:opacity-50">
-            Go back
-          </button>
-          <button type="button" onClick={onConfirm} disabled={isPending}
-            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${allAnswered ? "bg-[#002388] hover:bg-[#0B4DBB]" : "bg-[#d97706] hover:bg-[#b45309]"}`}>
-            {isPending
-              ? <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />Submitting…</>
-              : <><Send size={13} />{allAnswered ? "Submit" : "Submit anyway"}</>
-            }
-          </button>
+          {/* Actions */}
+          <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end pt-2">
+            <button type="button" onClick={onCancel} disabled={isPending}
+              className="flex items-center justify-center gap-2 rounded-lg border border-[#d1d5db] bg-white px-5 py-3 text-[14px] font-semibold text-[#374151] hover:bg-[#f9fafb] transition-colors disabled:opacity-50">
+              <ChevronLeft size={16} />Back to assessment
+            </button>
+            <button type="button" onClick={onConfirm} disabled={isPending}
+              className={`flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-[14px] font-semibold text-white transition-colors disabled:opacity-60 ${allAnswered ? "bg-[#002388] hover:bg-[#0B4DBB]" : "bg-[#d97706] hover:bg-[#b45309]"}`}>
+              {isPending
+                ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Submitting…</>
+                : <><Send size={15} />{allAnswered ? "Submit assessment" : "Submit anyway"}</>
+              }
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -572,6 +610,8 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   }, [])
 
   async function handleExpire() {
+    // Mark submitting so the fullscreen-exit/blur from navigating away isn't flagged.
+    useViolationStore.getState().beginSubmit()
     // Disable the beforeunload prompt so the browser doesn't ask "leave site?"
     // when we redirect after the timer hits zero.
     lockdownRef.current?.allowUnload()
@@ -581,6 +621,8 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   function handleSubmitConfirm(reason?: "TIMED_OUT" | "FULLSCREEN_VIOLATION" | "TAB_SWITCH" | ViolationReason) {
     startTransition(async () => {
+      // Mark submitting so the fullscreen-exit/blur from navigating away isn't flagged.
+      useViolationStore.getState().beginSubmit()
       lockdownRef.current?.allowUnload()
       const dbReason = reason === "FULLSCREEN_EXIT" ? "FULLSCREEN_VIOLATION"
         : reason === "TAB_SWITCH" ? "TAB_SWITCH"
@@ -704,6 +746,14 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
         {needsSelection && <div className="flex-1" />}
 
+        {/* Proctor camera dock (desktop sidebar only — ProctorCamera portals its
+            preview in here; on mobile the cam stays hidden/off-screen). */}
+        {!onClose && assessment.proctoringEnabled && (
+          <div className="border-t border-[#ebebeb] px-3 py-3 shrink-0">
+            <div id="proctor-cam-slot" />
+          </div>
+        )}
+
         {/* Submit */}
         <div className="border-t border-[#ebebeb] p-3 shrink-0">
           <button type="button" onClick={() => { setShowSubmitDialog(true); onClose?.() }} disabled={isPending}
@@ -723,10 +773,11 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
       <AntiCheatGuard isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
       <ViolationOverlay assessmentId={assessmentId} />
       {assessment.proctoringEnabled && <ProctorCamera attemptId={attempt.id} />}
-      {assessment.proctoringEnabled && <ProctorAudio attemptId={attempt.id} />}
+      <ProctorAudio attemptId={attempt.id} />
 
       {showSubmitDialog && (
-        <SubmitDialog
+        <SubmitReviewScreen
+          assessment={assessment}
           sections={sectionsWithProgress}
           totalRequired={totalRequired}
           answeredCount={totalAnsweredAll}

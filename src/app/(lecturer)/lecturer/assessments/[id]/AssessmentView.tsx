@@ -82,9 +82,9 @@ const typeBadge: Record<string, string> = {
 }
 
 const statusBadge: Record<string, { cls: string; dot: string }> = {
-  DRAFT:     { cls: "bg-[#f1f5f9] text-[#475569] border-[#e2e8f0]", dot: "bg-[#94a3b8]" },
+  DRAFT: { cls: "bg-[#f1f5f9] text-[#475569] border-[#e2e8f0]", dot: "bg-[#94a3b8]" },
   PUBLISHED: { cls: "bg-[#dcfce7] text-[#166534] border-[#bbf7d0]", dot: "bg-[#22c55e]" },
-  CLOSED:    { cls: "bg-[#f1f5f9] text-[#64748b] border-[#e2e8f0]", dot: "bg-[#94a3b8]" },
+  CLOSED: { cls: "bg-[#f1f5f9] text-[#64748b] border-[#e2e8f0]", dot: "bg-[#94a3b8]" },
 }
 
 // ─── Edit Settings inline panel ───────────────────────────────────────────────
@@ -903,7 +903,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-[#f8f9fa] min-h-full flex flex-col">
+    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full flex flex-col">
       {/* Sticky command bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
         <ClipboardList size={11} />
@@ -914,148 +914,146 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
         <span className="text-[#002388] font-medium truncate max-w-[200px]">{assessment.title}</span>
       </div>
 
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16 space-y-5">
+      <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16 space-y-5">
 
-      {/* Modals */}
-      <EditSettingsSheet assessment={assessment} open={showSettings} onClose={() => setShowSettings(false)} />
+        {/* Modals */}
+        <EditSettingsSheet assessment={assessment} open={showSettings} onClose={() => setShowSettings(false)} />
 
-      <ConfirmModal
-        open={showClose}
-        title="Close Assessment?"
-        description={`"${assessment.title}" is currently live. Closing it will end the assessment for all students immediately. This cannot be undone.`}
-        confirmText="Close Assessment"
-        isLoading={isClosing}
-        onConfirm={handleClose}
-        onCancel={() => setShowClose(false)}
-      />
+        <ConfirmModal
+          open={showClose}
+          title="Close Assessment?"
+          description={`"${assessment.title}" is currently live. Closing it will end the assessment for all students immediately. This cannot be undone.`}
+          confirmText="Close Assessment"
+          isLoading={isClosing}
+          onConfirm={handleClose}
+          onCancel={() => setShowClose(false)}
+        />
 
-      <ConfirmModal
-        open={showDelete}
-        title="Delete Assessment?"
-        description={
-          assessment.status === "PUBLISHED"
-            ? `"${assessment.title}" is currently published. Deleting it may affect students who have already started. This cannot be undone.`
-            : `Are you sure you want to delete "${assessment.title}"? This cannot be undone.`
-        }
-        confirmText="Delete"
-        isDestructive
-        isLoading={isDeleting}
-        onConfirm={handleDelete}
-        onCancel={() => setShowDelete(false)}
-      />
+        <ConfirmModal
+          open={showDelete}
+          title="Delete Assessment?"
+          description={
+            assessment.status === "PUBLISHED"
+              ? `"${assessment.title}" is currently published. Deleting it may affect students who have already started. This cannot be undone.`
+              : `Are you sure you want to delete "${assessment.title}"? This cannot be undone.`
+          }
+          confirmText="Delete"
+          isDestructive
+          isLoading={isDeleting}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDelete(false)}
+        />
 
-      {/* Export sheet */}
-      <Sheet open={showExportDialog} onOpenChange={setShowExportDialog}>
-        <SheetContent side="right" className="flex flex-col w-full sm:max-w-sm p-0">
-          <SheetHeader className="px-6 py-4 border-b border-border shrink-0">
-            <SheetTitle className="text-[14px]">Export Marks</SheetTitle>
-            <SheetDescription className="text-[12px]">Select columns to include in the export.</SheetDescription>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
-            {ALL_EXPORT_FIELDS.map((field) => (
-              <label key={field} className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={selectedFields.includes(field)}
-                  onChange={(e) => setSelectedFields((prev) => e.target.checked ? [...prev, field] : prev.filter((f) => f !== field))}
-                  className="h-4 w-4 rounded-sm border-border accent-primary" />
-                <span className="text-[13px] text-[#1e293b]">{EXPORT_FIELD_LABELS[field]}</span>
-              </label>
+        {/* Export sheet */}
+        <Sheet open={showExportDialog} onOpenChange={setShowExportDialog}>
+          <SheetContent side="right" className="flex flex-col w-full sm:max-w-sm p-0">
+            <SheetHeader className="px-6 py-4 border-b border-border shrink-0">
+              <SheetTitle className="text-[14px]">Export Marks</SheetTitle>
+              <SheetDescription className="text-[12px]">Select columns to include in the export.</SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+              {ALL_EXPORT_FIELDS.map((field) => (
+                <label key={field} className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={selectedFields.includes(field)}
+                    onChange={(e) => setSelectedFields((prev) => e.target.checked ? [...prev, field] : prev.filter((f) => f !== field))}
+                    className="h-4 w-4 rounded-sm border-border accent-primary" />
+                  <span className="text-[13px] text-[#1e293b]">{EXPORT_FIELD_LABELS[field]}</span>
+                </label>
+              ))}
+            </div>
+            <SheetFooter className="px-6 py-4 border-t border-border shrink-0 flex-row justify-end gap-2">
+              <button onClick={() => setShowExportDialog(false)}
+                className="h-8 px-4 rounded-sm border border-border text-[12px] text-muted-foreground hover:bg-[#f3f2f1] transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleExport} disabled={isExporting || selectedFields.length === 0}
+                className="inline-flex items-center gap-2 h-8 px-4 rounded-sm bg-primary text-white text-[12px] font-semibold hover:bg-[#001570] disabled:opacity-50 transition-colors">
+                {isExporting ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Download size={12} />}
+                {isExporting ? "Exporting…" : "Export"}
+              </button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+
+        {/* Page header */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-[#1e293b]">{assessment.title}</h1>
+            <p className="text-[12px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+              <BookOpen size={12} className="text-primary shrink-0" />
+              {assessment.courseCode} — {assessment.courseTitle}
+            </p>
+          </div>
+          <ActionBar />
+        </div>
+
+        {/* Hero stats */}
+        <div className="rounded-sm border border-border bg-white overflow-hidden shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+          {/* Status accent bar */}
+          <div className={`h-[3px] w-full ${assessment.status === "PUBLISHED" ? "bg-[#22c55e]" :
+              assessment.status === "CLOSED" ? "bg-[#94a3b8]" :
+                "bg-primary"
+            }`} />
+          {/* Chips row */}
+          <div className="px-5 py-3.5 flex flex-wrap items-center gap-2.5 border-b border-[#f1f5f9] bg-[#fafaf9]">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold border tracking-[0.04em] ${typeBadge[assessment.type]}`}>
+              <BookOpen size={10} />
+              {assessment.type}
+            </span>
+            <span className="text-[#d1d5db]">·</span>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-semibold border ${status.cls}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+              {assessment.status}
+            </span>
+            {assessment.passwordProtected && (
+              <>
+                <span className="text-[#d1d5db]">·</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-[#e2e8f0] bg-[#f8fafc] text-[10px] font-semibold text-[#64748b] uppercase tracking-[0.04em]">
+                  <Lock size={9} /> Password
+                </span>
+              </>
+            )}
+            {assessment.proctoringEnabled && (
+              <>
+                <span className="text-[#d1d5db]">·</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-[#e2e8f0] bg-[#f8fafc] text-[10px] font-semibold text-[#64748b] uppercase tracking-[0.04em]">
+                  <ShieldAlert size={9} /> Proctored
+                </span>
+              </>
+            )}
+          </div>
+          {/* Stat tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#f1f5f9]">
+            <StatTile value={assessment.totalMarks} label="Total Marks" icon={<ClipboardList size={13} />} />
+            <StatTile value={totalQuestions} label="Questions" icon={<BookOpen size={13} />} />
+            <StatTile value={assessment.sections.length} label="Sections" icon={<ArrowUpDown size={13} />} />
+            <StatTile value={assessment.durationMinutes ? `${assessment.durationMinutes}m` : "—"} label="Duration" icon={<Clock size={13} />} />
+          </div>
+        </div>
+
+        {/* Tabs */}
+        {tabs.length > 1 && (
+          <div className="flex items-center border-b border-border">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-colors ${activeTab === tab.id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-[#1e293b]"
+                  }`}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
-          <SheetFooter className="px-6 py-4 border-t border-border shrink-0 flex-row justify-end gap-2">
-            <button onClick={() => setShowExportDialog(false)}
-              className="h-8 px-4 rounded-sm border border-border text-[12px] text-muted-foreground hover:bg-[#f3f2f1] transition-colors">
-              Cancel
-            </button>
-            <button onClick={handleExport} disabled={isExporting || selectedFields.length === 0}
-              className="inline-flex items-center gap-2 h-8 px-4 rounded-sm bg-primary text-white text-[12px] font-semibold hover:bg-[#001570] disabled:opacity-50 transition-colors">
-              {isExporting ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Download size={12} />}
-              {isExporting ? "Exporting…" : "Export"}
-            </button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        )}
 
-      {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-[#1e293b]">{assessment.title}</h1>
-          <p className="text-[12px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
-            <BookOpen size={12} className="text-primary shrink-0" />
-            {assessment.courseCode} — {assessment.courseTitle}
-          </p>
-        </div>
-        <ActionBar />
+        {/* Tab content */}
+        {activeTab === "overview" && <OverviewTab />}
+        {activeTab === "results" && <ResultsTab />}
+        {activeTab === "proctoring" && assessment.proctoringEnabled && proctoringContent}
       </div>
-
-      {/* Hero stats */}
-      <div className="rounded-sm border border-border bg-white overflow-hidden shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
-        {/* Status accent bar */}
-        <div className={`h-[3px] w-full ${
-          assessment.status === "PUBLISHED" ? "bg-[#22c55e]" :
-          assessment.status === "CLOSED"    ? "bg-[#94a3b8]" :
-          "bg-primary"
-        }`} />
-        {/* Chips row */}
-        <div className="px-5 py-3.5 flex flex-wrap items-center gap-2.5 border-b border-[#f1f5f9] bg-[#fafaf9]">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold border tracking-[0.04em] ${typeBadge[assessment.type]}`}>
-            <BookOpen size={10} />
-            {assessment.type}
-          </span>
-          <span className="text-[#d1d5db]">·</span>
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-semibold border ${status.cls}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
-            {assessment.status}
-          </span>
-          {assessment.passwordProtected && (
-            <>
-              <span className="text-[#d1d5db]">·</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-[#e2e8f0] bg-[#f8fafc] text-[10px] font-semibold text-[#64748b] uppercase tracking-[0.04em]">
-                <Lock size={9} /> Password
-              </span>
-            </>
-          )}
-          {assessment.proctoringEnabled && (
-            <>
-              <span className="text-[#d1d5db]">·</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-[#e2e8f0] bg-[#f8fafc] text-[10px] font-semibold text-[#64748b] uppercase tracking-[0.04em]">
-                <ShieldAlert size={9} /> Proctored
-              </span>
-            </>
-          )}
-        </div>
-        {/* Stat tiles */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#f1f5f9]">
-          <StatTile value={assessment.totalMarks} label="Total Marks" icon={<ClipboardList size={13} />} />
-          <StatTile value={totalQuestions} label="Questions" icon={<BookOpen size={13} />} />
-          <StatTile value={assessment.sections.length} label="Sections" icon={<ArrowUpDown size={13} />} />
-          <StatTile value={assessment.durationMinutes ? `${assessment.durationMinutes}m` : "—"} label="Duration" icon={<Clock size={13} />} />
-        </div>
-      </div>
-
-      {/* Tabs */}
-      {tabs.length > 1 && (
-        <div className="flex items-center border-b border-border">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-[#1e293b]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Tab content */}
-      {activeTab === "overview" && <OverviewTab />}
-      {activeTab === "results" && <ResultsTab />}
-      {activeTab === "proctoring" && assessment.proctoringEnabled && proctoringContent}
-    </div>
     </div>
   )
 }

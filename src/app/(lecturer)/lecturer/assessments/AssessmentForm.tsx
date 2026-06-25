@@ -260,7 +260,7 @@ export default function AssessmentForm({
   }
 
   return (
-    <div className="bg-[#f8f9fa] min-h-full flex flex-col">
+    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full flex flex-col">
       {/* Sticky command bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
         <ClipboardList size={11} />
@@ -271,126 +271,124 @@ export default function AssessmentForm({
         <span className="text-[#002388] font-medium">{isEditing ? "Edit Assessment" : "New Assessment"}</span>
       </div>
 
-    <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
-        <div>
-          <h1 className="text-xl font-semibold text-[#1e293b]">
-            {isEditing ? "Edit Assessment" : "New Assessment"}
-          </h1>
-          <p className="text-[12px] text-muted-foreground mt-0.5">
-            {isEditing
-              ? "Update your assessment configuration and content."
-              : "Set up a new assessment for your courses."}
-          </p>
-        </div>
-      </div>
-
-      {/* Step indicator */}
-      <div className="mb-8 rounded-sm border border-border bg-white px-5 py-4">
-        <div className="flex items-center">
-          {STEPS.map((s, i) => {
-            const isActive = i === step
-            const isDone = i < step
-            return (
-              <div key={s.label} className="flex items-center flex-1 last:flex-none">
-                <button
-                  type="button"
-                  onClick={() => isDone && setStep(i)}
-                  disabled={!isDone}
-                  className="flex items-center gap-2.5 outline-none"
-                >
-                  <div
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-all ${
-                      isDone
-                        ? "border-primary bg-primary text-white"
-                        : isActive
-                          ? "border-primary bg-white text-primary"
-                          : "border-border bg-white text-muted-foreground"
-                    }`}
-                  >
-                    {isDone ? <CheckCircle2 size={13} /> : i + 1}
-                  </div>
-                  <span
-                    className={`text-[13px] transition-colors ${
-                      isActive ? "text-primary font-semibold" : isDone ? "text-[#1e293b] font-medium" : "text-muted-foreground"
-                    }`}
-                  >
-                    {s.label}
-                  </span>
-                </button>
-                {i < STEPS.length - 1 && (
-                  <div className={`mx-3 h-px flex-1 transition-colors ${isDone ? "bg-primary" : "bg-border"}`} />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Step content */}
-      <div className="space-y-5">
-        {step === 0 && (
-          <Step1Basics
-            state={step1}
-            onChange={(u) => setStep1((prev) => ({ ...prev, ...u }))}
-            lecturerCourses={lecturerCourses}
-            errors={step1Errors}
-          />
-        )}
-        {step === 1 && (
-          <Step2Classes
-            state={step2}
-            onChange={(u) => setStep2((prev) => ({ ...prev, ...u }))}
-            selectedCourse={selectedCourse}
-            errors={step2Errors}
-          />
-        )}
-        {step === 2 && (
-          <Step3Questions
-            state={step3}
-            onChange={setStep3}
-            errors={step3Errors}
-            courseId={step1.courseId}
-            assessmentType={step1.type}
-          />
-        )}
-        {step === 3 && (
-          <Step4Grading
-            state={step4}
-            sections={step3.sections}
-            onChange={(u) => setStep4((prev) => ({ ...prev, ...u }))}
-            errors={step4Errors}
-            onSaveAsDraft={() => handleSubmit("DRAFT")}
-            onPublish={() => handleSubmit("PUBLISHED")}
-            onBack={() => setStep(step - 1)}
-            isSubmitting={isSubmitting}
-          />
-        )}
-
-        {/* Navigation footer */}
-        {step < 3 && (
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleBack}
-              disabled={step === 0}
-              className="h-8 px-4 text-[13px] text-muted-foreground hover:text-[#1e293b] disabled:opacity-0"
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              onClick={handleContinue}
-              className="h-8 px-4 bg-primary hover:bg-[#001570] text-white text-[13px] font-semibold rounded-sm"
-            >
-              Continue to {STEPS[step + 1].label}
-            </Button>
+      <div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] pb-16">
+        {/* Header */}
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
+          <div>
+            <h1 className="text-xl font-semibold text-[#1e293b]">
+              {isEditing ? "Edit Assessment" : "New Assessment"}
+            </h1>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
+              {isEditing
+                ? "Update your assessment configuration and content."
+                : "Set up a new assessment for your courses."}
+            </p>
           </div>
-        )}
+        </div>
+
+        {/* Step indicator */}
+        <div className="mb-8 rounded-sm border border-border bg-white px-5 py-4">
+          <div className="flex items-center">
+            {STEPS.map((s, i) => {
+              const isActive = i === step
+              const isDone = i < step
+              return (
+                <div key={s.label} className="flex items-center flex-1 last:flex-none">
+                  <button
+                    type="button"
+                    onClick={() => isDone && setStep(i)}
+                    disabled={!isDone}
+                    className="flex items-center gap-2.5 outline-none"
+                  >
+                    <div
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-all ${isDone
+                          ? "border-primary bg-primary text-white"
+                          : isActive
+                            ? "border-primary bg-white text-primary"
+                            : "border-border bg-white text-muted-foreground"
+                        }`}
+                    >
+                      {isDone ? <CheckCircle2 size={13} /> : i + 1}
+                    </div>
+                    <span
+                      className={`text-[13px] transition-colors ${isActive ? "text-primary font-semibold" : isDone ? "text-[#1e293b] font-medium" : "text-muted-foreground"
+                        }`}
+                    >
+                      {s.label}
+                    </span>
+                  </button>
+                  {i < STEPS.length - 1 && (
+                    <div className={`mx-3 h-px flex-1 transition-colors ${isDone ? "bg-primary" : "bg-border"}`} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Step content */}
+        <div className="space-y-5">
+          {step === 0 && (
+            <Step1Basics
+              state={step1}
+              onChange={(u) => setStep1((prev) => ({ ...prev, ...u }))}
+              lecturerCourses={lecturerCourses}
+              errors={step1Errors}
+            />
+          )}
+          {step === 1 && (
+            <Step2Classes
+              state={step2}
+              onChange={(u) => setStep2((prev) => ({ ...prev, ...u }))}
+              selectedCourse={selectedCourse}
+              errors={step2Errors}
+            />
+          )}
+          {step === 2 && (
+            <Step3Questions
+              state={step3}
+              onChange={setStep3}
+              errors={step3Errors}
+              courseId={step1.courseId}
+              assessmentType={step1.type}
+            />
+          )}
+          {step === 3 && (
+            <Step4Grading
+              state={step4}
+              sections={step3.sections}
+              onChange={(u) => setStep4((prev) => ({ ...prev, ...u }))}
+              errors={step4Errors}
+              onSaveAsDraft={() => handleSubmit("DRAFT")}
+              onPublish={() => handleSubmit("PUBLISHED")}
+              onBack={() => setStep(step - 1)}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Navigation footer */}
+          {step < 3 && (
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleBack}
+                disabled={step === 0}
+                className="h-8 px-4 text-[13px] text-muted-foreground hover:text-[#1e293b] disabled:opacity-0"
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                onClick={handleContinue}
+                className="h-8 px-4 bg-primary hover:bg-[#001570] text-white text-[13px] font-semibold rounded-sm"
+              >
+                Continue to {STEPS[step + 1].label}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   )
 }

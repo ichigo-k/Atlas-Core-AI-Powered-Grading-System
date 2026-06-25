@@ -114,8 +114,7 @@ export default function ProctoringRow({ row, userId }: Props) {
                         <th className="pb-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider pr-4">Source</th>
                         <th className="pb-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider pr-4">Confidence</th>
                         <th className="pb-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider pr-4">Detected At</th>
-                        <th className="pb-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider pr-4">Flags After</th>
-                        <th className="pb-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Thumbnail</th>
+                        <th className="pb-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flags After</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -137,20 +136,7 @@ export default function ProctoringRow({ row, userId }: Props) {
                           <td className="py-2 pr-4 text-slate-500">
                             {format(new Date(entry.detectedAt), "MMM d, yyyy · HH:mm:ss")}
                           </td>
-                          <td className="py-2 pr-4 text-slate-700 font-medium">{entry.flagCountAfter}</td>
-                          <td className="py-2">
-                            {entry.thumbnailBase64 ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={`data:image/jpeg;base64,${entry.thumbnailBase64}`}
-                                alt="Thumbnail"
-                                style={{ maxWidth: 160 }}
-                                className="rounded border border-slate-200"
-                              />
-                            ) : (
-                              <span className="text-slate-300">—</span>
-                            )}
-                          </td>
+                          <td className="py-2 text-slate-700 font-medium">{entry.flagCountAfter}</td>
                         </tr>
                       ))}
                     </tbody>
