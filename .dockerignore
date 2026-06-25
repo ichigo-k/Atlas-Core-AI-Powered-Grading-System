@@ -1,0 +1,45 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (reinstalled in container)
+node_modules
+.pnpm-store
+
+# Build output (rebuilt in container)
+.next
+
+# Environment files (secrets injected at runtime)
+.env
+.env.*
+!.env.example
+
+# IDE / tooling
+.vscode
+.idea
+.claude
+.kiro
+.agents
+
+# Tests
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+vitest.config.*
+coverage/
+
+# Documentation
+*.md
+!README.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Prisma migrations shadow DB not needed at runtime
+prisma/migrations/**/migration_lock.toml
