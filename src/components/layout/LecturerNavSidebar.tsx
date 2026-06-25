@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePersistedBool } from "@/hooks/usePersistedBool";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -20,15 +20,15 @@ interface LecturerNavSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { label: "Dashboard",     href: "/lecturer",               Icon: LayoutDashboard, exact: true  },
-  { label: "Assessments",   href: "/lecturer/assessments",   Icon: ClipboardList,   exact: false },
-  { label: "Question Bank", href: "/lecturer/question-bank", Icon: Library,         exact: false },
-  { label: "Grade Book",    href: "/lecturer/grades",        Icon: FileCheck,       exact: false },
+  { label: "Dashboard", href: "/lecturer", Icon: LayoutDashboard, exact: true },
+  { label: "Assessments", href: "/lecturer/assessments", Icon: ClipboardList, exact: false },
+  { label: "Question Bank", href: "/lecturer/question-bank", Icon: Library, exact: false },
+  { label: "Grade Book", href: "/lecturer/grades", Icon: FileCheck, exact: false },
 ];
 
 export default function LecturerNavSidebar({ onClose }: LecturerNavSidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed, hydrated] = usePersistedBool("nav.lecturer.collapsed", false);
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href;
@@ -39,7 +39,7 @@ export default function LecturerNavSidebar({ onClose }: LecturerNavSidebarProps)
 
   return (
     <nav
-      className={`h-full bg-white border-r border-border flex flex-col overflow-hidden transition-[width] duration-200 ease-in-out ${w}`}
+      className={`h-full bg-white dark:bg-[#222226] border-r border-border flex flex-col overflow-hidden ${hydrated ? "transition-[width] duration-200 ease-in-out" : ""} ${w}`}
     >
       <div className="flex-1 py-1 overflow-y-auto overflow-x-hidden">
         {!collapsed && (

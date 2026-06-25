@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Bell, HelpCircle, Menu, X } from "lucide-react";
 import StudentNavbar from "./StudentNavbar";
-import { HeaderDecoration, ThemePicker, useHeaderTheme } from "./HeaderTheme";
 import NotificationsPanel from "./NotificationsPanel";
+import ThemeToggle from "./ThemeToggle";
 
 interface StudentShellProps {
   children: React.ReactNode;
@@ -31,12 +31,11 @@ export default function StudentShell({
 }: StudentShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const { theme, setTheme } = useHeaderTheme();
   const initials = getInitials(userName);
   const studentId = userEmail?.split("@")[0] ?? "";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f9fa]">
+    <div className="flex h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#1b1b1f]">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
@@ -54,9 +53,21 @@ export default function StudentShell({
       )}
 
       {/* ── TOP BAR ── */}
-      <header className="fixed inset-x-0 top-0 z-50 h-[48px] bg-[#002388] flex items-center">
-        {/* Corner decoration — right side only */}
-        <HeaderDecoration theme={theme} />
+      <header className="fixed inset-x-0 top-0 z-50 h-[48px] bg-[#002388] flex items-center overflow-hidden">
+        {/* Kente-inspired pattern overlay (matches lecturer / admin shells) */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+          <defs>
+            <pattern id="kp-s" width="24" height="12" patternUnits="userSpaceOnUse">
+              <polyline points="0,6 6,0 12,6 18,0 24,6" fill="none" stroke="white" strokeWidth="0.7" />
+              <polyline points="0,12 6,6 12,12 18,6 24,12" fill="none" stroke="white" strokeWidth="0.7" />
+              <polygon points="6,-1.5 7.5,0 6,1.5 4.5,0" fill="white" />
+              <polygon points="18,-1.5 19.5,0 18,1.5 16.5,0" fill="white" />
+              <polygon points="6,4.5 7.5,6 6,7.5 4.5,6" fill="white" />
+              <polygon points="18,4.5 19.5,6 18,7.5 16.5,6" fill="white" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#kp-s)" opacity="0.09" />
+        </svg>
 
         {/* Hamburger — mobile only */}
         <button
@@ -93,15 +104,15 @@ export default function StudentShell({
           className="relative z-10 hidden md:flex flex-1 max-w-sm items-center gap-2 mx-3 bg-white/12 hover:bg-white/18 rounded px-3 h-[28px] text-white/60 text-[12px] transition-colors"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
           Search assessments…
         </Link>
 
         {/* Right actions */}
         <div className="relative z-10 ml-auto flex items-center pr-1">
-          {/* Theme picker */}
-          <ThemePicker theme={theme} setTheme={setTheme} />
+          {/* Theme */}
+          <ThemeToggle onDark />
 
           {/* Help */}
           <Link

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePersistedBool } from "@/hooks/usePersistedBool";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -22,10 +22,10 @@ interface StudentNavbarProps {
 }
 
 const NAV_ITEMS = [
-  { label: "Dashboard",   href: "/student",            Icon: LayoutDashboard, exact: true,  badge: null as "live" | null },
-  { label: "Assessments", href: "/student/assessments", Icon: ClipboardList,   exact: false, badge: "live" as "live" | null },
-  { label: "Schedule",    href: "/student/schedule",    Icon: Calendar,        exact: false, badge: null as "live" | null },
-  { label: "My Grades",   href: "/student/grades",      Icon: BarChart2,       exact: false, badge: null as "live" | null },
+  { label: "Dashboard", href: "/student", Icon: LayoutDashboard, exact: true, badge: null as "live" | null },
+  { label: "Assessments", href: "/student/assessments", Icon: ClipboardList, exact: false, badge: "live" as "live" | null },
+  { label: "Schedule", href: "/student/schedule", Icon: Calendar, exact: false, badge: null as "live" | null },
+  { label: "My Grades", href: "/student/grades", Icon: BarChart2, exact: false, badge: null as "live" | null },
 ];
 
 const ACCOUNT_ITEMS = [
@@ -34,7 +34,7 @@ const ACCOUNT_ITEMS = [
 
 export default function StudentNavbar({ ongoingCount, onClose }: StudentNavbarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed, hydrated] = usePersistedBool("nav.student.collapsed", false);
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href;
@@ -45,7 +45,7 @@ export default function StudentNavbar({ ongoingCount, onClose }: StudentNavbarPr
 
   return (
     <nav
-      className={`h-full bg-white border-r border-border flex flex-col overflow-hidden transition-[width] duration-200 ease-in-out ${w}`}
+      className={`h-full bg-white dark:bg-[#222226] border-r border-border flex flex-col overflow-hidden ${hydrated ? "transition-[width] duration-200 ease-in-out" : ""} ${w}`}
     >
       {/* Main nav */}
       <div className="flex-1 py-1 overflow-y-auto overflow-x-hidden">

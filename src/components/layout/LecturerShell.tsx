@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Bell, HelpCircle, Menu } from "lucide-react";
 import LecturerNavSidebar from "./LecturerNavSidebar";
+import ThemeToggle from "./ThemeToggle";
 
 interface LecturerShellProps {
   children: React.ReactNode;
@@ -28,23 +29,23 @@ export default function LecturerShell({
   const lecturerId = userEmail?.split("@")[0] ?? "";
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f8f9fa] flex flex-col">
+    <div className="h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#1b1b1f] flex flex-col">
 
       {/* ── TOP BAR (flex row child, not fixed) ── */}
-      <header className="h-12 flex-shrink-0 bg-primary flex items-center gap-2 px-3 sm:px-4 z-50 relative overflow-hidden">
+      <header className="h-12 flex-shrink-0 bg-primary dark:bg-[#002388] flex items-center gap-2 px-3 sm:px-4 z-50 relative overflow-hidden">
         {/* Kente-inspired pattern overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
           <defs>
             <pattern id="kp-l" width="24" height="12" patternUnits="userSpaceOnUse">
-              <polyline points="0,6 6,0 12,6 18,0 24,6" fill="none" stroke="white" strokeWidth="0.7"/>
-              <polyline points="0,12 6,6 12,12 18,6 24,12" fill="none" stroke="white" strokeWidth="0.7"/>
-              <polygon points="6,-1.5 7.5,0 6,1.5 4.5,0" fill="white"/>
-              <polygon points="18,-1.5 19.5,0 18,1.5 16.5,0" fill="white"/>
-              <polygon points="6,4.5 7.5,6 6,7.5 4.5,6" fill="white"/>
-              <polygon points="18,4.5 19.5,6 18,7.5 16.5,6" fill="white"/>
+              <polyline points="0,6 6,0 12,6 18,0 24,6" fill="none" stroke="white" strokeWidth="0.7" />
+              <polyline points="0,12 6,6 12,12 18,6 24,12" fill="none" stroke="white" strokeWidth="0.7" />
+              <polygon points="6,-1.5 7.5,0 6,1.5 4.5,0" fill="white" />
+              <polygon points="18,-1.5 19.5,0 18,1.5 16.5,0" fill="white" />
+              <polygon points="6,4.5 7.5,6 6,7.5 4.5,6" fill="white" />
+              <polygon points="18,4.5 19.5,6 18,7.5 16.5,6" fill="white" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#kp-l)" opacity="0.09"/>
+          <rect width="100%" height="100%" fill="url(#kp-l)" opacity="0.09" />
         </svg>
         <button
           type="button"
@@ -85,6 +86,7 @@ export default function LecturerShell({
         </Link>
 
         <div className="ml-auto flex items-center gap-0.5">
+          <ThemeToggle onDark />
           <Link
             href="/lecturer"
             className="w-9 h-9 flex items-center justify-center rounded text-white/75 hover:text-white hover:bg-white/12 transition-colors"
@@ -136,7 +138,7 @@ export default function LecturerShell({
         </div>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto min-w-0 bg-[#f8f9fa]">
+        <main className="flex-1 overflow-y-auto min-w-0 bg-[#f8f9fa] dark:bg-[#1b1b1f]">
           {children}
         </main>
       </div>

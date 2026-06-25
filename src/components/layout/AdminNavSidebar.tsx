@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePersistedBool } from "@/hooks/usePersistedBool";
 import {
   LayoutDashboard,
   Users,
@@ -36,11 +36,11 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Management",
     items: [
-      { label: "Users",     href: "/admin/users",     Icon: Users,        exact: false },
-      { label: "Classes",   href: "/admin/classes",   Icon: FolderKanban, exact: false },
-      { label: "Courses",   href: "/admin/courses",   Icon: BookOpen,     exact: false },
-      { label: "Faculties", href: "/admin/faculties", Icon: Building2,    exact: false },
-      { label: "Programs",  href: "/admin/programs",  Icon: School,       exact: false },
+      { label: "Users", href: "/admin/users", Icon: Users, exact: false },
+      { label: "Classes", href: "/admin/classes", Icon: FolderKanban, exact: false },
+      { label: "Courses", href: "/admin/courses", Icon: BookOpen, exact: false },
+      { label: "Faculties", href: "/admin/faculties", Icon: Building2, exact: false },
+      { label: "Programs", href: "/admin/programs", Icon: School, exact: false },
     ],
   },
   {
@@ -59,7 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 export default function AdminNavSidebar({ onClose }: AdminNavSidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed, hydrated] = usePersistedBool("nav.admin.collapsed", false);
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href;
@@ -70,7 +70,7 @@ export default function AdminNavSidebar({ onClose }: AdminNavSidebarProps) {
 
   return (
     <nav
-      className={`h-full bg-white border-r border-border flex flex-col overflow-hidden transition-[width] duration-200 ease-in-out ${w}`}
+      className={`h-full bg-white dark:bg-[#222226] border-r border-border flex flex-col overflow-hidden ${hydrated ? "transition-[width] duration-200 ease-in-out" : ""} ${w}`}
     >
       <div className="flex-1 py-1 overflow-y-auto overflow-x-hidden">
         {NAV_GROUPS.map(({ heading, items }) => (

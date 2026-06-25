@@ -62,7 +62,9 @@
   --color-primary: var(--primary);
   --color-accent: var(--accent);
   --color-surface: var(--surface);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -111,12 +113,360 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Dark mode — Microsoft Fluent-inspired ─────────────────────────────── */
+/*
+ * Surface hierarchy:
+ *   Base canvas:       #1b1b1f   (page bg)
+ *   Card / elevated:   #2b2b30   (cards, command bars)
+ *   Sidebar:           #222226
+ *   Raised / hover:    #343439   (hover, chip, secondary surface)
+ *   Highest:           #3d3d42   (tooltips, overlays, pressed)
+ */
+
+.dark body {
+  background-color: #1b1b1f;
+  color: #f5f5f5;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SURFACES — every light bg maps to a dark equivalent
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* White cards/panels */
+.dark .bg-white {
+  background-color: #2b2b30 !important;
+}
+
+/* Page-level light grays → canvas */
+.dark .bg-\[\#faf9f8\],
+.dark .bg-\[\#f8f9fa\],
+.dark .bg-\[\#F8F9FA\] {
+  background-color: #1b1b1f !important;
+}
+
+/* Form field / chip / inset backgrounds */
+.dark .bg-\[\#f3f4f6\],
+.dark .bg-\[\#f3f2f1\],
+.dark .bg-\[\#f1f3f4\],
+.dark .bg-\[\#f1f5f9\],
+.dark .bg-\[\#F4F6FB\],
+.dark .bg-\[\#fafaf9\],
+.dark .bg-slate-50,
+.dark .bg-slate-100 {
+  background-color: #343439 !important;
+}
+
+/* Deeper insets / borders as bg */
+.dark .bg-\[\#e2e8f0\],
+.dark .bg-\[\#edebe9\],
+.dark .bg-slate-200 {
+  background-color: #3d3d42 !important;
+}
+
+.dark .bg-slate-300 {
+  background-color: #4a4a52 !important;
+}
+
+/* Toggle switch track (inactive) */
+.dark .bg-border {
+  background-color: #4a4a52 !important;
+}
+
+/* ── Blue-tinted surfaces ── */
+.dark .bg-\[\#dce6f7\],
+.dark .bg-\[\#dde5f5\],
+.dark .bg-\[\#dbeafe\] {
+  background-color: rgba(76, 160, 255, 0.15) !important;
+}
+
+.dark .bg-\[\#eef2ff\],
+.dark .bg-\[\#eff6ff\],
+.dark .bg-\[\#f0f6ff\],
+.dark .bg-\[\#e8f0fe\],
+.dark .bg-\[\#e8f0fd\],
+.dark .bg-\[\#f0f4fb\],
+.dark .bg-\[\#f5f8ff\] {
+  background-color: rgba(76, 160, 255, 0.08) !important;
+}
+
+/* ── Purple-tinted surfaces ── */
+.dark .bg-\[\#f5f3ff\],
+.dark .bg-\[\#f3e8ff\] {
+  background-color: rgba(167, 139, 250, 0.1) !important;
+}
+
+/* ── Green surfaces — higher saturation ── */
+.dark .bg-\[\#dcfce7\],
+.dark .bg-\[\#f0fdf4\],
+.dark .bg-emerald-50,
+.dark .bg-green-50 {
+  background-color: rgba(52, 211, 153, 0.12) !important;
+}
+
+/* ── Amber/yellow surfaces ── */
+.dark .bg-\[\#fef3c7\],
+.dark .bg-\[\#fffbeb\],
+.dark .bg-amber-50 {
+  background-color: rgba(251, 191, 36, 0.1) !important;
+}
+
+/* ── Red surfaces — richer ── */
+.dark .bg-red-50,
+.dark .bg-\[\#fce8e6\],
+.dark .bg-\[\#fee2e2\],
+.dark .bg-\[\#fecaca\] {
+  background-color: rgba(248, 113, 113, 0.1) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEXT — all hardcoded colors to readable values
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Primary text (headings, body) → near-white */
+.dark .text-\[\#1e293b\],
+.dark .text-\[\#111827\],
+.dark .text-\[\#323130\],
+.dark .text-\[\#202124\],
+.dark .text-\[\#374151\],
+.dark .text-\[\#060607\],
+.dark .text-\[\#475569\],
+.dark .text-\[\#0A1628\],
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #f5f5f5 !important;
+}
+
+/* Secondary text → muted white */
+.dark .text-\[\#5f6368\],
+.dark .text-\[\#6b7280\],
+.dark .text-\[\#8a8886\],
+.dark .text-\[\#605e5c\],
+.dark .text-\[\#4E5058\],
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #b0b0b0 !important;
+}
+
+/* Tertiary / muted */
+.dark .text-\[\#9ca3af\],
+.dark .text-\[\#c8c6c4\],
+.dark .text-\[\#94A3B8\],
+.dark .text-slate-400,
+.dark .text-slate-300 {
+  color: #8a8a8a !important;
+}
+
+/* ── Brand blue → bright saturated blue ── */
+.dark .text-\[\#002388\],
+.dark .text-\[\#1a73e8\] {
+  color: #6ab0ff !important;
+}
+
+.dark .text-\[\#1d4ed8\],
+.dark .text-\[\#1e40af\] {
+  color: #60a5fa !important;
+}
+
+/* ── Purple → vibrant ── */
+.dark .text-\[\#6d28d9\],
+.dark .text-\[\#6b21a8\] {
+  color: #c084fc !important;
+}
+
+/* ── Green → saturated bright ── */
+.dark .text-\[\#16a34a\],
+.dark .text-\[\#15803d\],
+.dark .text-\[\#166534\],
+.dark .text-\[\#107c10\],
+.dark .text-emerald-600,
+.dark .text-emerald-700 {
+  color: #34d399 !important;
+}
+
+/* ── Amber/orange → warm bright ── */
+.dark .text-\[\#d97706\],
+.dark .text-\[\#92400e\],
+.dark .text-\[\#a16207\],
+.dark .text-amber-700,
+.dark .text-amber-800 {
+  color: #fbbf24 !important;
+}
+
+/* ── Red → vivid ── */
+.dark .text-red-600,
+.dark .text-red-700,
+.dark .text-\[\#d93025\],
+.dark .text-\[\#991b1b\] {
+  color: #f87171 !important;
+}
+
+.dark .text-\[\#d83b01\] {
+  color: #fb923c !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BORDERS — everything becomes subtle dark lines
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dark .border-\[\#edebe9\],
+.dark .border-\[\#e5e7eb\],
+.dark .border-\[\#E3E5E8\],
+.dark .border-\[\#ebebeb\],
+.dark .border-\[\#dadce0\],
+.dark .border-\[\#d1d5db\],
+.dark .border-\[\#f1f5f9\],
+.dark .border-\[\#dce6f7\],
+.dark .border-\[\#b8cef0\],
+.dark .border-\[\#c7d0e0\],
+.dark .border-\[\#CBD5E1\] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Status borders — subtle tinted */
+.dark .border-\[\#bbf7d0\],
+.dark .border-emerald-200,
+.dark .border-\[\#ceead6\] {
+  border-color: rgba(52, 211, 153, 0.25) !important;
+}
+
+.dark .border-\[\#fde68a\],
+.dark .border-amber-100 {
+  border-color: rgba(251, 191, 36, 0.2) !important;
+}
+
+.dark .border-red-100,
+.dark .border-\[\#fecaca\] {
+  border-color: rgba(248, 113, 113, 0.2) !important;
+}
+
+.dark .border-amber-100 {
+  border-color: rgba(251, 191, 36, 0.15) !important;
+}
+
+/* Dividers — very subtle so they don't look white */
+.dark .divide-y> :not([hidden])~ :not([hidden]),
+.dark .divide-\[\#f3f4f6\]> :not([hidden])~ :not([hidden]),
+.dark .divide-\[\#f8f9fa\]> :not([hidden])~ :not([hidden]),
+.dark .divide-\[\#f1f5f9\]> :not([hidden])~ :not([hidden]),
+.dark .divide-slate-100> :not([hidden])~ :not([hidden]),
+.dark .divide-slate-200> :not([hidden])~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HOVER STATES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-\[\#f9fafb\]:hover,
+.dark .hover\:bg-\[\#faf9f8\]:hover,
+.dark .hover\:bg-\[\#f8f9fa\]:hover,
+.dark .hover\:bg-\[\#f3f2f1\]:hover,
+.dark .hover\:bg-\[\#F8FAFC\]:hover,
+.dark .hover\:bg-slate-50\/40:hover {
+  background-color: #3d3d42 !important;
+}
+
+.dark .hover\:bg-\[\#e5e7eb\]:hover,
+.dark .hover\:bg-\[\#e8f0fd\]:hover {
+  background-color: #4a4a52 !important;
+}
+
+.dark .hover\:bg-\[\#fce8e6\]:hover {
+  background-color: rgba(248, 113, 113, 0.15) !important;
+}
+
+.dark .hover\:bg-\[\#dde5f5\]:hover {
+  background-color: rgba(76, 160, 255, 0.2) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SHADOWS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+.dark [class*="shadow-\["] {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .shadow-lg,
+.dark .shadow-xl,
+.dark .shadow-2xl {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BRAND BUTTONS — brighter blue CTA
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dark .bg-\[\#002388\] {
+  background-color: #2563eb !important;
+}
+
+/* Preserve navbar header bg */
+.dark header.bg-\[\#002388\] {
+  background-color: #002388 !important;
+}
+
+.dark .hover\:bg-\[\#0B4DBB\]:hover {
+  background-color: #3b82f6 !important;
+}
+
+.dark .hover\:bg-\[\#001570\]:hover {
+  background-color: #1d4ed8 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PROGRESS BARS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dark .progress-bar {
+  background: #343439;
+}
+
+.dark .h-1\.5.rounded-full.bg-\[\#f3f4f6\],
+.dark .h-2.rounded-full.bg-\[\#f3f4f6\],
+.dark .h-1.rounded-full.bg-\[\#f3f4f6\] {
+  background-color: #343439 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR & SELECTION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4a4a52;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a62;
+}
+
+.dark ::selection {
+  background: #FFCC00;
+  color: #1b1b1f;
+}
+
 h1,
 h2,
 h3,
 h4,
 h5,
-h6 {}
+h6 {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.011em;
+}
 
 ::selection {
   background: var(--accent);
@@ -208,6 +558,7 @@ h6 {}
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -263,37 +614,38 @@ h6 {}
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #1b1b1f;
+  --foreground: #f5f5f5;
+  --card: #2b2b30;
+  --card-foreground: #f5f5f5;
+  --popover: #2b2b30;
+  --popover-foreground: #f5f5f5;
+  /* Primary flips to bright blue so text-primary / border-primary pops on dark */
+  --primary: #4ca0ff;
+  --primary-foreground: #ffffff;
+  --secondary: #343439;
+  --secondary-foreground: #f5f5f5;
+  --muted: #343439;
+  --muted-foreground: #ababab;
+  --accent: #FFCC00;
+  --accent-foreground: #1b1b1f;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: rgba(255, 255, 255, 0.10);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #6ab0ff;
+  --chart-1: #6ab0ff;
+  --chart-2: #60a5fa;
+  --chart-3: #FFCC00;
+  --chart-4: #a78bfa;
+  --chart-5: #343439;
+  --sidebar: #222226;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #4ca0ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #343439;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #6ab0ff;
 }
 
 @layer base {
