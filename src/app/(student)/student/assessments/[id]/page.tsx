@@ -5,6 +5,7 @@ import {
   Calendar,
   CheckCircle2,
   ChevronLeft,
+  ChevronRight,
   Clock,
   Layers,
   Lock,
@@ -36,13 +37,13 @@ function formatDate(date: Date) {
 }
 
 const typeBadgeStyles: Record<string, { bg: string; text: string }> = {
-  EXAM:       { bg: "#fee2e2", text: "#991b1b" },
-  QUIZ:       { bg: "#fef9c3", text: "#854d0e" },
+  EXAM: { bg: "#fee2e2", text: "#991b1b" },
+  QUIZ: { bg: "#fef9c3", text: "#854d0e" },
   ASSIGNMENT: { bg: "#dcfce7", text: "#166534" },
 };
 
 const sectionTypeBadge: Record<string, { bg: string; text: string }> = {
-  OBJECTIVE:  { bg: "#dcfce7", text: "#166534" },
+  OBJECTIVE: { bg: "#dcfce7", text: "#166534" },
   SUBJECTIVE: { bg: "#f1f5f9", text: "#475569" },
 };
 
@@ -232,17 +233,17 @@ export default async function AssessmentDetailPage({
           <div className="space-y-0.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Total Marks</span>
             <div className="flex items-center gap-1.5">
-               <Award size={14} className="text-primary" strokeWidth={2} />
-               <span className="text-base font-bold text-[#1e293b]">{assessment.totalMarks}</span>
+              <Award size={14} className="text-primary" strokeWidth={2} />
+              <span className="text-base font-bold text-[#1e293b]">{assessment.totalMarks}</span>
             </div>
           </div>
           <div className="space-y-0.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Duration</span>
             <div className="flex items-center gap-1.5">
-               <Clock size={14} className="text-primary" strokeWidth={2} />
-               <span className="text-base font-bold text-[#1e293b]">
-                 {assessment.durationMinutes ? `${assessment.durationMinutes}m` : "No limit"}
-               </span>
+              <Clock size={14} className="text-primary" strokeWidth={2} />
+              <span className="text-base font-bold text-[#1e293b]">
+                {assessment.durationMinutes ? `${assessment.durationMinutes}m` : "No limit"}
+              </span>
             </div>
           </div>
           <div className="space-y-0.5">
@@ -270,7 +271,7 @@ export default async function AssessmentDetailPage({
           <div className="grid gap-4">
             <div className="flex items-center gap-3">
               <div className="h-7 w-7 rounded-sm bg-slate-50 border border-border flex items-center justify-center text-primary">
-                 <Clock size={14} strokeWidth={2} />
+                <Clock size={14} strokeWidth={2} />
               </div>
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Available From</p>
@@ -281,7 +282,7 @@ export default async function AssessmentDetailPage({
             </div>
             <div className="flex items-center gap-3">
               <div className="h-7 w-7 rounded-sm bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
-                 <Lock size={14} strokeWidth={2} />
+                <Lock size={14} strokeWidth={2} />
               </div>
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Closing At</p>
@@ -384,7 +385,7 @@ export default async function AssessmentDetailPage({
               <div className="w-full max-w-sm rounded-sm border border-emerald-200 bg-emerald-50/30 p-5 flex flex-col items-center">
                 <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Final Performance</p>
                 <div className="mt-2 flex items-baseline gap-1">
-                   <p className="text-3xl font-bold text-emerald-600">
+                  <p className="text-3xl font-bold text-emerald-600">
                     {latestSubmitted.score}
                   </p>
                   <p className="text-sm font-semibold text-emerald-600/60">/ {assessment.totalMarks}</p>
@@ -394,6 +395,12 @@ export default async function AssessmentDetailPage({
                     Grade: {grade}
                   </div>
                 )}
+                <Link
+                  href={`/student/assessments/${assessmentId}/results`}
+                  className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#002388] hover:underline"
+                >
+                  View Full Results <ChevronRight size={11} />
+                </Link>
               </div>
             ) : !resultsReleased && hasSubmitted ? (
               <div className="rounded-sm bg-slate-50 border border-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
@@ -412,7 +419,7 @@ export default async function AssessmentDetailPage({
         ) : isUpcoming ? (
           <div className="flex items-center gap-3 rounded-sm border border-dashed border-primary/20 bg-primary/5 p-5">
             <div className="h-9 w-9 bg-primary/10 rounded-sm text-primary flex items-center justify-center shrink-0">
-               <AlertCircle size={18} strokeWidth={2} />
+              <AlertCircle size={18} strokeWidth={2} />
             </div>
             <div>
               <p className="text-[13px] font-semibold text-[#1e293b] uppercase tracking-wider">Access Restricted</p>
@@ -424,7 +431,7 @@ export default async function AssessmentDetailPage({
         ) : isEnded ? (
           <div className="flex items-center gap-3 rounded-sm border border-dashed border-border bg-slate-50 p-5 text-left w-full">
             <div className="h-9 w-9 bg-slate-200 rounded-sm text-slate-500 flex items-center justify-center shrink-0">
-               <Lock size={18} strokeWidth={2} />
+              <Lock size={18} strokeWidth={2} />
             </div>
             <div>
               <p className="text-[13px] font-semibold text-[#1e293b] uppercase tracking-wider">Submission Period Over</p>
@@ -435,8 +442,8 @@ export default async function AssessmentDetailPage({
           </div>
         ) : isLocked ? (
           <div className="flex flex-col items-center gap-3 text-center py-3">
-             <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
-               <Lock size={16} strokeWidth={2} />
+            <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
+              <Lock size={16} strokeWidth={2} />
             </div>
             <div>
               <p className="text-[14px] font-bold text-[#1e293b] uppercase tracking-wide">Maximum attempts reached</p>

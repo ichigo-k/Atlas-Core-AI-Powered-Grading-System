@@ -37,6 +37,7 @@ export default async function AssessmentOnboardingPage({
       durationMinutes: true,
       passwordProtected: true,
       proctoringEnabled: true,
+      instructions: true,
       status: true,
       startsAt: true,
       endsAt: true,
@@ -86,6 +87,7 @@ export default async function AssessmentOnboardingPage({
       durationMinutes={assessment.durationMinutes}
       passwordProtected={assessment.passwordProtected}
       proctoringEnabled={assessment.proctoringEnabled}
+      instructions={assessment.instructions}
     />
   );
 }

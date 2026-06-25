@@ -51,10 +51,10 @@ export default async function GradesPage() {
   const isEmpty = totalCompleted === 0;
 
   return (
-    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
+    <div className="bg-[#f8f9fa] dark:bg-[#0f1b2d] min-h-full">
 
       {/* -- Command bar -- */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-[#2b2b30] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="sticky top-0 z-10 bg-white dark:bg-[#192534] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <BarChart2 size={11} />
         <span>Student</span>
         <ChevronRight size={11} />
@@ -119,7 +119,7 @@ export default async function GradesPage() {
                         className="absolute inset-0 flex items-center justify-center text-[15px] font-bold tabular-nums"
                         style={{ color: col }}
                       >
-                        {overallAvg != null ? `${overallAvg}%` : "�"}
+                        {overallAvg != null ? `${overallAvg}%` : "-"}
                       </span>
                     </div>
                   );
@@ -127,7 +127,7 @@ export default async function GradesPage() {
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Portal Average</p>
                   <p className="text-[26px] font-bold text-[#1e293b] leading-none mt-1">
-                    {overallGrade ?? "�"}
+                    {overallGrade ?? "-"}
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Across {totalCompleted} graded assessment{totalCompleted !== 1 ? "s" : ""}
@@ -149,7 +149,7 @@ export default async function GradesPage() {
                     </div>
                   </>
                 ) : (
-                  <p className="text-[13px] text-muted-foreground">�</p>
+                  <p className="text-[13px] text-muted-foreground">-</p>
                 )}
               </div>
 
@@ -275,7 +275,7 @@ export default async function GradesPage() {
                                 {a.grade}
                               </span>
                               <Link
-                                href={`/student/assessments/${a.id}/review`}
+                                href={`/student/assessments/${a.id}/results`}
                                 className="text-[11px] text-[#002388] hover:underline flex items-center gap-0.5"
                               >
                                 Review <ArrowRight size={10} />

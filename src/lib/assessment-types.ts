@@ -36,6 +36,7 @@ export interface CreateAssessmentPayload {
   title: string
   type: AssessmentTypeEnum
   courseId: number
+  instructions: string
   startsAt: string
   endsAt: string
   durationMinutes?: number | null
@@ -122,6 +123,7 @@ export interface Step1State {
   title: string
   type: AssessmentTypeEnum | ""
   courseId: number | null
+  instructions: string
   startsAt: string
   endsAt: string
   durationMinutes: string

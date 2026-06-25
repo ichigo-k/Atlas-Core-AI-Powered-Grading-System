@@ -120,6 +120,7 @@ async function EditAssessmentData({ id }: { id: string }) {
     title: raw.title,
     type: raw.type as Step1State["type"],
     courseId: raw.courseId,
+    instructions: raw.instructions ?? "",
     startsAt: toDatetimeLocal(raw.startsAt),
     endsAt: toDatetimeLocal(raw.endsAt),
     durationMinutes: raw.durationMinutes != null ? String(raw.durationMinutes) : "",

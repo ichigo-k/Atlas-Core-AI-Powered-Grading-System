@@ -32,13 +32,18 @@ export async function loginAction(_prevState: unknown, formData: FormData) {
 
   const session = await auth()
   const role = session?.user?.role
-  
+
   if (session?.user) {
     await logAction(
       "USER_LOGIN",
       `User ${session.user.name} (${session.user.role}) logged in`,
       "SYSTEM"
     );
+  }
+
+  // Force password change on first login
+  if (session?.user?.mustChangePassword) {
+    redirect("/force-change-password")
   }
 
   const redirectTo = role ? (ROLE_DASHBOARDS[role] ?? "/") : "/"

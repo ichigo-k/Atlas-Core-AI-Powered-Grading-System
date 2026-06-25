@@ -114,6 +114,33 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
           </div>
         </div>
 
+        {/* Lecturer Instructions */}
+        <div className="space-y-1.5">
+          <Label htmlFor="instructions" className="text-[12px] text-muted-foreground">
+            Lecturer Instructions
+          </Label>
+          <textarea
+            id="instructions"
+            value={state.instructions}
+            onChange={(e) => {
+              if (e.target.value.length <= 1000) onChange({ instructions: e.target.value })
+            }}
+            placeholder="e.g. Answer all questions. No electronic devices allowed. Show all working for full marks..."
+            rows={4}
+            maxLength={1000}
+            className="w-full rounded-sm border border-border bg-white px-3 py-2 text-[13px] text-[#1e293b] placeholder-slate-400 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 resize-y min-h-[80px]"
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-muted-foreground">
+              These instructions will be displayed to students before they start the assessment.
+            </p>
+            <span className={`text-[11px] tabular-nums ${state.instructions.length > 900 ? "text-rose-500 font-medium" : "text-muted-foreground"}`}>
+              {state.instructions.length}/1000
+            </span>
+          </div>
+          <FieldError message={errors.instructions} />
+        </div>
+
         {/* Assessment Type */}
         <div className="space-y-2">
           <Label className="text-[12px] text-muted-foreground">
@@ -132,15 +159,13 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
                   key={type}
                   type="button"
                   onClick={() => onChange({ type })}
-                  className={`flex items-start gap-3 p-3.5 rounded-sm border text-left transition-all ${
-                    isSelected
-                      ? "border-primary bg-[#dce6f7]"
-                      : "border-border bg-white hover:bg-[#f3f2f1]"
-                  }`}
+                  className={`flex items-start gap-3 p-3.5 rounded-sm border text-left transition-all ${isSelected
+                    ? "border-primary bg-[#dce6f7]"
+                    : "border-border bg-white hover:bg-[#f3f2f1]"
+                    }`}
                 >
-                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
-                    isSelected ? "border-primary" : "border-border"
-                  }`}>
+                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? "border-primary" : "border-border"
+                    }`}>
                     {isSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
                   </div>
                   <div>
@@ -241,9 +266,8 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
 
         <div className="space-y-2">
           {/* Password Protection */}
-          <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${
-            state.passwordProtected ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
-          }`}>
+          <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${state.passwordProtected ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
+            }`}>
             <div>
               <p className="text-[13px] font-semibold text-[#1e293b]">Password Protection</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Restrict access with a password</p>
@@ -251,13 +275,11 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
             <button
               type="button"
               onClick={() => onChange({ passwordProtected: !state.passwordProtected, accessPassword: "" })}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                state.passwordProtected ? "bg-primary" : "bg-border"
-              }`}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${state.passwordProtected ? "bg-primary" : "bg-border"
+                }`}
             >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                state.passwordProtected ? "translate-x-4" : "translate-x-0.5"
-              }`} />
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${state.passwordProtected ? "translate-x-4" : "translate-x-0.5"
+                }`} />
             </button>
           </div>
 
@@ -279,9 +301,8 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {/* Shuffle Questions */}
-            <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${
-              state.shuffleQuestions ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
-            }`}>
+            <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${state.shuffleQuestions ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
+              }`}>
               <div>
                 <p className="text-[13px] font-semibold text-[#1e293b]">Shuffle Questions</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Randomize question order</p>
@@ -289,20 +310,17 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
               <button
                 type="button"
                 onClick={() => onChange({ shuffleQuestions: !state.shuffleQuestions })}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  state.shuffleQuestions ? "bg-primary" : "bg-border"
-                }`}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${state.shuffleQuestions ? "bg-primary" : "bg-border"
+                  }`}
               >
-                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                  state.shuffleQuestions ? "translate-x-4" : "translate-x-0.5"
-                }`} />
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${state.shuffleQuestions ? "translate-x-4" : "translate-x-0.5"
+                  }`} />
               </button>
             </div>
 
             {/* Shuffle Options */}
-            <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${
-              state.shuffleOptions ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
-            }`}>
+            <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${state.shuffleOptions ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
+              }`}>
               <div>
                 <p className="text-[13px] font-semibold text-[#1e293b]">Shuffle Options</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Randomize MCQ answer options</p>
@@ -310,21 +328,18 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
               <button
                 type="button"
                 onClick={() => onChange({ shuffleOptions: !state.shuffleOptions })}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  state.shuffleOptions ? "bg-primary" : "bg-border"
-                }`}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${state.shuffleOptions ? "bg-primary" : "bg-border"
+                  }`}
               >
-                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                  state.shuffleOptions ? "translate-x-4" : "translate-x-0.5"
-                }`} />
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${state.shuffleOptions ? "translate-x-4" : "translate-x-0.5"
+                  }`} />
               </button>
             </div>
           </div>
 
           {/* AI Proctoring */}
-          <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${
-            state.proctoringEnabled ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
-          }`}>
+          <div className={`flex items-center justify-between px-4 py-3 rounded-sm border transition-all ${state.proctoringEnabled ? "border-primary/30 bg-[#dce6f7]" : "border-border bg-[#f3f2f1]"
+            }`}>
             <div>
               <p className="text-[13px] font-semibold text-[#1e293b]">Enable AI Proctoring</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">

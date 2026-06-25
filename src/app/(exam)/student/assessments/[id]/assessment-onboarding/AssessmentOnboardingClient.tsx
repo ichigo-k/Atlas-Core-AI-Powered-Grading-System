@@ -42,15 +42,17 @@ interface Props {
   durationMinutes: number | null;
   passwordProtected: boolean;
   proctoringEnabled: boolean;
+  instructions: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Steps definition — password step only included when needed
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildSteps(passwordProtected: boolean, proctoringEnabled: boolean) {
+function buildSteps(passwordProtected: boolean, proctoringEnabled: boolean, hasInstructions: boolean) {
   return [
     { label: "Important rules", icon: AlertTriangle },
+    ...(hasInstructions ? [{ label: "Instructions", icon: BookOpen }] : []),
     { label: "General rules", icon: BookOpen },
     ...(passwordProtected ? [{ label: "Password", icon: LockKeyhole }] : []),
     { label: "Microphone", icon: Mic },
@@ -128,16 +130,16 @@ function Sidebar({
           <div
             key={s.label}
             className={`flex items-center gap-3 px-2.5 py-2 rounded-sm transition-all border ${active
-                ? "bg-primary/10 text-primary border-primary/20"
-                : "border-transparent text-slate-500"
+              ? "bg-primary/10 text-primary border-primary/20"
+              : "border-transparent text-slate-500"
               }`}
           >
             <div
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-[10px] font-bold transition-all ${done
-                  ? "bg-primary text-white"
-                  : active
-                    ? "bg-primary/20 text-primary"
-                    : "bg-slate-100 text-slate-500 border border-slate-200"
+                ? "bg-primary text-white"
+                : active
+                  ? "bg-primary/20 text-primary"
+                  : "bg-slate-100 text-slate-500 border border-slate-200"
                 }`}
             >
               {done ? <Check size={11} strokeWidth={3} /> : <Icon size={11} />}
@@ -251,7 +253,68 @@ function StepImportantRules({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 2 — General rules
+// Step 2 — Lecturer Instructions
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StepInstructions({
+  instructions,
+  onNext,
+  onBack,
+}: {
+  instructions: string;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">
+        Lecturer Instructions
+      </h2>
+      <p className="text-[12px] text-muted-foreground mb-5">
+        Your lecturer has provided the following instructions for this assessment. Read them carefully.
+      </p>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="rounded-sm border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-5">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100">
+              <BookOpen size={13} className="text-blue-700" />
+            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-700 pt-1.5">
+              Assessment Instructions
+            </p>
+          </div>
+          <div className="pl-10">
+            <p className="text-[13px] text-[#1e293b] leading-relaxed whitespace-pre-wrap">
+              {instructions}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-border flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
+        >
+          I&apos;ve read the instructions
+          <ArrowRight size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 3 — General rules
 // ─────────────────────────────────────────────────────────────────────────────
 
 function StepGeneralRules({
@@ -403,10 +466,10 @@ function StepMicCheck({
 
         {/* Mic status */}
         <div className={`flex items-center gap-3 rounded-sm border p-4 transition-colors ${micState === "granted"
-            ? "border-emerald-200 bg-emerald-50"
-            : micState === "denied"
-              ? "border-red-200 bg-red-50"
-              : "border-slate-200 bg-slate-50"
+          ? "border-emerald-200 bg-emerald-50"
+          : micState === "denied"
+            ? "border-red-200 bg-red-50"
+            : "border-slate-200 bg-slate-50"
           }`}>
           {micState === "granted" ? (
             <Mic size={18} className="shrink-0 text-emerald-600" />
@@ -417,8 +480,8 @@ function StepMicCheck({
           )}
           <div>
             <p className={`text-[12px] font-bold ${micState === "granted" ? "text-emerald-700"
-                : micState === "denied" ? "text-red-700"
-                  : "text-slate-500"
+              : micState === "denied" ? "text-red-700"
+                : "text-slate-500"
               }`}>
               {micState === "granted" ? "Microphone access granted"
                 : micState === "denied" ? "Microphone access denied"
@@ -641,17 +704,17 @@ function StepCameraCheck({
             {/* Status badges */}
             <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1.5">
               <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${lightingStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
-                  : lightingOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
-                    : "border-amber-500/40 bg-amber-950/80 text-amber-300"
+                : lightingOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
+                  : "border-amber-500/40 bg-amber-950/80 text-amber-300"
                 }`}>
                 {lightingStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Checking…</>
                   : lightingOk ? <><Sun size={11} /> Good lighting</>
                     : <><SunDim size={11} /> Too dark</>}
               </div>
               <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${faceStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
-                  : faceOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
-                    : faceStatus === "absent" ? "border-red-500/40 bg-red-950/80 text-red-300"
-                      : "border-slate-500/40 bg-slate-900/80 text-slate-200"
+                : faceOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
+                  : faceStatus === "absent" ? "border-red-500/40 bg-red-950/80 text-red-300"
+                    : "border-slate-500/40 bg-slate-900/80 text-slate-200"
                 }`}>
                 {faceStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Detecting face…</>
                   : faceOk ? <><User size={11} /> Face detected</>
@@ -893,6 +956,7 @@ export default function AssessmentOnboardingClient({
   durationMinutes,
   passwordProtected,
   proctoringEnabled,
+  instructions,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -902,9 +966,12 @@ export default function AssessmentOnboardingClient({
   const [generalNextPending, setGeneralNextPending] = useState(false);
   const [generalNextError, setGeneralNextError] = useState<string | null>(null);
 
-  const steps = buildSteps(passwordProtected, proctoringEnabled);
-  const passwordStepIndex = passwordProtected ? 2 : -1;
-  const micStepIndex = passwordProtected ? 3 : 2;
+  const hasInstructions = instructions.trim().length > 0;
+  const steps = buildSteps(passwordProtected, proctoringEnabled, hasInstructions);
+  const instructionsStepIndex = hasInstructions ? 1 : -1;
+  const generalRulesStepIndex = hasInstructions ? 2 : 1;
+  const passwordStepIndex = passwordProtected ? generalRulesStepIndex + 1 : -1;
+  const micStepIndex = passwordProtected ? passwordStepIndex + 1 : generalRulesStepIndex + 1;
   const proctorStepIndex = proctoringEnabled ? micStepIndex + 1 : -1;
   const resolvedAttemptId = createdAttemptId;
 
@@ -984,16 +1051,23 @@ export default function AssessmentOnboardingClient({
                 <StepImportantRules
                   assessmentType={assessmentType}
                   durationMinutes={durationMinutes}
-                  onNext={() => setStep(1)}
+                  onNext={() => setStep(hasInstructions ? instructionsStepIndex : generalRulesStepIndex)}
                   onBack={() => router.push(`/student/assessments`)}
                 />
               )}
-              {step === 1 && (
+              {step === instructionsStepIndex && hasInstructions && (
+                <StepInstructions
+                  instructions={instructions}
+                  onNext={() => setStep(generalRulesStepIndex)}
+                  onBack={() => setStep(0)}
+                />
+              )}
+              {step === generalRulesStepIndex && (
                 <StepGeneralRules
                   assessmentType={assessmentType}
                   proctoringEnabled={proctoringEnabled}
                   onNext={handleGeneralRulesNext}
-                  onBack={() => setStep(0)}
+                  onBack={() => setStep(hasInstructions ? instructionsStepIndex : 0)}
                   isPending={generalNextPending}
                   error={generalNextError}
                 />
@@ -1001,7 +1075,7 @@ export default function AssessmentOnboardingClient({
               {step === passwordStepIndex && passwordProtected && (
                 <StepPassword
                   assessmentId={assessmentId}
-                  onBack={() => setStep(1)}
+                  onBack={() => setStep(generalRulesStepIndex)}
                   onSuccess={handlePasswordSuccess}
                 />
               )}
@@ -1014,7 +1088,7 @@ export default function AssessmentOnboardingClient({
                       router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${resolvedAttemptId}`);
                     }
                   }}
-                  onBack={() => setStep(passwordProtected ? passwordStepIndex : 1)}
+                  onBack={() => setStep(passwordProtected ? passwordStepIndex : generalRulesStepIndex)}
                 />
               )}
               {step === proctorStepIndex &&

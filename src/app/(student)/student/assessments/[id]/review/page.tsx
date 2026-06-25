@@ -352,25 +352,27 @@ export default async function AssessmentReviewPage({
       : null
 
   return (
-    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
+    <div className="bg-[#f8f9fa] dark:bg-[#0f1b2d] min-h-full">
       {/* Command bar */}
       <div className="bg-white border-b border-[#edebe9] px-5 py-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-1 text-[11px] text-[#8a8886] mb-0.5">
             <span>Student</span>
             <span className="mx-0.5">›</span>
-            <span>Assessments</span>
+            <span>Grades</span>
+            <span className="mx-0.5">›</span>
+            <span>Results</span>
             <span className="mx-0.5">›</span>
             <span className="text-[#002388] font-medium">Review</span>
           </div>
           <h1 className="text-[17px] font-semibold text-[#323130]">Assessment Review</h1>
         </div>
         <Link
-          href={`/student/assessments/${assessmentId}`}
+          href={`/student/assessments/${assessmentId}/results`}
           className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#323130] hover:bg-[#f8f9fa] border border-transparent hover:border-[#8a8886] rounded transition-colors"
         >
           <ChevronLeft size={13} />
-          Back to Assessment
+          Back to Results
         </Link>
       </div>
       <div className="px-4 py-4 md:px-6 space-y-4 pb-12 max-w-[1280px]">

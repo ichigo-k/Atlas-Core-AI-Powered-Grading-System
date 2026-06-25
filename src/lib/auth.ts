@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   logger: {
-    error() {}, // suppress CredentialsSignin noise in the console
+    error() { }, // suppress CredentialsSignin noise in the console
   },
   providers: [
     Credentials({
@@ -38,6 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
           name: user.name,
+          mustChangePassword: user.mustChangePassword,
           keepLoggedIn: credentials.keepLoggedIn === "true",
         }
       },
@@ -51,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const u = user as any
         token.email = u.email
         token.role = u.role
+        token.mustChangePassword = u.mustChangePassword
         token.maxAge = u.keepLoggedIn ? 30 * 24 * 60 * 60 : 8 * 60 * 60
       }
       return token
@@ -58,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       session.user.email = token.email as string
       session.user.role = token.role as "ADMIN" | "LECTURER" | "STUDENT"
+      session.user.mustChangePassword = token.mustChangePassword as boolean
       return session
     },
   },

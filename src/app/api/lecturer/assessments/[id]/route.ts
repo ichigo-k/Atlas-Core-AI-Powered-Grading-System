@@ -108,6 +108,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           type: body.type,
           courseId: body.courseId,
           totalMarks: body.totalMarks,
+          instructions: body.instructions ?? "",
           startsAt: new Date(body.startsAt),
           endsAt: new Date(body.endsAt),
           durationMinutes: body.durationMinutes ?? null,

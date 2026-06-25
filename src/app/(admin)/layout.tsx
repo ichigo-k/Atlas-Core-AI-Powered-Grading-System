@@ -13,6 +13,10 @@ export default async function AdminLayout({
 		redirect("/");
 	}
 
+	if (session.user.mustChangePassword) {
+		redirect("/force-change-password");
+	}
+
 	return (
 		<AdminShell
 			userName={session.user.name}

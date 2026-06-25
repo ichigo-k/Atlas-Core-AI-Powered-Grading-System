@@ -15,6 +15,10 @@ export default async function StudentLayout({
     redirect("/");
   }
 
+  if (session.user.mustChangePassword) {
+    redirect("/force-change-password");
+  }
+
   // Bare layout for the in-exam attempt page (no nav chrome)
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";

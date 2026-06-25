@@ -25,9 +25,9 @@ export default function LecturerPageShell({
 	parentCrumbs,
 }: LecturerPageShellProps) {
 	return (
-		<div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full flex flex-col">
+		<div className="bg-[#f8f9fa] dark:bg-[#0f1b2d] min-h-full flex flex-col">
 			{/* Sticky command bar */}
-			<div className="sticky top-0 z-10 bg-white dark:bg-[#2b2b30] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
+			<div className="sticky top-0 z-10 bg-white dark:bg-[#192534] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
 				{Icon && <Icon size={11} />}
 				<Link href="/lecturer" className="hover:text-[#1e293b] transition-colors">
 					Lecturer

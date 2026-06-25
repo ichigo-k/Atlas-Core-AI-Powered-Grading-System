@@ -29,7 +29,7 @@ export default function AdminShell({
   const adminId = userEmail?.split("@")[0] ?? "";
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#1b1b1f] flex flex-col">
+    <div className="h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#0f1b2d] flex flex-col">
 
       {/* ── TOP BAR ── */}
       <header className="h-12 flex-shrink-0 bg-primary dark:bg-[#002388] flex items-center gap-2 px-3 sm:px-4 z-50 relative overflow-hidden">
@@ -106,9 +106,9 @@ export default function AdminShell({
             <div className="w-7 h-7 rounded-full bg-accent text-primary flex items-center justify-center font-bold text-[11px] flex-shrink-0 select-none">
               {initials}
             </div>
-            <div className="hidden sm:block leading-tight">
-              <div className="text-white text-[12px] font-semibold">{userName ?? "Admin"}</div>
-              <div className="text-white/55 text-[10px]">{adminId}</div>
+            <div className="hidden sm:block leading-tight max-w-[120px]">
+              <div className="text-white text-[12px] font-semibold truncate">{userName ?? "Admin"}</div>
+              <div className="text-white/55 text-[10px] truncate">{adminId}</div>
             </div>
           </Link>
         </div>
@@ -138,7 +138,7 @@ export default function AdminShell({
         </div>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto min-w-0 bg-[#f8f9fa] dark:bg-[#1b1b1f]">
+        <main className="flex-1 overflow-y-auto min-w-0 bg-[#f8f9fa] dark:bg-[#0f1b2d]">
           {children}
         </main>
       </div>

@@ -15,6 +15,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/signout";
@@ -44,6 +45,12 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    heading: "Records",
+    items: [
+      { label: "Student History", href: "/admin/student-history", Icon: History, exact: false },
+    ],
+  },
+  {
     heading: "System",
     items: [
       { label: "Settings", href: "/admin/settings", Icon: Settings, exact: false },
@@ -70,7 +77,7 @@ export default function AdminNavSidebar({ onClose }: AdminNavSidebarProps) {
 
   return (
     <nav
-      className={`h-full bg-white dark:bg-[#222226] border-r border-border flex flex-col overflow-hidden ${hydrated ? "transition-[width] duration-200 ease-in-out" : ""} ${w}`}
+      className={`h-full bg-white dark:bg-[#0a1929] border-r border-border flex flex-col overflow-hidden ${hydrated ? "transition-[width] duration-200 ease-in-out" : ""} ${w}`}
     >
       <div className="flex-1 py-1 overflow-y-auto overflow-x-hidden">
         {NAV_GROUPS.map(({ heading, items }) => (

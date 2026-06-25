@@ -60,15 +60,16 @@ enum ProctorStatus {
 }
 
 model User {
-  id           Int        @id @default(autoincrement())
-  email        String     @unique
-  passwordHash String
-  role         Role
-  name         String?
-  status       UserStatus @default(ACTIVE)
-  dateJoined   DateTime   @default(now())
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                 Int        @id @default(autoincrement())
+  email              String     @unique
+  passwordHash       String
+  role               Role
+  name               String?
+  status             UserStatus @default(ACTIVE)
+  mustChangePassword Boolean    @default(true) @map("must_change_password")
+  dateJoined         DateTime   @default(now())
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   studentProfile  StudentProfile?
   lecturerProfile LecturerProfile?
@@ -219,6 +220,7 @@ model Assessment {
   lecturerId        Int
   lecturer          LecturerProfile  @relation(fields: [lecturerId], references: [id])
   totalMarks        Int
+  instructions      String           @default("")
   startsAt          DateTime
   endsAt            DateTime
   durationMinutes   Int?
@@ -353,8 +355,8 @@ model AssessmentAttempt {
   status        AttemptStatus @default(IN_PROGRESS)
   score         Float?
   attemptNumber Int
-  questionOrder      Json      @default("[]")
-  tabSwitchLog       Json      @default("[]")
+  questionOrder Json          @default("[]")
+  tabSwitchLog  Json          @default("[]")
 
   answers StudentAnswer[]
 
@@ -365,20 +367,20 @@ model AssessmentAttempt {
 }
 
 model StudentAnswer {
-  id             Int               @id @default(autoincrement())
-  attemptId      Int
-  attempt        AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId     Int
-  question       Question          @relation(fields: [questionId], references: [id])
-  answerText     String?
-  selectedOption Int?
-  fileUrl        String?
-  answerHash     String?
-  lecturerNotes          String?   @map("lecturer_notes")
-  lecturerAdjustedScore  Float?    @map("lecturer_adjusted_score")
-  lecturerAdjustReason   String?   @map("lecturer_adjust_reason")
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  id                    Int               @id @default(autoincrement())
+  attemptId             Int
+  attempt               AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId            Int
+  question              Question          @relation(fields: [questionId], references: [id])
+  answerText            String?
+  selectedOption        Int?
+  fileUrl               String?
+  answerHash            String?
+  lecturerNotes         String?           @map("lecturer_notes")
+  lecturerAdjustedScore Float?            @map("lecturer_adjusted_score")
+  lecturerAdjustReason  String?           @map("lecturer_adjust_reason")
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   @@unique([attemptId, questionId])
   @@map("student_answers")
@@ -466,4 +468,3 @@ model Notification {
   @@index([userId, readAt])
   @@map("notifications")
 }
-

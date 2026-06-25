@@ -39,7 +39,7 @@ export default function LecturerNavSidebar({ onClose }: LecturerNavSidebarProps)
 
   return (
     <nav
-      className={`h-full bg-white dark:bg-[#222226] border-r border-border flex flex-col overflow-hidden ${hydrated ? "transition-[width] duration-200 ease-in-out" : ""} ${w}`}
+      className={`h-full bg-white dark:bg-[#0a1929] border-r border-border flex flex-col overflow-hidden ${hydrated ? "transition-[width] duration-200 ease-in-out" : ""} ${w}`}
     >
       <div className="flex-1 py-1 overflow-y-auto overflow-x-hidden">
         {!collapsed && (

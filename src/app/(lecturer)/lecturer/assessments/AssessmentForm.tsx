@@ -26,6 +26,7 @@ function initStep1(): Step1State {
     title: "",
     type: "",
     courseId: null,
+    instructions: "",
     startsAt: "",
     endsAt: "",
     durationMinutes: "",
@@ -51,10 +52,10 @@ function initStep4(): Step4State {
 }
 
 const STEPS = [
-  { label: "Basics" },
-  { label: "Classes" },
-  { label: "Questions" },
-  { label: "Grading" },
+  { label: "Basics", desc: "Name, course, schedule, and security settings" },
+  { label: "Classes", desc: "Assign student classes and set location rules" },
+  { label: "Questions", desc: "Build sections and add questions" },
+  { label: "Review", desc: "Verify configuration and publish" },
 ]
 
 function validateStep1(s: Step1State): Partial<Record<keyof Step1State, string>> {
@@ -102,6 +103,7 @@ function buildPayload(
     title: s1.title.trim(),
     type: s1.type as CreateAssessmentPayload["type"],
     courseId: s1.courseId!,
+    instructions: s1.instructions.trim(),
     startsAt: s1.startsAt,
     endsAt: s1.endsAt,
     durationMinutes: s1.durationMinutes ? parseInt(s1.durationMinutes) : null,
@@ -260,7 +262,7 @@ export default function AssessmentForm({
   }
 
   return (
-    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full flex flex-col">
+    <div className="bg-[#f8f9fa] dark:bg-[#0f1b2d] min-h-full flex flex-col">
       {/* Sticky command bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground flex-shrink-0">
         <ClipboardList size={11} />
@@ -286,40 +288,42 @@ export default function AssessmentForm({
           </div>
         </div>
 
-        {/* Step indicator */}
-        <div className="mb-8 rounded-sm border border-border bg-white px-5 py-4">
-          <div className="flex items-center">
+        {/* Step indicator — AWS-style with descriptions */}
+        <div className="mb-8 rounded-sm border border-border bg-white px-5 py-5">
+          <div className="flex items-start gap-0">
             {STEPS.map((s, i) => {
               const isActive = i === step
               const isDone = i < step
               return (
-                <div key={s.label} className="flex items-center flex-1 last:flex-none">
+                <div key={s.label} className="flex items-start flex-1">
                   <button
                     type="button"
                     onClick={() => isDone && setStep(i)}
                     disabled={!isDone}
-                    className="flex items-center gap-2.5 outline-none"
+                    className="flex items-start gap-3 outline-none text-left group shrink-0"
                   >
                     <div
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-all ${isDone
-                          ? "border-primary bg-primary text-white"
-                          : isActive
-                            ? "border-primary bg-white text-primary"
-                            : "border-border bg-white text-muted-foreground"
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-all mt-0.5 ${isDone
+                        ? "border-primary bg-primary text-white"
+                        : isActive
+                          ? "border-primary bg-white text-primary"
+                          : "border-border bg-white text-muted-foreground"
                         }`}
                     >
                       {isDone ? <CheckCircle2 size={13} /> : i + 1}
                     </div>
-                    <span
-                      className={`text-[13px] transition-colors ${isActive ? "text-primary font-semibold" : isDone ? "text-[#1e293b] font-medium" : "text-muted-foreground"
-                        }`}
-                    >
-                      {s.label}
-                    </span>
+                    <div className="min-w-0">
+                      <span
+                        className={`text-[13px] block transition-colors ${isActive ? "text-primary font-semibold" : isDone ? "text-[#1e293b] font-medium group-hover:text-primary" : "text-muted-foreground"
+                          }`}
+                      >
+                        {s.label}
+                      </span>
+                      <span className={`text-[11px] block mt-0.5 transition-colors ${isActive ? "text-[#1e293b]" : "text-muted-foreground"}`}>
+                        {s.desc}
+                      </span>
+                    </div>
                   </button>
-                  {i < STEPS.length - 1 && (
-                    <div className={`mx-3 h-px flex-1 transition-colors ${isDone ? "bg-primary" : "bg-border"}`} />
-                  )}
                 </div>
               )
             })}
@@ -366,25 +370,36 @@ export default function AssessmentForm({
             />
           )}
 
-          {/* Navigation footer */}
+          {/* Navigation footer — AWS style: cancel left, progress right */}
           {step < 3 && (
-            <div className="flex items-center justify-between pt-4 border-t border-border">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleBack}
-                disabled={step === 0}
-                className="h-8 px-4 text-[13px] text-muted-foreground hover:text-[#1e293b] disabled:opacity-0"
-              >
-                Previous
-              </Button>
-              <Button
-                type="button"
-                onClick={handleContinue}
-                className="h-8 px-4 bg-primary hover:bg-[#001570] text-white text-[13px] font-semibold rounded-sm"
-              >
-                Continue to {STEPS[step + 1].label}
-              </Button>
+            <div className="flex items-center justify-between pt-5 border-t border-border mt-5">
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/lecturer/assessments"
+                  className="h-8 px-4 inline-flex items-center text-[13px] text-muted-foreground hover:text-[#1e293b] transition-colors"
+                >
+                  Cancel
+                </Link>
+              </div>
+              <div className="flex items-center gap-3">
+                {step > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleBack}
+                    className="h-8 px-4 text-[13px] rounded-sm border-border text-muted-foreground hover:text-[#1e293b]"
+                  >
+                    Previous
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={handleContinue}
+                  className="h-8 px-5 bg-primary hover:bg-[#001570] text-white text-[13px] font-semibold rounded-sm"
+                >
+                  Next: {STEPS[step + 1].label}
+                </Button>
+              </div>
             </div>
           )}
         </div>

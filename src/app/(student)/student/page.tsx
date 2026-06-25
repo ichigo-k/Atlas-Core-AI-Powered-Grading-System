@@ -120,10 +120,10 @@ export default async function StudentDashboardPage() {
   ];
 
   return (
-    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
+    <div className="bg-[#f8f9fa] dark:bg-[#0f1b2d] min-h-full">
 
       {/* ── Command bar ── */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-[#2b2b30] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="sticky top-0 z-10 bg-white dark:bg-[#192534] border-b border-border px-5 py-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <LayoutDashboard size={11} />
         <span>Student</span>
         <ChevronRight size={11} />

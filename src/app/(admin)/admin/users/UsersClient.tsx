@@ -5,6 +5,7 @@ import {
 	ArrowUpDown,
 	Edit2,
 	GraduationCap,
+	History,
 	MoreVertical,
 	ShieldCheck,
 	Trash2,
@@ -14,6 +15,7 @@ import {
 	Users as UsersIcon,
 	UserX,
 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -121,11 +123,10 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 								type="button"
 								disabled={loading}
 								onClick={handleToggleStatus}
-								className={`p-2 rounded-sm transition-all ${
-									user.status === "SUSPENDED"
-										? "text-emerald-500 hover:bg-emerald-50"
-										: "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-								}`}
+								className={`p-2 rounded-sm transition-all ${user.status === "SUSPENDED"
+									? "text-emerald-500 hover:bg-emerald-50"
+									: "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+									}`}
 							>
 								{user.status === "SUSPENDED" ? (
 									<UserCheck size={16} />
@@ -153,6 +154,14 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 								<Edit2 className="mr-2 h-4 w-4" />
 								Edit Details
 							</DropdownMenuItem>
+							{user.role === "STUDENT" && (
+								<DropdownMenuItem asChild>
+									<Link href={`/admin/student-history/${user.id}`}>
+										<History className="mr-2 h-4 w-4" />
+										View Records
+									</Link>
+								</DropdownMenuItem>
+							)}
 							<DropdownMenuSeparator />
 							<DropdownMenuItem
 								className="text-rose-600 focus:text-rose-600 focus:bg-rose-50"
@@ -372,20 +381,18 @@ export default function UsersClient({
 							type="button"
 							key={key}
 							onClick={() => setActiveTab(key)}
-							className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-colors ${
-								active
-									? "text-[#002388] font-semibold"
-									: "text-slate-500 font-medium hover:text-slate-700"
-							}`}
+							className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-colors ${active
+								? "text-[#002388] font-semibold"
+								: "text-slate-500 font-medium hover:text-slate-700"
+								}`}
 						>
 							<Icon size={16} strokeWidth={active ? 2.5 : 2} />
 							{label}
 							<span
-								className={`flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold transition-colors ${
-									active
-										? "bg-[#002388] text-white"
-										: "border border-border text-slate-500 bg-slate-50 group-hover:border-slate-300"
-								}`}
+								className={`flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold transition-colors ${active
+									? "bg-[#002388] text-white"
+									: "border border-border text-slate-500 bg-slate-50 group-hover:border-slate-300"
+									}`}
 							>
 								{counts[key]}
 							</span>

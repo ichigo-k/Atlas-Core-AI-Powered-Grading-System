@@ -13,6 +13,10 @@ export default async function LecturerLayout({
     redirect("/")
   }
 
+  if (session.user.mustChangePassword) {
+    redirect("/force-change-password")
+  }
+
   return (
     <LecturerShell
       userName={session.user.name}

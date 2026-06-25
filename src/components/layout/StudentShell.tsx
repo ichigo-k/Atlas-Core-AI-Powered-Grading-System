@@ -35,7 +35,7 @@ export default function StudentShell({
   const studentId = userEmail?.split("@")[0] ?? "";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#1b1b1f]">
+    <div className="flex h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#0f1b2d]">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
@@ -149,9 +149,9 @@ export default function StudentShell({
             <div className="w-7 h-7 rounded-full bg-white text-[#002388] flex items-center justify-center font-bold text-[11px] flex-shrink-0 select-none">
               {initials}
             </div>
-            <div className="hidden sm:block leading-tight">
-              <div className="text-white text-[12px] font-semibold leading-none">{userName ?? "Student"}</div>
-              <div className="text-white/55 text-[10px] mt-0.5 leading-none">{studentId}</div>
+            <div className="hidden sm:block leading-tight max-w-[120px]">
+              <div className="text-white text-[12px] font-semibold leading-none truncate">{userName ?? "Student"}</div>
+              <div className="text-white/55 text-[10px] mt-0.5 leading-none truncate">{studentId}</div>
             </div>
           </Link>
         </div>

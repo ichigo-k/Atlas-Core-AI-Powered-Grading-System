@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button"
 import type { Step4State, SectionFormState } from "@/lib/assessment-types"
-import { ArrowLeft, FileText, Send } from "lucide-react"
+import { ArrowLeft, FileText, Send, AlertCircle } from "lucide-react"
+import Link from "next/link"
 
 interface Step4GradingProps {
   state: Step4State
@@ -34,13 +35,26 @@ export default function Step4Grading({
   }, 0)
 
   const totalQuestions = sections.reduce((acc, sec) => acc + sec.questions.length, 0)
+  const hasQuestions = totalQuestions > 0
+  const hasSections = sections.length > 0
 
   return (
     <div className="space-y-5">
-      {/* Summary card */}
+      {/* Info banner — AWS "Review and create" style */}
+      <div className="flex items-start gap-3 rounded-sm border border-primary/20 bg-[#dce6f7] px-4 py-3">
+        <AlertCircle size={15} className="text-primary shrink-0 mt-0.5" />
+        <div>
+          <p className="text-[12px] font-semibold text-[#1e293b]">Review your assessment configuration</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Verify the details below before saving. You can save as draft and come back later, or publish immediately to make it available to students.
+          </p>
+        </div>
+      </div>
+
+      {/* Marks summary */}
       <div className="rounded-sm border border-border bg-white p-5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-4">
-          Grading Summary
+          Assessment Summary
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -58,11 +72,14 @@ export default function Step4Grading({
           </div>
           <div className="rounded-sm border border-border bg-[#f3f2f1] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-1.5">Grading</p>
-            <p className="text-[13px] font-semibold text-[#1e293b] mt-1">Automated</p>
+            <p className="text-[13px] font-semibold text-[#1e293b] mt-1">
+              {sections.some((s) => s.type === "SUBJECTIVE") ? "AI + Auto" : "Automated"}
+            </p>
           </div>
         </div>
 
-        {sections.length > 0 && (
+        {/* Section breakdown table */}
+        {hasSections && (
           <div className="rounded-sm border border-border overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-[#f3f2f1] border-b border-border">
@@ -86,11 +103,10 @@ export default function Step4Grading({
                         {sec.name || <span className="text-muted-foreground italic">Untitled</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-semibold border ${
-                          sec.type === "OBJECTIVE"
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-semibold border ${sec.type === "OBJECTIVE"
                             ? "bg-[#dce6f7] text-primary border-primary/20"
                             : "bg-purple-50 text-purple-700 border-purple-200"
-                        }`}>
+                          }`}>
                           {sec.type === "OBJECTIVE" ? "Objective" : "Subjective"}
                         </span>
                       </td>
@@ -116,38 +132,54 @@ export default function Step4Grading({
             </table>
           </div>
         )}
+
+        {!hasSections && (
+          <div className="flex items-center gap-2 rounded-sm border border-amber-200 bg-amber-50 px-4 py-3">
+            <AlertCircle size={14} className="text-amber-600 shrink-0" />
+            <p className="text-[12px] text-amber-700">No sections or questions have been added. Go back to Step 3 to add content.</p>
+          </div>
+        )}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 pt-4 border-t border-border">
+      {/* Actions — AWS style: Previous + Cancel left, Draft + Publish right */}
+      <div className="flex items-center gap-3 pt-5 border-t border-border">
         <Button
           type="button"
           variant="ghost"
           onClick={onBack}
           disabled={isSubmitting}
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-[#1e293b]"
+          className="h-9 px-4 rounded-sm text-[13px] text-muted-foreground hover:text-[#1e293b]"
         >
-          <ArrowLeft size={15} />
+          <ArrowLeft size={14} className="mr-1.5" />
+          Previous
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onSaveAsDraft}
-          disabled={isSubmitting}
-          className="h-8 px-4 rounded-sm border-border text-[13px] text-muted-foreground hover:bg-[#f3f2f1]"
+        <Link
+          href="/lecturer/assessments"
+          className="h-9 px-4 inline-flex items-center text-[13px] text-muted-foreground hover:text-[#1e293b] transition-colors"
         >
-          <FileText size={13} className="mr-1.5" />
-          {isSubmitting ? "Saving..." : "Save as Draft"}
-        </Button>
-        <Button
-          type="button"
-          onClick={onPublish}
-          disabled={isSubmitting}
-          className="h-8 px-4 rounded-sm bg-primary hover:bg-[#001570] text-white text-[13px] font-semibold ml-auto"
-        >
-          <Send size={13} className="mr-1.5" />
-          {isSubmitting ? "Publishing..." : "Publish Assessment"}
-        </Button>
+          Cancel
+        </Link>
+        <div className="ml-auto flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onSaveAsDraft}
+            disabled={isSubmitting}
+            className="h-9 px-4 rounded-sm border-border text-[13px] text-muted-foreground hover:bg-[#f3f2f1]"
+          >
+            <FileText size={13} className="mr-1.5" />
+            {isSubmitting ? "Saving..." : "Save as Draft"}
+          </Button>
+          <Button
+            type="button"
+            onClick={onPublish}
+            disabled={isSubmitting || !hasQuestions}
+            className="h-9 px-5 rounded-sm bg-primary hover:bg-[#001570] text-white text-[13px] font-semibold"
+          >
+            <Send size={13} className="mr-1.5" />
+            {isSubmitting ? "Publishing..." : "Create & Publish"}
+          </Button>
+        </div>
       </div>
     </div>
   )

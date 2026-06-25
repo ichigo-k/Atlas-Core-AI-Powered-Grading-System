@@ -52,21 +52,21 @@ export default async function ProfilePage() {
   const bgColor = avatarColor(user?.name);
 
   const details = [
-    { Icon: User, label: "Full Name", value: user?.name ?? "�" },
-    { Icon: Mail, label: "Email", value: user?.email ?? "�" },
-    { Icon: Hash, label: "Student ID", value: profile?.indexNumber ?? user?.email?.split("@")[0] ?? "�" },
-    { Icon: Layers, label: "Class", value: profile?.class ? `${profile.class.name} (Level ${profile.class.level})` : "�" },
-    { Icon: GraduationCap, label: "Programme", value: profile?.program?.name ?? "�" },
-    { Icon: BookOpen, label: "Faculty", value: profile?.program?.faculty?.name ?? "�" },
-    { Icon: Calendar, label: "Academic Year", value: settings?.academicYear ?? "�" },
-    { Icon: Calendar, label: "Semester", value: settings?.semester ?? "�" },
+    { Icon: User, label: "Full Name", value: user?.name ?? "-" },
+    { Icon: Mail, label: "Email", value: user?.email ?? "-" },
+    { Icon: Hash, label: "Student ID", value: profile?.indexNumber ?? user?.email?.split("@")[0] ?? "-" },
+    { Icon: Layers, label: "Class", value: profile?.class ? `${profile.class.name} (Level ${profile.class.level})` : "-" },
+    { Icon: GraduationCap, label: "Programme", value: profile?.program?.name ?? "-" },
+    { Icon: BookOpen, label: "Faculty", value: profile?.program?.faculty?.name ?? "-" },
+    { Icon: Calendar, label: "Academic Year", value: settings?.academicYear ?? "-" },
+    { Icon: Calendar, label: "Semester", value: settings?.semester ?? "-" },
   ];
 
   return (
-    <div className="bg-[#f8f9fa] dark:bg-[#1b1b1f] min-h-full">
+    <div className="bg-[#f8f9fa] dark:bg-[#0f1b2d] min-h-full">
 
       {/* -- Command bar -- */}
-      <div className="bg-white dark:bg-[#2b2b30] border-b border-[#edebe9] dark:border-white/10 px-5 py-3">
+      <div className="bg-white dark:bg-[#192534] border-b border-[#edebe9] dark:border-white/10 px-5 py-3">
         <div className="flex items-center gap-1 text-[11px] text-[#8a8886]">
           <span>Student</span>
           <ChevronRight size={11} />

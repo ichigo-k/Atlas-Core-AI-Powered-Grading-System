@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
   if (!body.title?.trim()) return NextResponse.json({ error: "title is required" }, { status: 400 })
   if (!body.type) return NextResponse.json({ error: "type is required" }, { status: 400 })
   if (!body.courseId) return NextResponse.json({ error: "courseId is required" }, { status: 400 })
+  if (body.instructions && body.instructions.length > 1000) return NextResponse.json({ error: "instructions must be 1000 characters or less" }, { status: 400 })
   if (!body.startsAt) return NextResponse.json({ error: "startsAt is required" }, { status: 400 })
   if (!body.endsAt) return NextResponse.json({ error: "endsAt is required" }, { status: 400 })
   if (!body.maxAttempts || body.maxAttempts < 1)
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
           courseId: body.courseId,
           lecturerId,
           totalMarks: body.totalMarks,
+          instructions: body.instructions ?? "",
           startsAt: new Date(body.startsAt),
           endsAt: new Date(body.endsAt),
           durationMinutes: body.durationMinutes ?? null,
