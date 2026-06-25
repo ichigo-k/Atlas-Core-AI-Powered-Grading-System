@@ -182,11 +182,10 @@ async function DashboardContent() {
 					<div className="flex items-center justify-between border-b border-slate-800/50 px-4 py-3 bg-slate-950/30">
 						<div className="flex items-center gap-3">
 							<div
-								className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300 ${
-									isHealthy
+								className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300 ${isHealthy
 										? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
 										: "bg-amber-500/10 border-amber-500/20 text-amber-400"
-								}`}
+									}`}
 							>
 								{isHealthy ? (
 									<CheckCircle2 size={18} className="animate-pulse" />
@@ -212,11 +211,10 @@ async function DashboardContent() {
 							{auditAlerts.map((alert) => (
 								<div
 									key={alert}
-									className={`rounded-lg border px-3.5 py-2.5 text-xs font-medium leading-relaxed transition-colors ${
-										isHealthy
+									className={`rounded-lg border px-3.5 py-2.5 text-xs font-medium leading-relaxed transition-colors ${isHealthy
 											? "bg-slate-950/30 border-slate-800/40 text-slate-300"
 											: "bg-amber-500/5 border-amber-500/10 text-amber-300"
-									}`}
+										}`}
 								>
 									{alert}
 								</div>
@@ -275,7 +273,7 @@ async function DashboardContent() {
 				</div>
 				<div className="divide-y divide-slate-100">
 					{auditLogs.length > 0 ? (
-						auditLogs.map((log) => (
+						auditLogs.map((log: { id: number; action: string; details: string; category: string; timestamp: Date }) => (
 							<div
 								key={log.id}
 								className="grid gap-2 px-4 py-3 md:grid-cols-[9rem_1fr_auto] md:items-start md:px-5"
