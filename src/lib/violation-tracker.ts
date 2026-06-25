@@ -22,6 +22,43 @@ export type ViolationReason =
 // same page session, resets on full page reload (which is fine).
 const _localCounts = new Map<number, number>()
 
+// ── Shared flag cooldown ───────────────────────────────────────────────────
+// A single physical "leave" gesture (alt-tab, an overlay window stealing focus,
+// a fullscreen flicker) can fire blur + visibilitychange + fullscreenchange in
+// the same instant — and each of those is wired to its own flag source
+// (LockdownOverlay, AntiCheatGuard blur, AntiCheatGuard visibility). Without a
+// shared throttle, one action could record 3-5 flags at once and instantly
+// terminate the attempt.
+//
+// tryAcquireFlagSlot() lets the FIRST source through and blocks any other
+// source for FLAG_COOLDOWN_MS, so one gesture == one flag. The window is short
+// enough that genuinely separate violations (and the 15s away-interval) still
+// register normally.
+export const FLAG_COOLDOWN_MS = 2000
+
+const _lastFlagAt = new Map<number, number>()
+
+/**
+ * Returns true (and starts the cooldown) if this attempt is allowed to record a
+ * new flag right now; returns false if a flag was recorded within the last
+ * FLAG_COOLDOWN_MS. Callers must gate BOTH the optimistic UI update and the
+ * server call behind this so the displayed count never drifts ahead of the
+ * authoritative server count.
+ */
+export function tryAcquireFlagSlot(attemptId: number): boolean {
+  const now = Date.now()
+  const last = _lastFlagAt.get(attemptId) ?? 0
+  if (now - last < FLAG_COOLDOWN_MS) return false
+  _lastFlagAt.set(attemptId, now)
+  return true
+}
+
+/** Clears cooldown + local counters for an attempt (e.g. on unmount/reset). */
+export function clearFlagState(attemptId: number): void {
+  _lastFlagAt.delete(attemptId)
+  _localCounts.delete(attemptId)
+}
+
 /**
  * Reads the current violation count for the attempt.
  *

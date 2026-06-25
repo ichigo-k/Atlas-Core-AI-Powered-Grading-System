@@ -1,7 +1,7 @@
 "use client"
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
-import { MAX_VIOLATIONS, ViolationReason, addViolation, readViolationCount } from "@/lib/violation-tracker"
+import { MAX_VIOLATIONS, ViolationReason, addViolation, readViolationCount, tryAcquireFlagSlot } from "@/lib/violation-tracker"
 import { useViolationStore } from "@/lib/violation-store"
 
 interface LockdownOverlayProps {
@@ -57,18 +57,26 @@ const LockdownOverlay = forwardRef<LockdownOverlayHandle, LockdownOverlayProps>(
       })
 
       function flagFullscreenExit() {
+        // Don't flag the fullscreen exit that happens as we submit / navigate away.
+        if (useViolationStore.getState().submitting) return
         const active = enforcementActive.current
         const currentCount = useViolationStore.getState().count
-        
-        // Always record the violation locally to trigger the dark overlay/button (Req 10.6)
-        recordViolation({ 
-          type: "FULLSCREEN_EXIT", 
-          flagCountAfter: active ? currentCount + 1 : currentCount, 
-          source: "CLIENT" 
+
+        // A flag only COUNTS if the grace period has passed AND we win the shared
+        // cooldown slot — otherwise this fullscreenchange is part of the same
+        // physical gesture that another source (blur / visibility) already flagged.
+        const counts = active && tryAcquireFlagSlot(attemptId)
+
+        // Always record locally so the dark overlay + "return to fullscreen" button
+        // shows (Req 10.6) — but only bump the count when this event actually counts,
+        // so the displayed count never drifts ahead of the server.
+        recordViolation({
+          type: "FULLSCREEN_EXIT",
+          flagCountAfter: counts ? currentCount + 1 : currentCount,
+          source: "CLIENT",
         })
 
-        // Only persist to server if grace period has passed
-        if (active) {
+        if (counts) {
           addViolation(attemptId, "FULLSCREEN_EXIT").then(({ count: serverCount, willAutoSubmit }) => {
             if (!cleanedUp) {
               syncCount(serverCount)

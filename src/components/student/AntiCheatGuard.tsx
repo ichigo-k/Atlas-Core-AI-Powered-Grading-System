@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { logTabSwitch } from "@/lib/assessment-actions"
-import { MAX_VIOLATIONS, ViolationReason, addViolation, readViolationCount } from "@/lib/violation-tracker"
+import { MAX_VIOLATIONS, ViolationReason, addViolation, readViolationCount, tryAcquireFlagSlot } from "@/lib/violation-tracker"
 import { useViolationStore } from "@/lib/violation-store"
 
 const AWAY_GRACE_SECONDS = 15
@@ -115,6 +115,9 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
       // Actual violation tick (every AWAY_GRACE_SECONDS)
       awayIntervalRef.current = setInterval(() => {
         if (cleanedUp || !isAwayRef.current) return
+        if (useViolationStore.getState().submitting) return // attempt is being submitted
+        // Defensive: skip if another source just flagged within the cooldown window.
+        if (!tryAcquireFlagSlot(attemptId)) return
         if (violationType === "TAB_SWITCH") logTabSwitch(attemptId, new Date().toISOString())
         const currentCount = useViolationStore.getState().count
         const optimistic = currentCount + 1
@@ -131,6 +134,7 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
 
     const recordLeave = () => {
       if (!enforcementActive.current) return
+      if (useViolationStore.getState().submitting) return // submitting/navigating away — not a violation
       if (leaveDebounce) return
       leaveDebounce = setTimeout(() => { leaveDebounce = null }, 500)
 
@@ -139,16 +143,21 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
 
       logTabSwitch(attemptId, new Date().toISOString())
 
+      // This flag only COUNTS if we win the shared cooldown slot — a fullscreen
+      // exit or a second focus event from the same gesture may have already
+      // flagged. Either way we still show the overlay and start the away timers.
+      const counts = tryAcquireFlagSlot(attemptId)
       const currentCount = useViolationStore.getState().count
-      const optimistic = currentCount + 1
 
-      recordViolation({ type: "TAB_SWITCH", flagCountAfter: optimistic, source: "CLIENT" })
+      recordViolation({ type: "TAB_SWITCH", flagCountAfter: counts ? currentCount + 1 : currentCount, source: "CLIENT" })
 
-      addViolation(attemptId, "TAB_SWITCH").then(({ count: serverCount, willAutoSubmit }) => {
-        if (cleanedUp) return
-        syncCount(serverCount)
-        if (willAutoSubmit) showFinalWarning()
-      })
+      if (counts) {
+        addViolation(attemptId, "TAB_SWITCH").then(({ count: serverCount, willAutoSubmit }) => {
+          if (cleanedUp) return
+          syncCount(serverCount)
+          if (willAutoSubmit) showFinalWarning()
+        })
+      }
 
       startAwayTimers("TAB_SWITCH")
     }
@@ -163,6 +172,7 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
         // Start repeat-violation timer for fullscreen exit.
         // The initial FULLSCREEN_EXIT flag is fired by LockdownOverlay; we only add the repeats.
         if (!enforcementActive.current) return
+        if (useViolationStore.getState().submitting) return // exiting fullscreen to submit/navigate
         if (isAwayRef.current) return // already tracking (e.g. tab switched while out of fullscreen)
         isAwayRef.current = true
         startAwayTimers("FULLSCREEN_EXIT")

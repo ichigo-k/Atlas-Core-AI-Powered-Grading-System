@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
       confidence: null,
       detectedAt,
       flagCountAfter: newFlagCount,
-      thumbnailBase64: null,
     }
 
     // Use atomic increment to avoid transaction contention under rapid firing

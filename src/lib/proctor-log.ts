@@ -27,8 +27,6 @@ export interface ProctoringLogEntry {
   detectedAt: string
   /** Value of ProctorRecord.flagCount after this event was appended */
   flagCountAfter: number
-  /** Base64-encoded JPEG thumbnail; null for client-side events */
-  thumbnailBase64: string | null
 }
 
 /**
@@ -48,7 +46,7 @@ export function serializeProctoringLog(entries: ProctoringLogEntry[]): string {
  *
  * Required fields: violationType (string), source ('CLIENT' | 'ORACLE'),
  *                  detectedAt (string), flagCountAfter (number)
- * Optional fields: confidence (number | null), thumbnailBase64 (string | null)
+ * Optional fields: confidence (number | null)
  *
  * Requirements: 12.2
  */
@@ -111,24 +109,12 @@ export function deserializeProctoringLog(json: string): ProctoringLogEntry[] {
               )
             })()
 
-    const thumbnailBase64 =
-      entry.thumbnailBase64 === undefined
-        ? null
-        : entry.thumbnailBase64 === null || typeof entry.thumbnailBase64 === 'string'
-          ? (entry.thumbnailBase64 as string | null)
-          : (() => {
-              throw new Error(
-                `ProctoringLogEntry at index ${index} has invalid 'thumbnailBase64': must be a string or null`,
-              )
-            })()
-
     return {
       violationType: entry.violationType as string,
       source: entry.source as 'CLIENT' | 'ORACLE',
       confidence,
       detectedAt: entry.detectedAt as string,
       flagCountAfter: entry.flagCountAfter as number,
-      thumbnailBase64,
     }
   })
 }
@@ -140,7 +126,6 @@ export function deserializeProctoringLog(json: string): ProctoringLogEntry[] {
  *   [N] <detectedAt> | <violationType> | <source> | confidence: <value> | flags: <flagCountAfter>
  *
  * The confidence segment is omitted for CLIENT-sourced entries (where confidence is null).
- * A "[has thumbnail]" indicator is appended when thumbnailBase64 is present.
  *
  * Returns an empty string for empty arrays.
  *
@@ -163,10 +148,6 @@ export function formatProctoringLog(entries: ProctoringLogEntry[]): string {
       }
 
       parts.push(`flags: ${entry.flagCountAfter}`)
-
-      if (entry.thumbnailBase64 !== null) {
-        parts.push('[has thumbnail]')
-      }
 
       return parts.join(' | ')
     })
