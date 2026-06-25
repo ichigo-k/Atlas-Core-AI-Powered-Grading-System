@@ -20,13 +20,13 @@ export async function getProctorFlagCount(attemptId: number): Promise<number> {
 
 /**
  * Returns the current flag count AND the latest log entry's violationType and source.
- * Used by the exam UI to show the correct Oracle flag overlay when the server count
- * increases due to an Oracle webhook.
+ * Used by the exam UI to show the correct flag overlay when the server count
+ * increases.
  */
 export async function getProctorStatus(attemptId: number): Promise<{
   flagCount: number
   latestViolationType: string | null
-  latestSource: 'CLIENT' | 'ORACLE' | null
+  latestSource: 'CLIENT' | null
 }> {
   try {
     const record = await prisma.proctorRecord.findUnique({
@@ -41,7 +41,7 @@ export async function getProctorStatus(attemptId: number): Promise<{
     return {
       flagCount: record.flagCount,
       latestViolationType: (latest?.violationType as string) ?? null,
-      latestSource: (latest?.source as 'CLIENT' | 'ORACLE') ?? null,
+      latestSource: (latest?.source as 'CLIENT') ?? null,
     }
   } catch {
     return { flagCount: 0, latestViolationType: null, latestSource: null }

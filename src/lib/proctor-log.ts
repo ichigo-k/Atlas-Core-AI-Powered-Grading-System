@@ -9,17 +9,15 @@
 
 export interface ProctoringLogEntry {
   /**
-   * anomalyType from Oracle, or client-side browser event type.
-   *
-   * Oracle-sourced values (source = 'ORACLE'):
-   *   PHONE_DETECTED | LOOKING_AWAY | PERSON_ABSENT | MULTIPLE_PERSONS |
-   *   SUSPICIOUS_OBJECT | TALKING_DETECTED | POOR_LIGHTING | CONNECTION_LOST
+   * Violation event type.
    *
    * Client-sourced values (source = 'CLIENT'):
-   *   FULLSCREEN_EXIT | TAB_SWITCH | CONNECTION_LOST
+   *   FULLSCREEN_EXIT | TAB_SWITCH | PERSON_ABSENT | MULTIPLE_PERSONS |
+   *   PHONE_DETECTED | SUSPICIOUS_OBJECT | TALKING_DETECTED | GAZE_AWAY |
+   *   CONNECTION_LOST
    */
   violationType: string
-  /** Whether the event originated from the client browser or Oracle */
+  /** Event origin — always 'CLIENT' (legacy entries may contain 'ORACLE') */
   source: 'CLIENT' | 'ORACLE'
   /** Anomaly confidence score; null for client-side events */
   confidence: number | null
@@ -104,10 +102,10 @@ export function deserializeProctoringLog(json: string): ProctoringLogEntry[] {
         : entry.confidence === null || typeof entry.confidence === 'number'
           ? (entry.confidence as number | null)
           : (() => {
-              throw new Error(
-                `ProctoringLogEntry at index ${index} has invalid 'confidence': must be a number or null`,
-              )
-            })()
+            throw new Error(
+              `ProctoringLogEntry at index ${index} has invalid 'confidence': must be a number or null`,
+            )
+          })()
 
     return {
       violationType: entry.violationType as string,
