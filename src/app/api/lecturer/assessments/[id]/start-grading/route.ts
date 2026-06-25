@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { callGraderBatch } from "@/lib/grader-client"
+import { callGraderBatch, isGraderHealthy } from "@/lib/grader-client"
 import { logAction } from "@/lib/audit"
 
 async function getLecturerId(email: string) {
@@ -49,6 +49,15 @@ export async function POST(
       return NextResponse.json({ error: "Assessment has already been graded" }, { status: 409 })
     }
 
+    // Pre-flight: check if grader service is reachable before committing to GRADING status
+    const healthy = await isGraderHealthy()
+    if (!healthy) {
+      return NextResponse.json(
+        { error: "Grading service is currently unavailable. Please try again later." },
+        { status: 503 }
+      )
+    }
+
     await prisma.assessment.update({
       where: { id: assessmentId },
       data: { gradingStatus: "GRADING" },
@@ -82,20 +91,28 @@ export async function POST(
         }
       })
       .catch(async (err) => {
-        console.error("[start-grading] Failed to reach grader service", {
+        const isTimeout = err instanceof Error && err.name === "TimeoutError"
+        const reason = isTimeout
+          ? `Grader request timed out for assessment ${assessmentId}. The grader may still be processing — status will auto-reset if no progress is detected.`
+          : `Could not reach grader service for assessment ${assessmentId}: ${err instanceof Error ? err.message : String(err)}. Status reset to NOT_GRADED.`
+
+        console.error("[start-grading] Grader call failed", {
           assessmentId,
+          isTimeout,
           error: err instanceof Error ? err.message : String(err),
           stack: err instanceof Error ? err.stack : undefined,
         })
-        await prisma.assessment.update({
-          where: { id: assessmentId },
-          data: { gradingStatus: "NOT_GRADED" },
-        })
-        await logAction(
-          "GRADING_FAILED",
-          `Could not reach grader service for assessment ${assessmentId}: ${err instanceof Error ? err.message : String(err)}. Status reset to NOT_GRADED.`,
-          "SYSTEM"
-        )
+
+        // On timeout, don't immediately reset — the grader may still be working.
+        // The status endpoint's stale detection will handle it if it truly died.
+        if (!isTimeout) {
+          await prisma.assessment.update({
+            where: { id: assessmentId },
+            data: { gradingStatus: "NOT_GRADED" },
+          })
+        }
+
+        await logAction("GRADING_FAILED", reason, "SYSTEM")
       })
 
     return NextResponse.json({ gradingStatus: "GRADING" })
