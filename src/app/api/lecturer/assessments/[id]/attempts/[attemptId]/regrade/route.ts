@@ -76,8 +76,19 @@ export async function POST(
   try {
     graderResponse = await callGraderSingle(attemptId)
   } catch (err) {
-    console.error("Grader single call failed for attempt", attemptId, err)
-    return NextResponse.json({ error: "Grader service is unavailable" }, { status: 502 })
+    const isTimeout = err instanceof Error && err.name === "TimeoutError"
+    console.error("[regrade] Grader single call failed for attempt", attemptId, {
+      isTimeout,
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return NextResponse.json(
+      {
+        error: isTimeout
+          ? "Grading timed out. The attempt may have many questions — please try again."
+          : "Grader service is unavailable"
+      },
+      { status: 502 }
+    )
   }
 
   if (!graderResponse.ok) {
