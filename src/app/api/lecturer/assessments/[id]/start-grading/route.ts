@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { callGraderBatch, isGraderHealthy } from "@/lib/grader-client"
 import { logAction } from "@/lib/audit"
+import { submitAttemptInternal } from "@/lib/assessment-actions"
 
 async function getLecturerId(email: string) {
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
@@ -56,6 +57,27 @@ export async function POST(
         { error: "Grading service is currently unavailable. Please try again later." },
         { status: 503 }
       )
+    }
+
+    // Find and auto-submit all IN_PROGRESS attempts for this assessment as TIMED_OUT
+    const inProgressAttempts = await prisma.assessmentAttempt.findMany({
+      where: { assessmentId, status: "IN_PROGRESS" },
+      select: { id: true },
+    })
+
+    if (inProgressAttempts.length > 0) {
+      console.log(`[start-grading] Found ${inProgressAttempts.length} IN_PROGRESS attempts for assessment ${assessmentId}. Auto-submitting...`)
+      for (const attempt of inProgressAttempts) {
+        try {
+          await submitAttemptInternal(attempt.id, assessmentId, "TIMED_OUT")
+        } catch (submitErr) {
+          console.error(`[start-grading] Failed to auto-submit attempt ${attempt.id}`, {
+            attemptId: attempt.id,
+            assessmentId,
+            error: submitErr instanceof Error ? submitErr.message : String(submitErr),
+          })
+        }
+      }
     }
 
     await prisma.assessment.update({

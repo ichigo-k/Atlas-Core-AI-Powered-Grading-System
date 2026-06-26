@@ -46,6 +46,7 @@ export default function RootLayout({
       <head>
         {/* Apply saved theme before paint — prevents a light→dark flash on load */}
         <script
+          id="theme-init"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();`,
           }}

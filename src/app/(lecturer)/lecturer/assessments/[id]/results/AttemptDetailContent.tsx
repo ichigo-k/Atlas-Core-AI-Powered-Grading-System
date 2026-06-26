@@ -589,7 +589,8 @@ function RegradeButton({ assessmentId, attemptId }: { assessmentId: number; atte
       )
       if (res.status === 429) {
         const body = await res.json()
-        toast.error(`Rate limited. Try again in ${body.retryAfterSeconds}s.`)
+        const mins = Math.ceil(body.retryAfterSeconds / 60)
+        toast.error(`Rate limited. Try again in ${mins} minute${mins !== 1 ? "s" : ""}.`)
         return
       }
       if (!res.ok) { toast.error("Re-grading failed."); return }

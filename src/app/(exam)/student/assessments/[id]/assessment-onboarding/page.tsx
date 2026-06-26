@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { expireAbandonedAttempts } from "@/lib/assessment-actions";
+import { expireAbandonedAttempts, submitAttemptInternal } from "@/lib/assessment-actions";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import AssessmentOnboardingClient from "./AssessmentOnboardingClient";
@@ -64,6 +64,7 @@ export default async function AssessmentOnboardingPage({
         studentId: true,
         status: true,
         assessmentId: true,
+        startedAt: true,
       },
     });
 
@@ -73,6 +74,19 @@ export default async function AssessmentOnboardingPage({
       attempt.status !== "IN_PROGRESS" ||
       attempt.assessmentId !== assessmentId
     ) {
+      redirect(`/student/assessments/${assessmentId}`);
+    }
+
+    let expired = false;
+    if (assessment.durationMinutes) {
+      const expiryTime = new Date(attempt.startedAt.getTime() + assessment.durationMinutes * 60 * 1000);
+      if (now > expiryTime) {
+        expired = true;
+      }
+    }
+
+    if (expired) {
+      await submitAttemptInternal(attempt.id, assessmentId, "TIMED_OUT");
       redirect(`/student/assessments/${assessmentId}`);
     }
 

@@ -47,6 +47,7 @@ export async function createOrResumeAttempt(
         startsAt: true,
         endsAt: true,
         status: true,
+        durationMinutes: true,
       },
     })
     if (!assessment) return { error: 'NOT_FOUND' }
@@ -66,9 +67,23 @@ export async function createOrResumeAttempt(
     // Resume an in-progress attempt if one exists (no password check needed for resume)
     const existing = await prisma.assessmentAttempt.findFirst({
       where: { assessmentId, studentId, status: 'IN_PROGRESS' },
-      select: { id: true },
+      select: { id: true, startedAt: true },
     })
-    if (existing) return { attemptId: existing.id }
+    if (existing) {
+      let expired = false
+      if (assessment.durationMinutes) {
+        const expiryTime = new Date(existing.startedAt.getTime() + assessment.durationMinutes * 60 * 1000)
+        if (now > expiryTime) {
+          expired = true
+        }
+      }
+
+      if (expired) {
+        await submitAttemptInternal(existing.id, assessmentId, 'TIMED_OUT')
+      } else {
+        return { attemptId: existing.id }
+      }
+    }
 
     // Password check only needed when creating a NEW attempt, not resuming
     if (assessment.passwordProtected) {
@@ -279,19 +294,6 @@ export async function submitAttemptInternal(
         },
       }),
     ])
-
-    // Fire-and-forget: end Oracle proctoring session if one exists for this attempt
-    const oracleBaseUrl = process.env.ORACLE_BASE_URL
-    if (oracleBaseUrl) {
-      const proctorRecord = await prisma.proctorRecord.findUnique({
-        where: { attemptId },
-        select: { sessionId: true },
-      })
-      if (proctorRecord?.sessionId) {
-        fetch(`${oracleBaseUrl}/api/sessions/${proctorRecord.sessionId}/end`, { method: 'POST' })
-          .catch(() => { }) // fire-and-forget — Oracle failures must not block submission
-      }
-    }
 
     return { success: true }
   } catch (err) {

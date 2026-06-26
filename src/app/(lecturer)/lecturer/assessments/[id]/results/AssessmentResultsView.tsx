@@ -338,7 +338,8 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
       )
       if (res.status === 429) {
         const body = await res.json()
-        toast.error(`Re-grading is rate limited. Try again in ${body.retryAfterSeconds} seconds.`)
+        const mins = Math.ceil(body.retryAfterSeconds / 60)
+        toast.error(`Re-grading is rate limited. Try again in ${mins} minute${mins !== 1 ? "s" : ""}.`)
         return
       }
       if (!res.ok) {

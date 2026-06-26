@@ -314,7 +314,7 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 												<span className="flex items-center gap-1">
 													<CalendarDays size={10} />
 													{new Date(assessment.startsAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-													{" � "}
+													{" — "}
 													{new Date(assessment.endsAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
 												</span>
 												{assessment.durationMinutes != null && (

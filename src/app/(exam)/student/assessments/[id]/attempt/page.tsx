@@ -6,6 +6,7 @@ import {
   getActiveAttempt,
   getAssessmentWithQuestions,
 } from "@/lib/student-queries";
+import { submitAttemptInternal } from "@/lib/assessment-actions";
 import AttemptShell from "./AttemptShell";
 
 export type ProctorSession = {
@@ -100,6 +101,24 @@ export default async function AttemptPage({
 
   const assessment = await getAssessmentWithQuestions(assessmentId, studentId);
   if (!assessment) {
+    redirect(`/student/assessments/${assessmentId}`);
+  }
+
+  // Check attempt expiration
+  let expired = false;
+  const now = new Date();
+  if (assessment.durationMinutes) {
+    const expiryTime = new Date(attempt.startedAt.getTime() + assessment.durationMinutes * 60 * 1000);
+    if (now > expiryTime) {
+      expired = true;
+    }
+  }
+  if (now > assessment.endsAt || assessment.status === "CLOSED") {
+    expired = true;
+  }
+
+  if (expired) {
+    await submitAttemptInternal(attempt.id, assessmentId, "TIMED_OUT");
     redirect(`/student/assessments/${assessmentId}`);
   }
 

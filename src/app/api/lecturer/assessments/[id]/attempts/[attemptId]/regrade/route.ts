@@ -49,7 +49,7 @@ export async function POST(
   }
 
   // 5.2: Cooldown enforcement
-  const cooldownMinutes = parseInt(process.env.REGRADE_COOLDOWN_MINUTES ?? "30") || 30
+  const cooldownMinutes = parseInt(process.env.REGRADE_COOLDOWN_MINUTES ?? "10") || 10
   const gradingResult = await prisma.gradingResult.findUnique({
     where: { attemptId },
     select: { gradedAt: true },
@@ -58,10 +58,12 @@ export async function POST(
   if (gradingResult) {
     const retryAfterSeconds = computeRetryAfterSeconds(gradingResult.gradedAt, cooldownMinutes)
     if (retryAfterSeconds !== null) {
+      const retryAfterMinutes = Math.ceil(retryAfterSeconds / 60)
       return NextResponse.json(
         {
           retryAfterSeconds,
-          message: `Re-grading is rate limited. Please wait ${retryAfterSeconds} seconds before trying again.`,
+          retryAfterMinutes,
+          message: `Re-grading is rate limited. Please wait ${retryAfterMinutes} minute${retryAfterMinutes !== 1 ? "s" : ""} before trying again.`,
         },
         {
           status: 429,

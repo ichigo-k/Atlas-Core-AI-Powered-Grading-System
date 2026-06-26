@@ -21,6 +21,7 @@ import {
   getAssessmentWithQuestions,
   getStudentAttempts,
 } from "@/lib/student-queries";
+import { submitAttemptInternal } from "@/lib/assessment-actions";
 import AssessmentEntryClient from "./AssessmentEntryClient";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,9 +48,7 @@ const sectionTypeBadge: Record<string, { bg: string; text: string }> = {
   SUBJECTIVE: { bg: "#f1f5f9", text: "#475569" },
 };
 
-const oracleConfigured = !!(
-  process.env.ORACLE_BASE_URL || process.env.NEXT_PUBLIC_ORACLE_BASE_URL
-);
+
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -92,12 +91,31 @@ export default async function AssessmentDetailPage({
   });
   const resultsReleased = assessmentMeta?.resultsReleased ?? false;
 
-  const activeAttempt =
+  let activeAttempt =
     attempts.find((a: any) => a.status === "IN_PROGRESS") ?? null;
   if (activeAttempt) {
-    redirect(
-      `/student/assessments/${assessmentId}/assessment-onboarding?attemptId=${activeAttempt.id}`,
-    );
+    let expired = false;
+    const now = new Date();
+    if (assessment.durationMinutes) {
+      const expiryTime = new Date(activeAttempt.startedAt.getTime() + assessment.durationMinutes * 60 * 1000);
+      if (now > expiryTime) {
+        expired = true;
+      }
+    }
+    if (now > assessment.endsAt || assessment.status === "CLOSED") {
+      expired = true;
+    }
+
+    if (expired) {
+      await submitAttemptInternal(activeAttempt.id, assessmentId, "TIMED_OUT");
+      const updatedAttempts = await getStudentAttempts(studentId!, assessmentId);
+      attempts.splice(0, attempts.length, ...updatedAttempts);
+      activeAttempt = null;
+    } else {
+      redirect(
+        `/student/assessments/${assessmentId}/assessment-onboarding?attemptId=${activeAttempt.id}`,
+      );
+    }
   }
 
   const now = new Date();
@@ -481,9 +499,7 @@ export default async function AssessmentDetailPage({
             <AssessmentEntryClient
               assessmentId={assessmentId}
               passwordProtected={assessment.passwordProtected}
-              proctoringEnabled={
-                assessment.proctoringEnabled && oracleConfigured
-              }
+              proctoringEnabled={assessment.proctoringEnabled}
               isLocked={isLocked}
               activeAttemptId={null}
               assessmentType={assessment.type}
