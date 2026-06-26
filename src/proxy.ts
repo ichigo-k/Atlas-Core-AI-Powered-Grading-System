@@ -40,13 +40,19 @@ export async function proxy(request: NextRequest) {
   const isProtected =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/lecturer") ||
-    pathname.startsWith("/student")
+    pathname.startsWith("/student") ||
+    pathname === "/force-change-password"
 
   if (!isProtected) return NextResponse.next()
 
   // Unauthenticated → login page
   if (!isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url))
+  }
+
+  // Bypass role prefix checks for shared auth pages
+  if (pathname === "/force-change-password") {
+    return NextResponse.next()
   }
 
   // Cross-role access → own dashboard
@@ -69,5 +75,6 @@ export const config = {
     "/admin/:path*",
     "/lecturer/:path*",
     "/student/:path*",
+    "/force-change-password",
   ],
 }
