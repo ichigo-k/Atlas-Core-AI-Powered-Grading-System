@@ -1,4 +1,4 @@
-name: Deploy
+name: Migrate DB
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  migrate-and-deploy:
-    name: Migrate DB & Deploy to Vercel
+  migrate:
+    name: Run Prisma Migrations
     runs-on: ubuntu-latest
 
     steps:
@@ -32,13 +32,3 @@ jobs:
         run: pnpm prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Deploy to Vercel (production)
-        run: |
-          pnpm dlx vercel --token ${{ secrets.VERCEL_TOKEN }} \
-            --prod \
-            --yes
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

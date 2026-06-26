@@ -123,7 +123,7 @@ async function AssessmentData({
     proctoringEnabled: raw.proctoringEnabled,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
-    classes: raw.classes.map((ac) => ({
+    classes: raw.classes.map((ac: { id: number; classId: number; class: { name: string } }) => ({
       id: ac.id,
       classId: ac.classId,
       className: ac.class.name,
