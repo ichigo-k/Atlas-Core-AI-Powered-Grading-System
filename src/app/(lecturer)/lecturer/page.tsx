@@ -116,16 +116,16 @@ async function DashboardData() {
 
   // Stats
   const total = assessments.length
-  const published = assessments.filter((a) => a.status === "PUBLISHED").length
-  const draft = assessments.filter((a) => a.status === "DRAFT").length
-  const closed = assessments.filter((a) => a.status === "CLOSED").length
+  const published = assessments.filter((a: any) => a.status === "PUBLISHED").length
+  const draft = assessments.filter((a: any) => a.status === "DRAFT").length
+  const closed = assessments.filter((a: any) => a.status === "CLOSED").length
 
-  const courses = (profile?.courses ?? []).map((c) => ({
+  const courses = (profile?.courses ?? []).map((c: any) => ({
     id: c.id,
     code: c.code,
     title: c.title,
     classCount: c.classes.length,
-    studentCount: c.classes.reduce((acc, cl) => acc + cl._count.students, 0),
+    studentCount: c.classes.reduce((acc: number, cl: { _count: { students: number } }) => acc + cl._count.students, 0),
   }))
 
   const totalStudents = courses.reduce((acc, c) => acc + c.studentCount, 0)
@@ -138,9 +138,9 @@ async function DashboardData() {
 
   // Live + upcoming (published, ends in future)
   const upcomingAndLive = assessments
-    .filter((a) => a.status === "PUBLISHED" && isAfter(new Date(a.endsAt), now))
+    .filter((a: any) => a.status === "PUBLISHED" && isAfter(new Date(a.endsAt), now))
     .slice(0, 5)
-    .map((a) => ({
+    .map((a: any) => ({
       id: a.id,
       title: a.title,
       type: a.type,
@@ -153,10 +153,10 @@ async function DashboardData() {
 
   // Recent drafts
   const recentDrafts = assessments
-    .filter((a) => a.status === "DRAFT")
+    .filter((a: any) => a.status === "DRAFT")
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     .slice(0, 4)
-    .map((a) => ({
+    .map((a: any) => ({
       id: a.id,
       title: a.title,
       courseCode: a.course.code,
@@ -286,7 +286,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
               </div>
             ) : (
               <div className="divide-y divide-[#f1f5f9]">
-                {data.upcomingAndLive.map((a) => (
+                {data.upcomingAndLive.map((a: any) => (
                   <Link
                     key={a.id}
                     href={`/lecturer/assessments/${a.id}`}
@@ -329,7 +329,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f1f5f9]">
-                  {data.courses.map((c) => (
+                  {data.courses.map((c: any) => (
                     <tr key={c.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="px-5 py-3">
                         <p className="text-[13px] font-semibold text-[#1e293b]">{c.code}</p>
@@ -363,7 +363,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
               <div className="px-5 py-10 text-center text-[13px] text-muted-foreground">No drafts.</div>
             ) : (
               <div className="divide-y divide-[#f1f5f9]">
-                {data.recentDrafts.map((d) => (
+                {data.recentDrafts.map((d: any) => (
                   <Link
                     key={d.id}
                     href={`/lecturer/assessments/${d.id}/edit`}

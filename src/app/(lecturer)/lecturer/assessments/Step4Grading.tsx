@@ -26,12 +26,12 @@ export default function Step4Grading({
   onBack,
   isSubmitting,
 }: Step4GradingProps) {
-  const totalMarks = sections.reduce((total, sec) => {
+  const totalMarks = sections.reduce((total: number, sec) => {
     const required = Number(sec.requiredQuestionsCount) || sec.questions.length
     const sortedMarks = sec.questions
-      .map((q) => Number(q.marks) || 0)
-      .sort((a, b) => b - a)
-    return total + sortedMarks.slice(0, required).reduce((sum, m) => sum + m, 0)
+      .map((q: any) => Number(q.marks) || 0)
+      .sort((a: number, b: number) => b - a)
+    return total + sortedMarks.slice(0, required).reduce((sum: number, m: number) => sum + m, 0)
   }, 0)
 
   const totalQuestions = sections.reduce((acc, sec) => acc + sec.questions.length, 0)
@@ -73,7 +73,7 @@ export default function Step4Grading({
           <div className="rounded-sm border border-border bg-[#f3f2f1] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-1.5">Grading</p>
             <p className="text-[13px] font-semibold text-[#1e293b] mt-1">
-              {sections.some((s) => s.type === "SUBJECTIVE") ? "AI + Auto" : "Automated"}
+              {sections.some((s: any) => s.type === "SUBJECTIVE") ? "AI + Auto" : "Automated"}
             </p>
           </div>
         </div>
@@ -91,10 +91,10 @@ export default function Step4Grading({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
-                {sections.map((sec) => {
+                {sections.map((sec: any) => {
                   const required = Number(sec.requiredQuestionsCount) || sec.questions.length
-                  const sortedMarks = sec.questions.map((q) => Number(q.marks) || 0).sort((a, b) => b - a)
-                  const secMarks = sortedMarks.slice(0, required).reduce((acc, m) => acc + m, 0)
+                  const sortedMarks = sec.questions.map((q: any) => Number(q.marks) || 0).sort((a: number, b: number) => b - a)
+                  const secMarks = sortedMarks.slice(0, required).reduce((acc: number, m: number) => acc + m, 0)
                   const pct = totalMarks > 0 ? Math.round((secMarks / totalMarks) * 100) : 0
 
                   return (
@@ -104,8 +104,8 @@ export default function Step4Grading({
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-semibold border ${sec.type === "OBJECTIVE"
-                            ? "bg-[#dce6f7] text-primary border-primary/20"
-                            : "bg-purple-50 text-purple-700 border-purple-200"
+                          ? "bg-[#dce6f7] text-primary border-primary/20"
+                          : "bg-purple-50 text-purple-700 border-purple-200"
                           }`}>
                           {sec.type === "OBJECTIVE" ? "Objective" : "Subjective"}
                         </span>

@@ -48,7 +48,7 @@ async function getLecturerId(email: string): Promise<number | null> {
 function parseFieldsParam(searchParams: URLSearchParams): string[] | null {
   const all = searchParams.getAll("fields")
   if (all.length === 0) return null
-  const flat = all.flatMap((v) => v.split(",").map((s) => s.trim())).filter(Boolean)
+  const flat = all.flatMap((v: any) => v.split(",").map((s: any) => s.trim())).filter(Boolean)
   return flat.length > 0 ? flat : null
 }
 
@@ -75,9 +75,9 @@ function styleHeader(row: ExcelJS.Row, fillColor = "002388") {
 
 // Auto-fit column widths based on content
 function autoFitColumns(sheet: ExcelJS.Worksheet) {
-  sheet.columns.forEach((col) => {
+  sheet.columns.forEach((col: any) => {
     let max = 12
-    col.eachCell?.({ includeEmpty: false }, (cell) => {
+    col.eachCell?.({ includeEmpty: false }, (cell: ExcelJS.Cell) => {
       const len = String(cell.value ?? "").length
       if (len > max) max = len
     })
@@ -113,11 +113,11 @@ export async function GET(
     if (rawFields === null) {
       requestedFields = [...SUPPORTED_FIELDS]
     } else {
-      const invalid = rawFields.filter((f) => !(SUPPORTED_FIELDS as readonly string[]).includes(f))
+      const invalid = rawFields.filter((f: any) => !(SUPPORTED_FIELDS as readonly string[]).includes(f))
       if (invalid.length > 0) {
         return Response.json({ error: `Invalid fields: ${invalid.join(", ")}` }, { status: 400 })
       }
-      requestedFields = SUPPORTED_FIELDS.filter((f) => rawFields.includes(f))
+      requestedFields = SUPPORTED_FIELDS.filter((f: any) => rawFields.includes(f))
     }
 
     // Ownership + grading status
@@ -174,7 +174,7 @@ export async function GET(
       }),
     ])
 
-    const grMap = new Map(gradingResults.map((r) => [r.attemptId, r]))
+    const grMap = new Map(gradingResults.map((r: any) => [r.attemptId, r]))
     const scale = parseGradingScale(settingsRow?.gradingScale)
 
     // Build enrolled student → class name map
@@ -185,10 +185,10 @@ export async function GET(
         if (!studentClassMap.has(s.id)) studentClassMap.set(s.id, ac.class.name)
       }
     }
-    const allEnrolledStudents = enrolled.flatMap((ac) =>
-      ac.class.students.map((s) => ({ id: s.id, name: s.user.name, email: s.user.email }))
+    const allEnrolledStudents = enrolled.flatMap((ac: any) =>
+      ac.class.students.map((s: any) => ({ id: s.id, name: s.user.name, email: s.user.email }))
     )
-    const uniqueEnrolled = new Map(allEnrolledStudents.map((s) => [s.id, s]))
+    const uniqueEnrolled = new Map(allEnrolledStudents.map((s: any) => [s.id, s]))
 
     // ── One row per student: pick best (highest score) attempt ───────────────
     const bestAttemptByStudent = new Map<
@@ -277,12 +277,12 @@ export async function GET(
 
     // Column headers (row 6)
     const headerFields: (SupportedField | "className")[] = [
-      ...(requestedFields.filter((f) => ["studentId", "studentName", "email"].includes(f)) as SupportedField[]),
+      ...(requestedFields.filter((f: any) => ["studentId", "studentName", "email"].includes(f)) as SupportedField[]),
       "className" as const,
-      ...(requestedFields.filter((f) => !["studentId", "studentName", "email"].includes(f)) as SupportedField[]),
+      ...(requestedFields.filter((f: any) => !["studentId", "studentName", "email"].includes(f)) as SupportedField[]),
     ]
 
-    const headerLabels = headerFields.map((f) =>
+    const headerLabels = headerFields.map((f: any) =>
       f === "className" ? "Class" : FIELD_LABELS[f as SupportedField]
     )
     const headerRow = marksSheet.addRow(headerLabels)
@@ -290,7 +290,7 @@ export async function GET(
 
     // Data rows
     for (const row of marksRows) {
-      const values = headerFields.map((f) => {
+      const values = headerFields.map((f: any) => {
         if (f === "className") return row.className
         if (f === "studentId") return row.studentId
         if (f === "studentName") return row.studentName
@@ -340,14 +340,14 @@ export async function GET(
     const distHeader = distSheet.addRow(["Grade Band", "Score Range", "Students", "Percentage of Submitted"])
     styleHeader(distHeader, "0B4DBB")
 
-    const submitted = marksRows.filter((r) => r.submitted)
+    const submitted = marksRows.filter((r: any) => r.submitted)
     const gradeBands = [
-      { label: "A+", min: 90,  max: 100 },
-      { label: "A",  min: 80,  max: 89.99 },
-      { label: "B",  min: 70,  max: 79.99 },
-      { label: "C",  min: 60,  max: 69.99 },
-      { label: "D",  min: 50,  max: 59.99 },
-      { label: "F",  min: 0,   max: 49.99 },
+      { label: "A+", min: 90, max: 100 },
+      { label: "A", min: 80, max: 89.99 },
+      { label: "B", min: 70, max: 79.99 },
+      { label: "C", min: 60, max: 69.99 },
+      { label: "D", min: 50, max: 59.99 },
+      { label: "F", min: 0, max: 49.99 },
     ]
 
     for (const band of gradeBands) {
@@ -370,7 +370,7 @@ export async function GET(
     distSheet.addRow(["Not submitted", uniqueEnrolled.size - submitted.length])
     distSheet.addRow(["Submission rate", submitted.length > 0 ? `${pct(submitted.length, uniqueEnrolled.size)}%` : "0%"])
 
-    const scores = submitted.map((r) => r.score ?? 0)
+    const scores = submitted.map((r: any) => r.score ?? 0)
     if (scores.length > 0) {
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length
       const highest = Math.max(...scores)
@@ -400,12 +400,12 @@ export async function GET(
     }
 
     for (const [className, rows] of classMap) {
-      const sub = rows.filter((r) => r.submitted)
-      const classScores = sub.map((r) => r.score ?? 0)
+      const sub = rows.filter((r: any) => r.submitted)
+      const classScores = sub.map((r: any) => r.score ?? 0)
       const avg = classScores.length > 0 ? classScores.reduce((a, b) => a + b, 0) / classScores.length : 0
       const highest = classScores.length > 0 ? Math.max(...classScores) : 0
       const lowest = classScores.length > 0 ? Math.min(...classScores) : 0
-      const passes = sub.filter((r) => (r.percentage ?? 0) >= 50).length
+      const passes = sub.filter((r: any) => (r.percentage ?? 0) >= 50).length
 
       classSheet.addRow([
         className,

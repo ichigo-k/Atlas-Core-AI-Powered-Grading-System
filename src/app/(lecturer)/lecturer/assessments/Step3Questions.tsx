@@ -57,7 +57,7 @@ function sectionTotalMarks(section: SectionFormState): number {
 
 function sectionHasError(section: SectionFormState): boolean {
   if (!section.type) return false
-  return section.questions.some((q) => !q.body.trim() || !(parseInt(q.marks) > 0))
+  return section.questions.some((q: any) => !q.body.trim() || !(parseInt(q.marks) > 0))
 }
 
 // ─── Section accordion header ─────────────────────────────────────────────────
@@ -192,11 +192,11 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
 
   const updateSection = (id: string, updates: Partial<SectionFormState>) => {
     onChange({
-      sections: state.sections.map((s) => {
+      sections: state.sections.map((s: any) => {
         if (s.id !== id) return s
         const next = { ...s, ...updates }
         if ("pointsPerQuestion" in updates) {
-          next.questions = next.questions.map((q) => ({ ...q, marks: updates.pointsPerQuestion! }))
+          next.questions = next.questions.map((q: any) => ({ ...q, marks: updates.pointsPerQuestion! }))
         }
         return next
       }),
@@ -204,7 +204,7 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
   }
 
   const removeSection = (id: string) => {
-    const remaining = state.sections.filter((s) => s.id !== id)
+    const remaining = state.sections.filter((s: any) => s.id !== id)
     onChange({ sections: remaining })
     if (openSectionId === id) {
       setOpenSectionId(remaining[remaining.length - 1]?.id ?? null)
@@ -213,7 +213,7 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
 
   const addQuestion = (sectionId: string) => {
     onChange({
-      sections: state.sections.map((s) => {
+      sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
         return { ...s, questions: [...s.questions, newQuestion(s.questions.length + 1)] }
       }),
@@ -222,28 +222,28 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
 
   const updateQuestion = (sectionId: string, qId: string, updated: QuestionFormState) => {
     onChange({
-      sections: state.sections.map((s) => {
+      sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
-        return { ...s, questions: s.questions.map((q) => (q.id === qId ? updated : q)) }
+        return { ...s, questions: s.questions.map((q: any) => (q.id === qId ? updated : q)) }
       }),
     })
   }
 
   const removeQuestion = (sectionId: string, qId: string) => {
     onChange({
-      sections: state.sections.map((s) => {
+      sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
         let order = 1
-        return { ...s, questions: s.questions.filter((q) => q.id !== qId).map((q) => ({ ...q, order: order++ })) }
+        return { ...s, questions: s.questions.filter((q: any) => q.id !== qId).map((q: any) => ({ ...q, order: order++ })) }
       }),
     })
   }
 
   const moveQuestion = (sectionId: string, qId: string, direction: "up" | "down") => {
     onChange({
-      sections: state.sections.map((s) => {
+      sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
-        const idx = s.questions.findIndex((q) => q.id === qId)
+        const idx = s.questions.findIndex((q: QuestionFormState) => q.id === qId)
         if (idx === -1) return s
         const swapIdx = direction === "up" ? idx - 1 : idx + 1
         if (swapIdx < 0 || swapIdx >= s.questions.length) return s
@@ -261,10 +261,10 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
     const { sectionId } = bankModal
     if (!sectionId) return
     onChange({
-      sections: state.sections.map((s) => {
+      sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
         let nextOrder = s.questions.length + 1
-        return { ...s, questions: [...s.questions, ...imported.map((q) => ({ ...q, order: nextOrder++ }))] }
+        return { ...s, questions: [...s.questions, ...imported.map((q: any) => ({ ...q, order: nextOrder++ }))] }
       }),
     })
     setBankModal({ open: false, sectionId: null, type: "" })

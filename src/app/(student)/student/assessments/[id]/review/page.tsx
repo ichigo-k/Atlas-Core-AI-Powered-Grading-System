@@ -273,7 +273,7 @@ export default async function AssessmentReviewPage({
 
   const attempts = await getStudentAttempts(studentId, assessmentId)
   const latestSubmitted = attempts
-    .filter((a) => a.status === "SUBMITTED" || a.status === "TIMED_OUT")
+    .filter((a: any) => a.status === "SUBMITTED" || a.status === "TIMED_OUT")
     .sort((a, b) => (b.submittedAt?.getTime() ?? 0) - (a.submittedAt?.getTime() ?? 0))[0] ?? null
 
   if (!latestSubmitted) {
@@ -287,16 +287,16 @@ export default async function AssessmentReviewPage({
 
   const gradingDetail = await getAttemptGradingDetail(latestSubmitted.id)
 
-  const questionIds = assessment.sections.flatMap((s) => s.questions.map((q) => q.id))
+  const questionIds = assessment.sections.flatMap((s: any) => s.questions.map((q: any) => q.id))
   const questionsWithCorrect = await prisma.question.findMany({
     where: { id: { in: questionIds } },
     select: { id: true, correctOption: true },
   })
-  const correctOptionMap = new Map(questionsWithCorrect.map((q) => [q.id, q.correctOption]))
+  const correctOptionMap = new Map(questionsWithCorrect.map((q: any) => [q.id, q.correctOption]))
 
-  const answerMap = new Map(attemptWithAnswers.answers.map((a) => [a.questionId, a]))
+  const answerMap = new Map(attemptWithAnswers.answers.map((a: any) => [a.questionId, a]))
   const feedbackMap = new Map(
-    gradingDetail?.answerFeedbacks.map((f) => [f.questionId, f]) ?? [],
+    gradingDetail?.answerFeedbacks.map((f: any) => [f.questionId, f]) ?? [],
   )
 
   type SectionGroup = {
@@ -306,11 +306,11 @@ export default async function AssessmentReviewPage({
     questions: QuestionWithMeta[]
   }
 
-  const sections: SectionGroup[] = assessment.sections.map((section) => ({
+  const sections: SectionGroup[] = assessment.sections.map((section: any) => ({
     id: section.id,
     name: section.name,
     type: section.type,
-    questions: section.questions.map((q) => {
+    questions: section.questions.map((q: any) => {
       const answer = answerMap.get(q.id) ?? null
       const feedback = feedbackMap.get(q.id) ?? null
       return {
@@ -437,7 +437,7 @@ export default async function AssessmentReviewPage({
         </div>
 
         {/* Questions by section */}
-        {sections.map((section) => (
+        {sections.map((section: any) => (
           <div key={section.id} className="space-y-4">
             <div className="flex items-center gap-3 px-1">
               <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#1e293b]">{section.name}</h2>
@@ -446,7 +446,7 @@ export default async function AssessmentReviewPage({
             </div>
 
             <div className="grid gap-4">
-              {section.questions.map((q, qi) => (
+              {section.questions.map((q: QuestionWithMeta, qi: number) => (
                 <div key={q.id} className="bg-white border border-border rounded-sm p-5 space-y-4 transition-all hover:border-slate-300">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
