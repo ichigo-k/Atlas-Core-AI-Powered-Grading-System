@@ -168,7 +168,7 @@ export default async function StudentDetailPage({
         const score = attempt.score
         const grade = score !== null ? computeGrade(score, a.totalMarks, scale) : null
         const pct = a.totalMarks > 0 && score !== null ? Math.round((score / a.totalMarks) * 100) : 0
-        const attemptCount = attempts.filter((at) => at.assessment.id === a.id).length
+        const attemptCount = attempts.filter((at: typeof attempts[number]) => at.assessment.id === a.id).length
 
         courseMap.get(courseId)!.assessments.push({
             id: a.id,
@@ -247,10 +247,10 @@ export default async function StudentDetailPage({
                             <div className="flex flex-wrap items-center gap-2 mb-1.5">
                                 <h1 className="text-lg font-bold text-[#1e293b]">{student.name ?? "–"}</h1>
                                 <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm border ${student.status === "ACTIVE"
-                                        ? "bg-green-50 text-green-700 border-green-200"
-                                        : student.status === "SUSPENDED"
-                                            ? "bg-red-50 text-red-700 border-red-200"
-                                            : "bg-slate-50 text-slate-600 border-border"
+                                    ? "bg-green-50 text-green-700 border-green-200"
+                                    : student.status === "SUSPENDED"
+                                        ? "bg-red-50 text-red-700 border-red-200"
+                                        : "bg-slate-50 text-slate-600 border-border"
                                     }`}>
                                     {student.status}
                                 </span>
