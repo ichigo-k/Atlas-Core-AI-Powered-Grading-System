@@ -35,8 +35,8 @@ const OBJECT_INTERVAL_MS = 800
 // ── Head-pose tiers (degrees) ──────────────────────────────────────────────
 // FLAG = clearly turned away → hard flag (reachable, not "staring into lap").
 // WARN = sharp — catches even slight glances → soft toast only (no flag).
-const YAW_FLAG = 18,  PITCH_DOWN_FLAG = -20, PITCH_UP_FLAG = 16
-const YAW_WARN = 9,   PITCH_DOWN_WARN = -10, PITCH_UP_WARN = 9
+const YAW_FLAG = 18, PITCH_DOWN_FLAG = -20, PITCH_UP_FLAG = 16
+const YAW_WARN = 9, PITCH_DOWN_WARN = -10, PITCH_UP_WARN = 9
 
 // ── Escalation timing ──────────────────────────────────────────────────────
 const WARN_SUSTAIN_MS = 600       // continuous before a soft toast — snappy
@@ -69,21 +69,21 @@ const HARD_FLAG_TYPES = new Set<WarnKey>([
 //   flagMs — how long it must persist before a hard flag (just long enough to
 //            ignore single-frame detector hiccups, not a grace period).
 const SIGNAL: Record<WarnKey, { warns: boolean; flagMs: number }> = {
-  PERSON_ABSENT:    { warns: false, flagMs: 700 },   // left frame → flag, no warning
+  PERSON_ABSENT: { warns: false, flagMs: 700 },   // left frame → flag, no warning
   MULTIPLE_PERSONS: { warns: false, flagMs: 800 },   // 2nd person → flag
-  PHONE_DETECTED:   { warns: false, flagMs: 900 },   // phone in view → flag
-  GAZE_AWAY:        { warns: true,  flagMs: 2500 },   // ambiguous (typing/thinking) → toast then flag
-  SUSPICIOUS_OBJECT:{ warns: true,  flagMs: Infinity }, // toast only
-  MOUTH_MOVING:     { warns: true,  flagMs: Infinity }, // toast only
+  PHONE_DETECTED: { warns: false, flagMs: 900 },   // phone in view → flag
+  GAZE_AWAY: { warns: true, flagMs: 2500 },   // ambiguous (typing/thinking) → toast then flag
+  SUSPICIOUS_OBJECT: { warns: true, flagMs: Infinity }, // toast only
+  MOUTH_MOVING: { warns: true, flagMs: Infinity }, // toast only
 }
 
 const WARN_MESSAGES: Record<WarnKey, string> = {
-  GAZE_AWAY:         "Please keep your eyes on the screen.",
-  PERSON_ABSENT:     "Stay in view of the camera.",
-  MULTIPLE_PERSONS:  "Another person was detected nearby.",
-  PHONE_DETECTED:    "Phones are not allowed during the exam.",
+  GAZE_AWAY: "Please keep your eyes on the screen.",
+  PERSON_ABSENT: "Stay in view of the camera.",
+  MULTIPLE_PERSONS: "Another person was detected nearby.",
+  PHONE_DETECTED: "Phones are not allowed during the exam.",
   SUSPICIOUS_OBJECT: "Keep only exam materials in view.",
-  MOUTH_MOVING:      "You appear to be talking — this may be flagged.",
+  MOUTH_MOVING: "You appear to be talking — this may be flagged.",
 }
 
 const PHONE_CLASSES = ["cell phone"]
@@ -286,7 +286,7 @@ export default function ProctorCamera({ attemptId }: Props) {
             // Gaze — two-tier: sharp WARN angles → toast, loose FLAG angles → flag
             if (faceCount === 1 && result.facialTransformationMatrixes?.[0]) {
               const { yaw, pitch } = getHeadAngles(
-                result.facialTransformationMatrixes[0].data as Float32Array
+                result.facialTransformationMatrixes[0].data as unknown as Float32Array
               )
               const beyondFlag =
                 Math.abs(yaw) > YAW_FLAG || pitch < PITCH_DOWN_FLAG || pitch > PITCH_UP_FLAG
@@ -331,7 +331,7 @@ export default function ProctorCamera({ attemptId }: Props) {
       if (animFrame) cancelAnimationFrame(animFrame)
       escalation.current.clear()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraReady])
 
   // ── COCO-SSD object detection ─────────────────────────────────────────────
@@ -369,7 +369,7 @@ export default function ProctorCamera({ attemptId }: Props) {
     let cleanup: (() => void) | undefined
     loadAndRun().then((fn) => { cleanup = fn })
     return () => { cancelled = true; cleanup?.() }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraReady])
 
   // ── Placement: dock in the exam sidebar on desktop; hidden on mobile ──────
