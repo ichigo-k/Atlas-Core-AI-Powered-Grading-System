@@ -9,7 +9,6 @@ jobs:
   migrate-and-deploy:
     name: Migrate DB & Deploy to Vercel
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - name: Checkout
