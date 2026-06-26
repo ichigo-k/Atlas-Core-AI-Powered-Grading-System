@@ -102,6 +102,18 @@ export async function DELETE(
 		await logAction("PROGRAM_DELETED", `Program deleted: ${id}`, "SYSTEM");
 		return NextResponse.json({ ok: true });
 	} catch (err) {
+		if (
+			err instanceof Prisma.PrismaClientKnownRequestError &&
+			err.code === "P2003"
+		) {
+			return NextResponse.json(
+				{
+					error:
+						"This program still has students or courses linked to it. Reassign or remove those first.",
+				},
+				{ status: 409 },
+			);
+		}
 		console.error("[DELETE /api/admin/programs/:id]", err);
 		return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
 	}

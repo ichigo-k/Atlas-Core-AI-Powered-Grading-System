@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createProgramAction } from "@/app/actions/admin-entities";
 import { Button } from "@/components/ui/button";
@@ -20,32 +21,76 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
-import type { FacultySimple } from "@/lib/admin-entities";
+import type { FacultySimple, ProgramSimple } from "@/lib/admin-entities";
 
 export default function AddProgramSheet({
 	open,
 	onOpenChange,
 	faculties,
+	editingProgram,
 }: {
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
 	faculties: FacultySimple[];
+	editingProgram?: ProgramSimple | null;
 }) {
+	const router = useRouter();
 	const [loading, setLoading] = useState(false);
-	const [facultyId, setFacultyId] = useState<number | null>(
-		faculties?.[0]?.id ?? null,
-	);
+	const [name, setName] = useState("");
+	const [code, setCode] = useState("");
+	const [facultyId, setFacultyId] = useState<number | null>(null);
 
-	async function handleSubmit(formData: FormData) {
+	const isEditing = !!editingProgram;
+
+	useEffect(() => {
+		if (open) {
+			setName(editingProgram?.name ?? "");
+			setCode(editingProgram?.code ?? "");
+			setFacultyId(editingProgram?.facultyId ?? faculties?.[0]?.id ?? null);
+		}
+	}, [open, editingProgram, faculties]);
+
+	async function handleSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		if (!name.trim()) {
+			toast.error("Name is required");
+			return;
+		}
+		if (!facultyId) {
+			toast.error("Faculty is required");
+			return;
+		}
+
 		setLoading(true);
 		try {
-			if (facultyId) formData.set("facultyId", String(facultyId));
-			const res = await createProgramAction(formData);
-			if (res.success) {
-				toast.success("Program created");
-				onOpenChange(false);
+			if (isEditing) {
+				const res = await fetch(`/api/admin/programs/${editingProgram.id}`, {
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ name: name.trim(), code: code.trim(), facultyId }),
+				});
+				if (res.ok) {
+					toast.success("Program updated");
+					onOpenChange(false);
+					router.refresh();
+				} else if (res.status === 409) {
+					toast.error("A program with this name or code already exists");
+				} else {
+					toast.error("Failed to update program");
+				}
 			} else {
-				toast.error(res.error || "Failed to create program");
+				const formData = new FormData();
+				formData.set("name", name.trim());
+				if (code.trim()) formData.set("code", code.trim());
+				formData.set("facultyId", String(facultyId));
+				const res = await createProgramAction(formData);
+				if (res.success) {
+					toast.success("Program created");
+					onOpenChange(false);
+					router.refresh();
+				} else {
+					toast.error(res.error || "Failed to create program");
+				}
 			}
 		} catch {
 			toast.error("An unexpected error occurred");
@@ -62,10 +107,12 @@ export default function AddProgramSheet({
 						<div className="flex items-center gap-4">
 							<div className="text-left flex-1">
 								<SheetTitle className="text-xl font-bold text-slate-900">
-									Add Program
+									{isEditing ? "Edit Program" : "Add Program"}
 								</SheetTitle>
 								<SheetDescription className="text-xs text-slate-500">
-									Create a new academic program
+									{isEditing
+										? "Update the academic program details"
+										: "Create a new academic program"}
 								</SheetDescription>
 							</div>
 						</div>
@@ -74,7 +121,7 @@ export default function AddProgramSheet({
 					<div className="flex-1 overflow-y-auto">
 						<form
 							id="program-form"
-							action={handleSubmit}
+							onSubmit={handleSubmit}
 							className="p-8 space-y-6"
 						>
 							<div className="space-y-2">
@@ -87,6 +134,8 @@ export default function AddProgramSheet({
 								<Input
 									id="name"
 									name="name"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
 									placeholder="e.g. Bachelor of Information Technology"
 									className="h-11"
 								/>
@@ -102,6 +151,8 @@ export default function AddProgramSheet({
 								<Input
 									id="code"
 									name="code"
+									value={code}
+									onChange={(e) => setCode(e.target.value)}
 									placeholder="e.g. BIT"
 									className="h-11"
 								/>
@@ -111,12 +162,15 @@ export default function AddProgramSheet({
 								<Label className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight">
 									Faculty
 								</Label>
-								<Select onValueChange={(val) => setFacultyId(Number(val))}>
+								<Select
+									value={facultyId ? String(facultyId) : undefined}
+									onValueChange={(val) => setFacultyId(Number(val))}
+								>
 									<SelectTrigger>
 										<SelectValue placeholder="Select faculty" />
 									</SelectTrigger>
 									<SelectContent>
-										{faculties.map((f: any) => (
+										{faculties.map((f) => (
 											<SelectItem key={f.id} value={String(f.id)}>
 												{f.name}
 											</SelectItem>
@@ -134,7 +188,13 @@ export default function AddProgramSheet({
 							className="w-full h-12 bg-[#002388] text-white"
 							disabled={loading}
 						>
-							{loading ? "Creating..." : "Create Program"}
+							{loading
+								? isEditing
+									? "Saving..."
+									: "Creating..."
+								: isEditing
+									? "Save Changes"
+									: "Create Program"}
 						</Button>
 					</div>
 				</div>

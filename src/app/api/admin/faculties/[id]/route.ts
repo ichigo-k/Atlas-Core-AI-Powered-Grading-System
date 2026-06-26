@@ -98,6 +98,18 @@ export async function DELETE(
 		await logAction("FACULTY_DELETED", `Faculty deleted: ${id}`, "SYSTEM");
 		return NextResponse.json({ ok: true });
 	} catch (err) {
+		if (
+			err instanceof Prisma.PrismaClientKnownRequestError &&
+			err.code === "P2003"
+		) {
+			return NextResponse.json(
+				{
+					error:
+						"This faculty still has programs, courses, or lecturers linked to it. Reassign or remove those first.",
+				},
+				{ status: 409 },
+			);
+		}
 		console.error("[DELETE /api/admin/faculties/:id]", err);
 		return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
 	}

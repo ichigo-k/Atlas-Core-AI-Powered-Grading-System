@@ -60,8 +60,11 @@ export async function updateCourseAction(courseId: number, formData: FormData) {
 
     revalidatePath("/admin/courses");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to update course:", error);
+    if (error.code === "P2002") {
+      return { success: false, error: "A course with this code already exists." };
+    }
     return { success: false, error: "Failed to update course" };
   }
 }
