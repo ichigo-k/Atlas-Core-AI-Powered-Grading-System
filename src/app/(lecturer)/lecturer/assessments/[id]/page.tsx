@@ -128,12 +128,12 @@ async function AssessmentData({
       classId: ac.classId,
       className: ac.class.name,
     })),
-    sections: raw.sections.map((s) => ({
+    sections: raw.sections.map((s: any) => ({
       id: s.id,
       name: s.name,
       type: s.type as any,
       requiredQuestionsCount: s.requiredQuestionsCount,
-      questions: s.questions.map((q) => ({
+      questions: s.questions.map((q: any) => ({
         id: q.id,
         order: q.order,
         body: q.body,
@@ -141,7 +141,7 @@ async function AssessmentData({
         answerType: q.answerType as any,
         options: q.options as string[] | null,
         correctOption: q.correctOption,
-        rubricCriteria: q.rubricCriteria.map((rc) => ({
+        rubricCriteria: q.rubricCriteria.map((rc: any) => ({
           id: rc.id,
           description: rc.description,
           maxMarks: rc.maxMarks,
