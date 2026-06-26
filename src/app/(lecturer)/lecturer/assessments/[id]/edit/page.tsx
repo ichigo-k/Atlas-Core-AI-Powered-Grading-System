@@ -133,7 +133,7 @@ async function EditAssessmentData({ id }: { id: string }) {
   }
 
   const initialStep2: Step2State = {
-    selectedClasses: raw.classes.map((ac) => ({
+    selectedClasses: raw.classes.map((ac: { classId: number; class: { name: string; level: number } }) => ({
       classId: ac.classId,
       className: `${ac.class.name} (Level ${ac.class.level})`,
     })),
