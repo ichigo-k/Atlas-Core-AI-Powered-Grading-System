@@ -82,7 +82,7 @@ async function fetchAttemptDetail(
     if (effective > highestScore) { highestScore = effective; highestId = a.id }
   }
 
-  const allAttempts: AttemptSummary[] = siblingAttempts.map((a) => ({
+  const allAttempts: AttemptSummary[] = siblingAttempts.map((a: any) => ({
     attemptId: a.id,
     attemptNumber: a.attemptNumber,
     score: a.score,
@@ -92,13 +92,13 @@ async function fetchAttemptDetail(
 
   const gradingDetail = await getAttemptGradingDetail(attemptId)
 
-  const answerMap = new Map(attempt.answers.map((a) => [a.questionId, a]))
+  const answerMap = new Map(attempt.answers.map((a: any) => [a.questionId, a]))
   const feedbackMap = new Map(
-    gradingDetail?.answerFeedbacks.map((f) => [f.questionId, f]) ?? [],
+    gradingDetail?.answerFeedbacks.map((f: any) => [f.questionId, f]) ?? [],
   )
 
-  const questions: QuestionDetail[] = assessment.sections.flatMap((section) =>
-    section.questions.map((q) => {
+  const questions: QuestionDetail[] = assessment.sections.flatMap((section: any) =>
+    section.questions.map((q: any) => {
       const answer = answerMap.get(q.id) ?? null
       const feedback = feedbackMap.get(q.id) ?? null
       return {
@@ -111,7 +111,7 @@ async function fetchAttemptDetail(
         answerType: q.answerType,
         options: q.options,
         correctOption: q.correctOption,
-        rubricCriteria: q.rubricCriteria.map((rc) => ({
+        rubricCriteria: q.rubricCriteria.map((rc: any) => ({
           description: rc.description,
           maxMarks: rc.maxMarks,
           order: rc.order,
