@@ -198,13 +198,13 @@ async function AssessmentData({
         }
       }
 
-      const hasSubjectiveSections = aWithStudents.sections.some((s) => s.type === "SUBJECTIVE")
+      const hasSubjectiveSections = aWithStudents.sections.some((s: any) => s.type === "SUBJECTIVE")
       const scoreVisible = raw.gradingStatus === "GRADED" || !hasSubjectiveSections
 
       const attempts = await prisma.assessmentAttempt.findMany({
         where: {
           assessmentId,
-          studentId: { in: enrolledStudents.map((s) => s.id) },
+          studentId: { in: enrolledStudents.map((s: any) => s.id) },
           status: { in: ["SUBMITTED", "TIMED_OUT"] },
         },
         orderBy: { score: "desc" },
@@ -215,7 +215,7 @@ async function AssessmentData({
         where: { assessmentId },
         select: { attemptId: true, plagiarismFlagged: true },
       })
-      const plagiarismByAttemptId = new Map(gradingResults.map((gr) => [gr.attemptId, gr.plagiarismFlagged]))
+      const plagiarismByAttemptId = new Map(gradingResults.map((gr: any) => [gr.attemptId, gr.plagiarismFlagged]))
 
       const submissionMap = new Map<number, AssessmentResultsData["submissions"][number]>()
       for (const attempt of attempts) {
@@ -243,7 +243,7 @@ async function AssessmentData({
         courseCode: raw.course.code,
         courseTitle: raw.course.title,
         totalMarks: raw.totalMarks,
-        totalQuestions: aWithStudents.sections.reduce((acc, s) => acc + s.questions.length, 0),
+        totalQuestions: aWithStudents.sections.reduce((acc: number, s: any) => acc + s.questions.length, 0),
         startsAt: raw.startsAt,
         endsAt: raw.endsAt,
         gradingStatus: raw.gradingStatus as "NOT_GRADED" | "GRADING" | "GRADED",
