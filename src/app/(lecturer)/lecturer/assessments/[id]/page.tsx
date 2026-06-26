@@ -215,7 +215,7 @@ async function AssessmentData({
         where: { assessmentId },
         select: { attemptId: true, plagiarismFlagged: true },
       })
-      const plagiarismByAttemptId = new Map(gradingResults.map((gr: any) => [gr.attemptId, gr.plagiarismFlagged]))
+      const plagiarismByAttemptId = new Map<number, boolean>(gradingResults.map((gr: any) => [gr.attemptId, gr.plagiarismFlagged]))
 
       const submissionMap = new Map<number, AssessmentResultsData["submissions"][number]>()
       for (const attempt of attempts) {
