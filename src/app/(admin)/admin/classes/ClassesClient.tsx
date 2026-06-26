@@ -192,7 +192,7 @@ export default function ClassesClient({
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
 										<DropdownMenuItem onClick={() => { setEditingClass(cls); setAddEditOpen(true); }}>
-											<Edit2 className="mr-2 h-4 w-4" /> Edit Class
+											<Edit2 className="mr-2 h-4 w-4" /> Edit
 										</DropdownMenuItem>
 										<DropdownMenuSeparator />
 										<DropdownMenuItem onClick={() => setDeleteConfirmId(cls.id)} className="text-red-600">

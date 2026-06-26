@@ -167,7 +167,7 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={() => handleEdit(row.original)}>
                       <Edit2 className="mr-2 h-4 w-4" />
-                      Edit Details
+                      Edit
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem

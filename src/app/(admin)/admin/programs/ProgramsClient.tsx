@@ -70,7 +70,7 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
                     setOpen(true);
                   }}
                 >
-                  <Edit2 className="mr-2 h-4 w-4" /> Edit Program
+                  <Edit2 className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setDeleteTarget(program)} className="text-red-600">

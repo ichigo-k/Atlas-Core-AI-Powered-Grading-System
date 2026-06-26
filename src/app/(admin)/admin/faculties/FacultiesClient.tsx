@@ -67,7 +67,7 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
                     setOpen(true);
                   }}
                 >
-                  <Edit2 className="mr-2 h-4 w-4" /> Edit Faculty
+                  <Edit2 className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setDeleteTarget(faculty)} className="text-red-600">
