@@ -4,7 +4,7 @@ import bcrypt from "bcrypt"
 import { prisma } from "@/lib/prisma"
 
 // ── Session lifetimes (seconds) ────────────────────────────────────────────
-const IDLE_TIMEOUT = 15 * 60        // 15 min of inactivity ends the session
+const IDLE_TIMEOUT = 60 * 60        // 1 hour of inactivity ends the session
 const ABSOLUTE_MAX = 5 * 60 * 60    // 5 h hard cap regardless of activity
 const ABSOLUTE_MAX_KEEP = 30 * 24 * 60 * 60 // "keep me logged in" cap (30 days)
 
@@ -57,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: {
     strategy: "jwt",
-    // Idle timeout (the "access token"): 15 min of inactivity ends the session.
+    // Idle timeout (the "access token"): 1 hour of inactivity ends the session.
     // It's a sliding window — each request within the window resets it.
     maxAge: IDLE_TIMEOUT,
     // Re-issue (slide) the cookie at most this often while the user is active.
