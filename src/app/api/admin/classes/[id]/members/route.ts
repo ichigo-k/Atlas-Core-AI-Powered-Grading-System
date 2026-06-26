@@ -29,7 +29,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
     });
 
-    const formattedMembers = members.map((m) => ({
+    const formattedMembers = members.map((m: any) => ({
       id: m.id,
       name: m.user.name,
       email: m.user.email,

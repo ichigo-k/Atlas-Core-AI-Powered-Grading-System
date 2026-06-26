@@ -97,7 +97,7 @@ export async function GET(
   const attempts = await prisma.assessmentAttempt.findMany({
     where: {
       studentId: sid,
-      assessmentId: { in: assessments.map((a) => a.id) },
+      assessmentId: { in: assessments.map((a: any) => a.id) },
       status: { in: ["SUBMITTED", "TIMED_OUT"] },
     },
     orderBy: { score: "desc" },
@@ -135,7 +135,7 @@ export async function GET(
       className: student.studentProfile.class?.name ?? null,
       classLevel: student.studentProfile.class?.level ?? null,
     },
-    assessments: assessments.map((a) => {
+    assessments: assessments.map((a: any) => {
       const attempt = attemptMap.get(a.id)
       const score = attempt?.score ?? null
       const grade = score !== null ? computeGrade(score, a.totalMarks, scale) : null

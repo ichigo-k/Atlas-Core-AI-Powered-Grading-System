@@ -44,7 +44,7 @@ export async function GET() {
 
   // Collect all student IDs and assessment IDs
   const allStudentIds = new Set<number>()
-  const allAssessmentIds = assessments.map((a) => a.id)
+  const allAssessmentIds = assessments.map((a: any) => a.id)
 
   for (const a of assessments) {
     for (const ac of a.classes) {
@@ -132,7 +132,7 @@ export async function GET() {
     }
   }
 
-  const students = Array.from(studentMap.values()).map((s) => ({
+  const students = Array.from(studentMap.values()).map((s: any) => ({
     id: s.id,
     name: s.name,
     email: s.email,
@@ -149,7 +149,7 @@ export async function GET() {
   }))
 
   // Unique levels for filter
-  const levels = Array.from(new Set(students.map((s) => s.classLevel))).sort((a, b) => a - b)
+  const levels = Array.from(new Set(students.map((s: any) => s.classLevel))).sort((a, b) => a - b)
 
   return NextResponse.json({
     students,

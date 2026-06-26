@@ -16,7 +16,7 @@ export default async function StudentSchedulePage() {
 	const raw = studentId ? await getScheduleAssessments(studentId) : [];
 
 	// Serialize Dates to ISO strings for the client component
-	const items = raw.map((a) => ({
+	const items = raw.map((a: any) => ({
 		id: a.id,
 		title: a.title,
 		type: a.type,

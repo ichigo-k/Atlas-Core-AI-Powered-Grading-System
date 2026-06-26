@@ -25,7 +25,7 @@ function isComplete(section: SectionWithProgress): boolean {
 export default function SectionSelector({ sections, activeSectionId, onSelect }: SectionSelectorProps) {
   return (
     <nav aria-label="Assessment sections" className="flex flex-col gap-0.5 w-56 shrink-0">
-      {sections.map((section) => {
+      {sections.map((section: any) => {
         const active = section.id === activeSectionId;
         const complete = isComplete(section);
         const required = section.requiredQuestionsCount ?? section.questions.length;

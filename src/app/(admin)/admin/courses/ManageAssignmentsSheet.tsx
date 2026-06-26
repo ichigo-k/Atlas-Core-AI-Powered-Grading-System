@@ -122,7 +122,7 @@ export default function ManageAssignmentsSheet({
 							</div>
 
 							<div className="grid gap-2">
-								{classes.map((cls) => {
+								{classes.map((cls: any) => {
 									const isAssigned = assignedClassIds.has(cls.id);
 									const loading = loadingId === `class-${cls.id}`;
 									return (
@@ -181,7 +181,7 @@ export default function ManageAssignmentsSheet({
 							</div>
 
 							<div className="grid gap-2">
-								{lecturers.map((lec) => {
+								{lecturers.map((lec: any) => {
 									const isAssigned = assignedLecturerIds.has(lec.id);
 									const loading = loadingId === `lecturer-${lec.id}`;
 									return (

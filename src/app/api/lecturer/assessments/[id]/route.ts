@@ -54,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     ...assessment,
     courseCode: assessment.course.code,
     courseTitle: assessment.course.title,
-    classes: assessment.classes.map((ac) => ({
+    classes: assessment.classes.map((ac: any) => ({
       id: ac.id,
       classId: ac.classId,
       className: `${ac.class.name} (Level ${ac.class.level})`,
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       await tx.assessmentClass.deleteMany({ where: { assessmentId } })
       if (body.classes?.length) {
         await tx.assessmentClass.createMany({
-          data: body.classes.map((c) => ({
+          data: body.classes.map((c: any) => ({
             assessmentId,
             classId: c.classId,
           })),
@@ -163,7 +163,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
               })
               if (q.rubricCriteria?.length) {
                 await tx.rubricCriterion.createMany({
-                  data: q.rubricCriteria.map((r) => ({
+                  data: q.rubricCriteria.map((r: any) => ({
                     questionId: question.id,
                     description: r.description,
                     maxMarks: r.maxMarks,

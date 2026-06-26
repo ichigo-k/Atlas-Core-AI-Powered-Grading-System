@@ -173,17 +173,17 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
   }, [gradingStatus, data.id, router])
 
   const submittedCount = data.submissions.length
-  const gradedCount = data.submissions.filter((s) => s.status === "GRADED").length
+  const gradedCount = data.submissions.filter((s: any) => s.status === "GRADED").length
   const notSubmittedCount = data.enrolledStudents.length - submittedCount
   const submissionRate = data.enrolledStudents.length > 0
     ? Math.round((submittedCount / data.enrolledStudents.length) * 100)
     : 0
 
   const status = statusBadge[data.status] ?? statusBadge.PUBLISHED
-  const submissionByStudent = new Map(data.submissions.map((s) => [s.studentId, s]))
+  const submissionByStudent = new Map(data.submissions.map((s: any) => [s.studentId, s]))
 
   // Score distribution buckets for bar chart
-  const scoredSubmissions = data.submissions.filter((s) => s.score != null)
+  const scoredSubmissions = data.submissions.filter((s: any) => s.score != null)
   const buckets = ["0–20%", "21–40%", "41–60%", "61–80%", "81–100%"]
   const bucketCounts = [0, 0, 0, 0, 0]
   for (const sub of scoredSubmissions) {
@@ -400,7 +400,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
 
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <div className="flex flex-col gap-3">
-              {ALL_EXPORT_FIELDS.map((field) => (
+              {ALL_EXPORT_FIELDS.map((field: any) => (
                 <label key={field} className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -409,7 +409,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
                       if (e.target.checked) {
                         setSelectedFields((prev) => [...prev, field])
                       } else {
-                        setSelectedFields((prev) => prev.filter((f) => f !== field))
+                        setSelectedFields((prev) => prev.filter((f: any) => f !== field))
                       }
                     }}
                     className="h-4 w-4 rounded border-slate-300 accent-[#002388]"
@@ -702,7 +702,7 @@ export default function AssessmentResultsView({ data }: { data: AssessmentResult
                 <tr>
                   <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-400">No students match your search.</td>
                 </tr>
-              ) : rows.map((student) => {
+              ) : rows.map((student: any) => {
                 const sub = submissionByStudent.get(student.id)
                 const scorePct = sub?.score != null
                   ? Math.round((sub.score / data.totalMarks) * 100)

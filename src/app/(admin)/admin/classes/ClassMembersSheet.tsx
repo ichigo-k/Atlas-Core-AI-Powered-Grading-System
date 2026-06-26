@@ -65,7 +65,7 @@ export default function ClassMembersSheet({
 						<p className="text-sm text-slate-500 text-center mt-8">No students in this class.</p>
 					) : (
 						<div className="space-y-3">
-							{members.map((m) => (
+							{members.map((m: any) => (
 								<div key={m.id} className="p-3 rounded-sm border border-slate-100 bg-slate-50 flex items-start justify-between">
 									<div className="space-y-1">
 										<p className="font-semibold text-slate-800 text-sm">{m.name || "—"}</p>

@@ -77,7 +77,7 @@ export default function Sidebar({ role, userName, userId, navItems }: SidebarPro
 
       {/* Nav */}
       <nav className="flex-1 px-4 py-2 overflow-y-auto space-y-1">
-        {navItems.map((item) => {
+        {navItems.map((item: any) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href + "/"))

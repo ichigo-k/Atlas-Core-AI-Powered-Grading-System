@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -19,7 +19,7 @@ interface StudentShellProps {
 function getInitials(name: string | null | undefined): string {
   if (!name) return "S";
   const parts = name.trim().split(/\s+/);
-  return parts.slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return parts.slice(0, 2).map((p: any) => p[0]).join("").toUpperCase();
 }
 
 export default function StudentShell({

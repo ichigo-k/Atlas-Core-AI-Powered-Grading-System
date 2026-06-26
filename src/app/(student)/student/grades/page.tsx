@@ -158,7 +158,7 @@ export default async function GradesPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Courses with Results</p>
                 <p className="text-[28px] font-bold text-[#1e293b] leading-none">{courseBreakdown.length}</p>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  {courseBreakdown.filter((c) => c.avgScore >= 50).length} passing
+                  {courseBreakdown.filter((c: any) => c.avgScore >= 50).length} passing
                 </p>
               </div>
             </div>
@@ -193,7 +193,7 @@ export default async function GradesPage() {
               </div>
 
               <div className="divide-y divide-[#f8f9fa]">
-                {courseBreakdown.map((course) => (
+                {courseBreakdown.map((course: any) => (
                   <details key={course.courseId} className="group">
                     <summary className="flex items-center gap-3 px-4 py-3 hover:bg-[#f8f9fa] cursor-pointer list-none transition-colors">
                       {/* Expand chevron */}
@@ -240,7 +240,7 @@ export default async function GradesPage() {
 
                     {/* Expanded: individual assessments */}
                     <div className="bg-slate-50/60 border-t border-[#f1f5f9] divide-y divide-[#f1f5f9]">
-                      {course.assessments.map((a) => {
+                      {course.assessments.map((a: any) => {
                         const pct = a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0;
                         const typeBadge = TYPE_BADGE[a.type] ?? { bg: "#f8f9fa", text: "#605e5c" };
                         return (

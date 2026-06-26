@@ -78,7 +78,7 @@ async function NewAssessmentData() {
     },
   })
 
-  const lecturerCourses: LecturerCourse[] = (profile?.courses ?? []).map((c) => ({
+  const lecturerCourses: LecturerCourse[] = (profile?.courses ?? []).map((c: any) => ({
     id: c.id,
     code: c.code,
     title: c.title,

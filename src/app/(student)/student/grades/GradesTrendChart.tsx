@@ -74,7 +74,7 @@ export default function GradesTrendChart({ points }: { points: Point[] }) {
         </defs>
 
         {/* Grid + y labels */}
-        {gridLines.map((v) => (
+        {gridLines.map((v: any) => (
           <g key={v}>
             <line
               x1={PAD.left} y1={y(v)} x2={PAD.left + chartW} y2={y(v)}

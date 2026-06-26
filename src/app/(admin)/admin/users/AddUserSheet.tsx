@@ -258,7 +258,7 @@ export default function AddUserSheet({
 										{(!programs || programs.length === 0) ? (
 											<div className="p-2 text-sm text-slate-500">No programs found</div>
 										) : (
-											programs.map((p) => (
+											programs.map((p: any) => (
 												<SelectItem key={p.id} value={p.id.toString()}>
 													{p.name} {p.faculty ? `— ${p.faculty.name}` : ""}
 												</SelectItem>
@@ -280,7 +280,7 @@ export default function AddUserSheet({
 										{classes.length === 0 ? (
 											<div className="p-2 text-sm text-slate-500">No classes found</div>
 										) : (
-											classes.map((c) => (
+											classes.map((c: any) => (
 												<SelectItem key={c.id} value={c.id.toString()}>
 													{c.name} - Level {c.level}
 												</SelectItem>
@@ -305,7 +305,7 @@ export default function AddUserSheet({
 										{(!faculties || faculties.length === 0) ? (
 											<div className="p-2 text-sm text-slate-500">No faculties found</div>
 										) : (
-											faculties.map((f) => (
+											faculties.map((f: any) => (
 												<SelectItem key={f.id} value={f.id.toString()}>
 													{f.name}
 												</SelectItem>
@@ -322,7 +322,7 @@ export default function AddUserSheet({
 										<SelectValue placeholder="Select title" />
 									</SelectTrigger>
 									<SelectContent>
-										{["Dr.", "Prof.", "Mr.", "Mrs.", "Ms."].map((t) => (
+										{["Dr.", "Prof.", "Mr.", "Mrs.", "Ms."].map((t: any) => (
 											<SelectItem key={t} value={t}>{t}</SelectItem>
 										))}
 									</SelectContent>

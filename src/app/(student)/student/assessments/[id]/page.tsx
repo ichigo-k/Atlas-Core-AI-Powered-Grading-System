@@ -93,7 +93,7 @@ export default async function AssessmentDetailPage({
   const resultsReleased = assessmentMeta?.resultsReleased ?? false;
 
   const activeAttempt =
-    attempts.find((a) => a.status === "IN_PROGRESS") ?? null;
+    attempts.find((a: any) => a.status === "IN_PROGRESS") ?? null;
   if (activeAttempt) {
     redirect(
       `/student/assessments/${assessmentId}/assessment-onboarding?attemptId=${activeAttempt.id}`,
@@ -109,7 +109,7 @@ export default async function AssessmentDetailPage({
   );
   const latestSubmitted =
     attempts
-      .filter((a) => a.status === "SUBMITTED" || a.status === "TIMED_OUT")
+      .filter((a: any) => a.status === "SUBMITTED" || a.status === "TIMED_OUT")
       .sort(
         (a, b) =>
           (b.submittedAt?.getTime() ?? 0) - (a.submittedAt?.getTime() ?? 0),
@@ -130,7 +130,7 @@ export default async function AssessmentDetailPage({
     const log = Array.isArray(latestSubmitted.tabSwitchLog)
       ? (latestSubmitted.tabSwitchLog as LogEntry[])
       : [];
-    if (log.some((e) => e.event === "FULLSCREEN_VIOLATION"))
+    if (log.some((e: any) => e.event === "FULLSCREEN_VIOLATION"))
       return "FULLSCREEN_VIOLATION";
     if (latestSubmitted.status === "TIMED_OUT") return "TIMED_OUT";
     return null;
@@ -317,7 +317,7 @@ export default async function AssessmentDetailPage({
               </h2>
             </div>
             <div className="divide-y divide-[#f1f5f9] max-h-[300px] overflow-y-auto no-scrollbar">
-              {assessment.sections.map((section) => {
+              {assessment.sections.map((section: any) => {
                 const badge = sectionTypeBadge[section.type] ?? {
                   bg: "#f1f5f9",
                   text: "#475569",

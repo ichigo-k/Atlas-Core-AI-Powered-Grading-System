@@ -27,7 +27,7 @@ export function MultiSelect({
 }) {
   const handleToggle = (value: string | number) => {
     if (selected.includes(value)) {
-      onChange(selected.filter((v) => v !== value));
+      onChange(selected.filter((v: any) => v !== value));
     } else {
       onChange([...selected, value]);
     }
@@ -46,8 +46,8 @@ export function MultiSelect({
           <div className="flex flex-wrap gap-1 items-center overflow-hidden">
             {selected.length > 0 ? (
               options
-                .filter((o) => selected.includes(o.value))
-                .map((o) => (
+                .filter((o: any) => selected.includes(o.value))
+                .map((o: any) => (
                   <Badge
                     key={o.value}
                     variant="secondary"
@@ -69,7 +69,7 @@ export function MultiSelect({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] max-h-60 overflow-y-auto z-[100]">
-        {options.map((option) => (
+        {options.map((option: any) => (
           <DropdownMenuCheckboxItem
             key={option.value}
             checked={selected.includes(option.value)}

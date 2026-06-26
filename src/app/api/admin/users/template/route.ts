@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       orderBy: [{ level: "asc" }, { name: "asc" }]
     });
 
-    const programNames = programs.map((program) => program.name);
+    const programNames = programs.map((program: any) => program.name);
     const classNames = classes.map(c => `${c.name} - Level ${c.level}`);
 
     if (programNames.length > 0 || classNames.length > 0) {
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const faculties = await prisma.faculty.findMany({
       orderBy: { name: "asc" },
     });
-    const facultyNames = faculties.map((faculty) => faculty.name);
+    const facultyNames = faculties.map((faculty: any) => faculty.name);
 
     if (facultyNames.length > 0 || VALID_TITLES.length > 0) {
       const dataSheet = workbook.addWorksheet("Data", { state: "hidden" });

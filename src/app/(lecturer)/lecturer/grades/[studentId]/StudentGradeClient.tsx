@@ -159,9 +159,9 @@ export default function StudentGradeClient({ studentId }: { studentId: number })
   if (!data) return null
 
   const { student, assessments } = data
-  const graded = assessments.filter((a) => a.submissionStatus === "GRADED")
-  const submitted = assessments.filter((a) => a.submissionStatus === "SUBMITTED")
-  const notSubmitted = assessments.filter((a) => a.submissionStatus === "NOT_SUBMITTED")
+  const graded = assessments.filter((a: any) => a.submissionStatus === "GRADED")
+  const submitted = assessments.filter((a: any) => a.submissionStatus === "SUBMITTED")
+  const notSubmitted = assessments.filter((a: any) => a.submissionStatus === "NOT_SUBMITTED")
 
   const totalEarned = graded.reduce((s, a) => s + (a.score ?? 0), 0)
   const totalPossible = assessments.reduce((s, a) => s + a.totalMarks, 0)  // all assessments, not just graded
@@ -270,7 +270,7 @@ export default function StudentGradeClient({ studentId }: { studentId: number })
               </TableRow>
             </TableHeader>
             <TableBody>
-              {assessments.map((a) => (
+              {assessments.map((a: any) => (
                 <TableRow key={a.id} className="group hover:bg-slate-50/60">
                   <TableCell className="pl-5">
                     <div className="flex items-center gap-2">

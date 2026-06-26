@@ -21,7 +21,7 @@ export default function DashboardCharts({ typeCounts }: Props) {
   const data = {
     datasets: [{
       data: [typeCounts.EXAM, typeCounts.QUIZ, typeCounts.ASSIGNMENT],
-      backgroundColor: TYPES.map((t) => t.color),
+      backgroundColor: TYPES.map((t: any) => t.color),
       borderWidth: 0,
       hoverOffset: 6,
     }],

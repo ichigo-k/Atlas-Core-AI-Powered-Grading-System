@@ -84,7 +84,7 @@ export function filterAssessmentsForLecturer<T extends { lecturerId: number }>(
   lecturerId: number,
   assessments: T[]
 ): T[] {
-  return assessments.filter((a) => a.lecturerId === lecturerId)
+  return assessments.filter((a: any) => a.lecturerId === lecturerId)
 }
 
 export function validateStatusTransition(
@@ -128,7 +128,7 @@ export function importBankItem(item: {
     options: item.options ? JSON.parse(JSON.stringify(item.options)) : null,
     correctOption: item.correctOption ?? null,
     rubricCriteria: item.rubricCriteria
-      ? item.rubricCriteria.map((r) => ({ ...r }))
+      ? item.rubricCriteria.map((r: any) => ({ ...r }))
       : [],
   }
 }

@@ -60,7 +60,7 @@ export default function SystemLogsTable({
 
 	const filteredLogs = useMemo(() => {
 		if (categoryFilter === "ALL") return initialLogs;
-		return initialLogs.filter((log) => log.category === categoryFilter);
+		return initialLogs.filter((log: any) => log.category === categoryFilter);
 	}, [initialLogs, categoryFilter]);
 
 	const columns = useMemo(() => {
@@ -148,7 +148,7 @@ export default function SystemLogsTable({
 			{/* Category Filters and Actions */}
 			<div className="flex flex-col sm:flex-row items-center justify-between gap-4">
 				<div className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:pb-0 no-scrollbar w-full sm:w-auto">
-					{categories.map((cat) => (
+					{categories.map((cat: any) => (
 						<button
 							type="button"
 							key={cat}

@@ -116,7 +116,7 @@ export default function AddProgramSheet({
 										<SelectValue placeholder="Select faculty" />
 									</SelectTrigger>
 									<SelectContent>
-										{faculties.map((f) => (
+										{faculties.map((f: any) => (
 											<SelectItem key={f.id} value={String(f.id)}>
 												{f.name}
 											</SelectItem>

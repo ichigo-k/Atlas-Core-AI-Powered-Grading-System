@@ -251,7 +251,7 @@ export default function EditUserSheet({
 												<SelectValue placeholder="Select a class" />
 											</SelectTrigger>
 											<SelectContent className="rounded-sm border-border">
-												{classes.map((cls) => (
+												{classes.map((cls: any) => (
 													<SelectItem
 														key={cls.id}
 														value={cls.id.toString()}

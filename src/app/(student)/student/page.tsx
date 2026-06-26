@@ -61,8 +61,8 @@ export default async function StudentDashboardPage() {
     averageScore, upcomingAssessments, recentResults,
   } = data;
 
-  const ongoingItems = upcomingAssessments.filter((a) => a.status === "ongoing");
-  const upcomingItems = upcomingAssessments.filter((a) => a.status === "upcoming");
+  const ongoingItems = upcomingAssessments.filter((a: any) => a.status === "ongoing");
+  const upcomingItems = upcomingAssessments.filter((a: any) => a.status === "upcoming");
   const nextExam = upcomingItems[0] ?? null;
 
   const dateStr = new Date().toLocaleDateString("en-GB", {
@@ -310,7 +310,7 @@ export default async function StudentDashboardPage() {
                   </Link>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {recentResults.slice(0, 5).map((r) => {
+                  {recentResults.slice(0, 5).map((r: any) => {
                     const color = gradeColor(r.score);
                     return (
                       <div key={r.id} className="grid gap-2 px-4 py-3 md:grid-cols-[1fr_140px_auto] md:items-center md:px-5 hover:bg-slate-50 transition-colors">

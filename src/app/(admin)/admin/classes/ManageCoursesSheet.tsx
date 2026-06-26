@@ -38,7 +38,7 @@ export default function ManageCoursesSheet({
 			fetch(`/api/admin/classes/${cls.id}/courses`)
 				.then((res) => res.json())
 				.then((data: CourseSimple[]) => {
-					setSelectedCourseIds(new Set(data.map((c) => c.id)));
+					setSelectedCourseIds(new Set(data.map((c: any) => c.id)));
 				})
 				.finally(() => setIsPending(false));
 		}
@@ -87,7 +87,7 @@ export default function ManageCoursesSheet({
 					) : allCourses.length === 0 ? (
 						<p className="text-sm text-slate-500">No courses available in the system.</p>
 					) : (
-						allCourses.map((course) => (
+						allCourses.map((course: any) => (
 							<div key={course.id} className="flex items-start space-x-3 p-3 rounded-sm border border-slate-100 hover:bg-slate-50 transition-colors">
 								<Checkbox 
 									id={`course-${course.id}`} 

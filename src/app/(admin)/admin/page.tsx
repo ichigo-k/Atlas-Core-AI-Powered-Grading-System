@@ -70,7 +70,7 @@ function DashboardSkeleton() {
 	return (
 		<div className="space-y-6 animate-pulse">
 			<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-				{[1, 2, 3, 4].map((item) => (
+				{[1, 2, 3, 4].map((item: any) => (
 					<div
 						key={item}
 						className="rounded-sm border border-border bg-white p-4"
@@ -85,7 +85,7 @@ function DashboardSkeleton() {
 				<div className="rounded-sm border border-border bg-white p-4">
 					<div className="h-5 w-32 rounded bg-slate-100" />
 					<div className="mt-4 grid gap-3 sm:grid-cols-2">
-						{[1, 2, 3, 4].map((item) => (
+						{[1, 2, 3, 4].map((item: any) => (
 							<div key={item} className="h-24 rounded-sm bg-slate-100" />
 						))}
 					</div>
@@ -93,7 +93,7 @@ function DashboardSkeleton() {
 				<div className="rounded-sm border border-border bg-white p-4">
 					<div className="h-5 w-28 rounded bg-slate-100" />
 					<div className="mt-4 space-y-3">
-						{[1, 2, 3].map((item) => (
+						{[1, 2, 3].map((item: any) => (
 							<div key={item} className="h-14 rounded bg-slate-100" />
 						))}
 					</div>
@@ -208,7 +208,7 @@ async function DashboardContent() {
 					</div>
 					<div className="space-y-4 p-4 md:p-5">
 						<div className="space-y-2">
-							{auditAlerts.map((alert) => (
+							{auditAlerts.map((alert: any) => (
 								<div
 									key={alert}
 									className={`rounded-lg border px-3.5 py-2.5 text-xs font-medium leading-relaxed transition-colors ${isHealthy
@@ -222,7 +222,7 @@ async function DashboardContent() {
 						</div>
 						<div className="border-t border-slate-800/40 pt-4">
 							<div className="grid gap-2.5">
-								{structuralStats.map((item) => {
+								{structuralStats.map((item: any) => {
 									let badgeClass = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
 									if (item.tone === "#DC2626") {
 										badgeClass = "bg-rose-500/10 text-rose-400 border border-rose-500/20";

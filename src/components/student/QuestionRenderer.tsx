@@ -283,7 +283,7 @@ function CodeInput({
       >
         <div className="flex items-center gap-1.5">
           {/* Traffic-light dots */}
-          {["#ff5f57","#febc2e","#28c840"].map((c) => (
+          {["#ff5f57","#febc2e","#28c840"].map((c: any) => (
             <span key={c} className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />
           ))}
         </div>
@@ -296,7 +296,7 @@ function CodeInput({
             className="appearance-none rounded border border-[#d0d7de] bg-white pl-2.5 pr-6 py-0.5 text-[11px] font-semibold text-[#24292f] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#002388]"
             style={{ fontFamily: FONT_MONO }}
           >
-            {LANGUAGES.map((l) => (
+            {LANGUAGES.map((l: any) => (
               <option key={l.value} value={l.value}>{l.label}</option>
             ))}
           </select>
@@ -497,7 +497,7 @@ export default function QuestionRenderer({
   }
 
   const rawOptions = parseOptions(question.options);
-  const displayOptions = shuffledOptions ? shuffledOptions.map((i) => rawOptions[i] ?? "") : rawOptions;
+  const displayOptions = shuffledOptions ? shuffledOptions.map((i: any) => rawOptions[i] ?? "") : rawOptions;
 
   function renderInput() {
     if (locked) {

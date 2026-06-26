@@ -97,12 +97,12 @@ export default function AddEditCourseSheet({
 		}
 	}
 
-	const lecturerOptions = lecturers.map((l) => ({
+	const lecturerOptions = lecturers.map((l: any) => ({
 		label: l.user.name || "Unnamed Lecturer",
 		value: l.id,
 	}));
 
-	const classOptions = classes.map((c) => ({
+	const classOptions = classes.map((c: any) => ({
 		label: `${c.name} (L${c.level})`,
 		value: c.id,
 	}));

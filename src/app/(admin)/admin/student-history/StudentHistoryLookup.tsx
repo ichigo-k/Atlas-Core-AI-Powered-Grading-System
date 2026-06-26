@@ -73,7 +73,7 @@ export default function StudentHistoryLookup() {
                                 {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
                             </span>
                         </div>
-                        {searchResults.map((s) => (
+                        {searchResults.map((s: any) => (
                             <button
                                 key={s.id}
                                 type="button"

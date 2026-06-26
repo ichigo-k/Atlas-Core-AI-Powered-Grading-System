@@ -52,8 +52,8 @@ export async function POST(
     }
 
     // Validate adjusted score doesn't exceed question max marks
-    const allQuestions = assessment.sections.flatMap((s) => s.questions)
-    const question = allQuestions.find((q) => q.id === questionId)
+    const allQuestions = assessment.sections.flatMap((s: any) => s.questions)
+    const question = allQuestions.find((q: any) => q.id === questionId)
     if (!question) return NextResponse.json({ error: "INVALID_QUESTION" }, { status: 400 })
     if (adjustedScore > question.marks) {
       return NextResponse.json({ error: "SCORE_EXCEEDS_MAX" }, { status: 400 })
@@ -99,7 +99,7 @@ export async function POST(
       select: { answerFeedbacks: { select: { questionId: true, totalScore: true } } },
     })
     const aiFeedbackMap = new Map(
-      (gradingResult?.answerFeedbacks ?? []).map((f) => [f.questionId, f.totalScore]),
+      (gradingResult?.answerFeedbacks ?? []).map((f: any) => [f.questionId, f.totalScore]),
     )
 
     // Get all answers after update
@@ -107,7 +107,7 @@ export async function POST(
       where: { attemptId },
       select: { questionId: true, selectedOption: true, lecturerAdjustedScore: true },
     })
-    const answerMap = new Map(updatedAnswers.map((a) => [a.questionId, a]))
+    const answerMap = new Map(updatedAnswers.map((a: any) => [a.questionId, a]))
 
     let newTotal = 0
     for (const q of allQuestions) {

@@ -54,7 +54,7 @@ export default function QuestionBuilderB({
   const updateCriterion = (id: string, field: "description" | "maxMarks", value: string) => {
     onChange({
       ...question,
-      rubricCriteria: question.rubricCriteria.map((c) =>
+      rubricCriteria: question.rubricCriteria.map((c: any) =>
         c.id === id ? { ...c, [field]: value } : c
       ),
     })
@@ -62,7 +62,7 @@ export default function QuestionBuilderB({
 
   const removeCriterion = (id: string) => {
     const updated = question.rubricCriteria
-      .filter((c) => c.id !== id)
+      .filter((c: any) => c.id !== id)
       .map((c, i) => ({ ...c, order: i + 1 }))
     onChange({ ...question, rubricCriteria: updated })
   }
@@ -188,7 +188,7 @@ export default function QuestionBuilderB({
             </div>
           ) : (
             <div className="space-y-2">
-              {question.rubricCriteria.map((criterion) => (
+              {question.rubricCriteria.map((criterion: any) => (
                 <div
                   key={criterion.id}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition-all"

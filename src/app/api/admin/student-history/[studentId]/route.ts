@@ -140,7 +140,7 @@ export async function GET(
             const classLevel = a.classes[0]?.class.level ?? 0
 
             // Count total attempts for this assessment
-            const attemptCount = attempts.filter((at) => at.assessment.id === a.id).length
+            const attemptCount = attempts.filter((at: any) => at.assessment.id === a.id).length
 
             courseMap.get(courseId)!.assessments.push({
                 id: a.id,
@@ -184,7 +184,7 @@ export async function GET(
                 totalAssessments: bestByAssessment.size,
                 totalCourses: courseMap.size,
                 averageScore: (() => {
-                    const scored = Array.from(bestByAssessment.values()).filter((a) => a.score !== null)
+                    const scored = Array.from(bestByAssessment.values()).filter((a: any) => a.score !== null)
                     if (scored.length === 0) return null
                     const totalPct = scored.reduce((sum, a) => {
                         return sum + ((a.score ?? 0) / a.assessment.totalMarks) * 100

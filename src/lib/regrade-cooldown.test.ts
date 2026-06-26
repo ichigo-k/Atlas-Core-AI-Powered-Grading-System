@@ -82,7 +82,7 @@ describe("computeRetryAfterSeconds — property-based (Property 4)", () => {
 	 */
 	const dateArb = fc
 		.integer({ min: 0, max: 2 * 365 * 24 * 60 * 60 * 1000 * 10 })
-		.map((ms) => new Date(ms));
+		.map((ms: any) => new Date(ms));
 
 	/** Cooldown in minutes: 0–120 (covers realistic values including 30). */
 	const cooldownArb = fc.integer({ min: 0, max: 120 });

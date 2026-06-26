@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       if (item.rubricCriteria?.length) {
         await tx.questionBankItemRubric.createMany({
-          data: item.rubricCriteria.map((r) => ({
+          data: item.rubricCriteria.map((r: any) => ({
             itemId: created.id,
             description: r.description,
             maxMarks: r.maxMarks,

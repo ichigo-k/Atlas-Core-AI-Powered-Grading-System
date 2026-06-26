@@ -32,7 +32,7 @@ export default function LecturerPageShell({
 				<Link href="/lecturer" className="hover:text-[#1e293b] transition-colors">
 					Lecturer
 				</Link>
-				{parentCrumbs?.map((c) => (
+				{parentCrumbs?.map((c: any) => (
 					<Fragment key={c.href}>
 						<ChevronRight size={11} />
 						<Link href={c.href} className="hover:text-[#1e293b] transition-colors">

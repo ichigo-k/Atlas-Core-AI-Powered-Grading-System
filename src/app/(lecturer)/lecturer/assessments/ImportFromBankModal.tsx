@@ -84,7 +84,7 @@ export default function ImportFromBankModal({
       .then((r) => r.json())
       .then((data: QuestionBank[]) => {
         const filtered = courseId
-          ? data.filter((b) => b.courseId === courseId || b.courseId === null)
+          ? data.filter((b: any) => b.courseId === courseId || b.courseId === null)
           : data
         setBanks(filtered.length > 0 ? filtered : data)
       })
@@ -101,17 +101,17 @@ export default function ImportFromBankModal({
 
     fetch(`/api/lecturer/question-banks/${selectedBankId}/items`)
       .then((r) => r.json())
-      .then((data: BankItem[]) => setItems(data.filter((item) => item.type === type)))
+      .then((data: BankItem[]) => setItems(data.filter((item: any) => item.type === type)))
       .catch(() => setItems([]))
       .finally(() => setLoadingItems(false))
   }, [selectedBankId, type])
 
-  const selectedBank = banks.find((b) => b.id === selectedBankId) ?? null
+  const selectedBank = banks.find((b: any) => b.id === selectedBankId) ?? null
 
   const filteredItems = useMemo(() => {
     if (!search.trim()) return items
     const q = search.toLowerCase()
-    return items.filter((i) => i.body.toLowerCase().includes(q))
+    return items.filter((i: any) => i.body.toLowerCase().includes(q))
   }, [items, search])
 
   const allFilteredSelected =
@@ -128,15 +128,15 @@ export default function ImportFromBankModal({
   const toggleAll = () => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      if (allFilteredSelected) filteredItems.forEach((i) => next.delete(i.id))
-      else filteredItems.forEach((i) => next.add(i.id))
+      if (allFilteredSelected) filteredItems.forEach((i: any) => next.delete(i.id))
+      else filteredItems.forEach((i: any) => next.add(i.id))
       return next
     })
   }
 
   const handleImport = () => {
-    const toImport = items.filter((item) => selectedIds.has(item.id))
-    const questions: QuestionFormState[] = toImport.map((item) => ({
+    const toImport = items.filter((item: any) => selectedIds.has(item.id))
+    const questions: QuestionFormState[] = toImport.map((item: any) => ({
       id: crypto.randomUUID(),
       order: 0,
       body: item.body,
@@ -144,7 +144,7 @@ export default function ImportFromBankModal({
       answerType: (item.answerType as QuestionFormState["answerType"]) ?? "",
       options: Array.isArray(item.options) ? [...item.options] : ["", ""],
       correctOption: item.correctOption ?? null,
-      rubricCriteria: (item.rubricCriteria ?? []).map((r) => ({
+      rubricCriteria: (item.rubricCriteria ?? []).map((r: any) => ({
         id: crypto.randomUUID(),
         description: r.description,
         maxMarks: String(r.maxMarks),
@@ -208,7 +208,7 @@ export default function ImportFromBankModal({
                 <SelectValue placeholder="Choose a question bank…" />
               </SelectTrigger>
               <SelectContent>
-                {banks.map((bank) => (
+                {banks.map((bank: any) => (
                   <SelectItem key={bank.id} value={String(bank.id)}>
                     <span className="flex items-center gap-2">
                       <BookOpen className="h-3.5 w-3.5 text-[#002388]" />
@@ -282,7 +282,7 @@ export default function ImportFromBankModal({
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {filteredItems.map((item) => {
+                    {filteredItems.map((item: any) => {
                       const selected = selectedIds.has(item.id)
                       return (
                         <button

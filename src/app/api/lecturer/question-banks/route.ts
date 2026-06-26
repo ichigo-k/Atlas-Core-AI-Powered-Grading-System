@@ -33,7 +33,7 @@ export async function GET() {
   })
 
   // Attach per-type counts
-  const bankIds = banks.map((b) => b.id)
+  const bankIds = banks.map((b: any) => b.id)
   const typeCounts = await prisma.questionBankItem.groupBy({
     by: ["bankId", "type"],
     where: { bankId: { in: bankIds } },
@@ -46,7 +46,7 @@ export async function GET() {
     countMap[row.bankId][row.type] = row._count._all
   }
 
-  const result = banks.map((b) => ({
+  const result = banks.map((b: any) => ({
     ...b,
     isOwn: b.lecturerId === lecturerId,
     typeCounts: countMap[b.id] ?? { OBJECTIVE: 0, SUBJECTIVE: 0 },

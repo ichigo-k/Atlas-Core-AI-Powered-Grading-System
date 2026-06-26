@@ -75,15 +75,15 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 
 	const counts = useMemo(
 		() => ({
-			upcoming: assessments.filter((a) => a.status === "upcoming").length,
-			ongoing: assessments.filter((a) => a.status === "ongoing").length,
-			completed: assessments.filter((a) => a.status === "completed").length,
+			upcoming: assessments.filter((a: any) => a.status === "upcoming").length,
+			ongoing: assessments.filter((a: any) => a.status === "ongoing").length,
+			completed: assessments.filter((a: any) => a.status === "completed").length,
 		}),
 		[assessments],
 	);
 
 	const filteredAssessments = useMemo(() => {
-		return assessments.filter((a) => {
+		return assessments.filter((a: any) => {
 			if (a.status !== activeTab) return false;
 			if (courseFilter !== "all" && a.courseId !== courseFilter) return false;
 			if (typeFilter !== "all" && a.type !== typeFilter) return false;
@@ -209,7 +209,7 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 											>
 												All
 											</button>
-											{courses.map((course) => (
+											{courses.map((course: any) => (
 												<button
 													type="button"
 													key={course.id}
@@ -230,7 +230,7 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 											Filter by Type
 										</label>
 										<div className="flex flex-wrap gap-1.5">
-											{(["all", "EXAM", "QUIZ", "ASSIGNMENT"] as TypeFilter[]).map((type) => (
+											{(["all", "EXAM", "QUIZ", "ASSIGNMENT"] as TypeFilter[]).map((type: any) => (
 												<button
 													type="button"
 													key={type}
@@ -274,7 +274,7 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 					</div>
 				) : (
 					<div className="bg-white border border-border rounded-md divide-y divide-[#f1f5f9] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.05)]">
-						{paginatedAssessments.map((assessment) => {
+						{paginatedAssessments.map((assessment: any) => {
 							const isCompleted = assessment.status === "completed";
 							const isOngoing = assessment.status === "ongoing";
 							const style = typeStyles[assessment.type] ?? { bg: "#f1f5f9", text: "#475569" };

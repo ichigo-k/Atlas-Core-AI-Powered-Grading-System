@@ -94,7 +94,7 @@ function applyQuestionOrder(
 
   if (posMap.size === 0) return sections
 
-  return sections.map((section) => ({
+  return sections.map((section: any) => ({
     ...section,
     questions: [...section.questions].sort((a, b) => {
       const pa = posMap.has(a.id) ? posMap.get(a.id)! : Infinity
@@ -336,7 +336,7 @@ function SubmitReviewScreen({ assessment, sections, totalRequired, answeredCount
           {/* Section breakdown */}
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-2 px-1">By section</p>
           <div className="rounded-xl border border-[#e5e7eb] bg-white divide-y divide-[#f3f4f6] overflow-hidden mb-5">
-            {sections.map((section) => {
+            {sections.map((section: any) => {
               const required = section.requiredQuestionsCount ?? section.questions.length
               const done = Math.min(section.answeredCount, required)
               const complete = done >= required
@@ -486,13 +486,13 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
       const required = s.requiredQuestionsCount
       if (required !== null && required < s.questions.length) {
         // Check if student already has answers in this section (resuming attempt)
-        const answeredInSection = s.questions.filter((q) => {
-          const a = attempt.answers.find((a) => a.questionId === q.id)
+        const answeredInSection = s.questions.filter((q: any) => {
+          const a = attempt.answers.find((a: any) => a.questionId === q.id)
           return a && (a.answerText !== null || a.selectedOption !== null || a.fileUrl !== null)
         })
         if (answeredInSection.length > 0) {
           // Pre-populate selection from existing answers
-          map.set(s.id, new Set(answeredInSection.map((q) => q.id)))
+          map.set(s.id, new Set(answeredInSection.map((q: any) => q.id)))
         } else {
           map.set(s.id, undefined) // needs selection
         }
@@ -527,12 +527,12 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     return sectionSelections.get(sectionId) // undefined = needs selection, Set = confirmed
   }
 
-  const sectionsWithProgress: SectionWithProgress[] = sections.map((s) => ({
+  const sectionsWithProgress: SectionWithProgress[] = sections.map((s: any) => ({
     ...s,
-    answeredCount: s.questions.filter((q) => hasAnswerValue(answers.get(q.id))).length,
+    answeredCount: s.questions.filter((q: any) => hasAnswerValue(answers.get(q.id))).length,
   }))
 
-  const activeSection = sections.find((s) => s.id === activeSectionId) ?? firstSection
+  const activeSection = sections.find((s: any) => s.id === activeSectionId) ?? firstSection
   const activeSectionRequired = activeSection?.requiredQuestionsCount ?? null
   const activeSectionHasQuota = activeSectionRequired !== null && activeSectionRequired < (activeSection?.questions.length ?? 0)
 
@@ -543,7 +543,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   // Questions visible in the palette — for quota sections, only the confirmed selection
   const visibleQuestions = activeSection
     ? activeSectionSelection instanceof Set
-      ? activeSection.questions.filter((q) => (activeSectionSelection as Set<number>).has(q.id))
+      ? activeSection.questions.filter((q: any) => (activeSectionSelection as Set<number>).has(q.id))
       : activeSection.questions
     : []
 
@@ -565,7 +565,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   const totalAnsweredAll = sectionsWithProgress.reduce((sum, s) => sum + Math.min(s.answeredCount, s.requiredQuestionsCount ?? s.questions.length), 0)
 
   const answeredIdsInSection = new Set(
-    visibleQuestions.filter((q) => hasAnswerValue(answers.get(q.id))).map((q) => q.id)
+    visibleQuestions.filter((q: any) => hasAnswerValue(answers.get(q.id))).map((q: any) => q.id)
   )
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -632,7 +632,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     })
   }
 
-  const activeSectionIdx = sections.findIndex((s) => s.id === activeSectionId)
+  const activeSectionIdx = sections.findIndex((s: any) => s.id === activeSectionId)
   const nextSection = sections[activeSectionIdx + 1]
 
   // ── Sidebar content (shared between desktop aside and mobile drawer) ──────────
@@ -686,7 +686,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
             <Layers size={10} />Sections
           </p>
           <div className="flex flex-col gap-0.5">
-            {sectionsWithProgress.map((section) => {
+            {sectionsWithProgress.map((section: any) => {
               const isActive = section.id === activeSectionId
               const required = section.requiredQuestionsCount ?? section.questions.length
               const complete = section.answeredCount >= required

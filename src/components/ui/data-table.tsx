@@ -117,8 +117,8 @@ export function DataTable<TData, TValue>({
               <DropdownMenuSeparator />
               {table
                 .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
+                .filter((column: any) => column.getCanHide())
+                .map((column: any) => {
                   return (
                     <DropdownMenuCheckboxItem
                       key={column.id}
@@ -149,9 +149,9 @@ export function DataTable<TData, TValue>({
         <div className="rounded-sm border border-border bg-white overflow-hidden">
           <Table>
             <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
+              {table.getHeaderGroups().map((headerGroup: any) => (
                 <TableRow key={headerGroup.id} className="bg-slate-50/80 hover:bg-slate-50/80 border-b border-border">
-                  {headerGroup.headers.map((header) => (
+                  {headerGroup.headers.map((header: any) => (
                     <TableHead key={header.id} className="h-11 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
@@ -161,14 +161,14 @@ export function DataTable<TData, TValue>({
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
+                table.getRowModel().rows.map((row: any) => (
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     className={`group hover:bg-slate-50/60 transition-colors border-b border-[#f1f5f9] last:border-0 ${onRowClick ? "cursor-pointer" : ""}`}
                     onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                   >
-                    {row.getVisibleCells().map((cell) => (
+                    {row.getVisibleCells().map((cell: any) => (
                       <TableCell key={cell.id} className="px-5 py-3.5">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
@@ -201,7 +201,7 @@ export function DataTable<TData, TValue>({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent side="top" className="rounded-sm">
-                    {[10, 20, 30, 40, 50].map((pageSize) => (
+                    {[10, 20, 30, 40, 50].map((pageSize: any) => (
                       <SelectItem key={pageSize} value={`${pageSize}`} className="text-[11px] font-medium">{pageSize}</SelectItem>
                     ))}
                   </SelectContent>

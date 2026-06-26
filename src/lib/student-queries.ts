@@ -181,33 +181,33 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
   })
 
   const assessments = rows
-    .map((r) => r.assessment)
-    .filter((a) => a.status === 'PUBLISHED' || a.status === 'CLOSED')
+    .map((r: any) => r.assessment)
+    .filter((a: any) => a.status === 'PUBLISHED' || a.status === 'CLOSED')
 
   type Enriched = (typeof assessments)[number] & { derivedStatus: DerivedStatus }
 
-  const enriched: Enriched[] = assessments.map((a) => ({
+  const enriched: Enriched[] = assessments.map((a: any) => ({
     ...a,
     // CLOSED assessments are always completed regardless of their date range
     derivedStatus: a.status === 'CLOSED' ? 'completed' : deriveStatus(a.startsAt, a.endsAt, now),
   }))
 
-  const upcomingCount = enriched.filter((a) => a.derivedStatus === 'upcoming').length
-  const ongoingCount = enriched.filter((a) => a.derivedStatus === 'ongoing').length
-  const completedCount = enriched.filter((a) => a.derivedStatus === 'completed').length
+  const upcomingCount = enriched.filter((a: any) => a.derivedStatus === 'upcoming').length
+  const ongoingCount = enriched.filter((a: any) => a.derivedStatus === 'ongoing').length
+  const completedCount = enriched.filter((a: any) => a.derivedStatus === 'completed').length
 
   const averageScore = computeAverage(
     enriched
-      .filter((a) => a.derivedStatus === 'completed')
-      .map((a) => a.attempts[0]?.score ?? 0),  // unsubmitted = 0
+      .filter((a: any) => a.derivedStatus === 'completed')
+      .map((a: any) => a.attempts[0]?.score ?? 0),  // unsubmitted = 0
   )
 
   const upcomingAssessments = sortAndLimit(
-    enriched.filter((a) => a.derivedStatus === 'upcoming' || a.derivedStatus === 'ongoing'),
+    enriched.filter((a: any) => a.derivedStatus === 'upcoming' || a.derivedStatus === 'ongoing'),
     'startsAt',
     'asc',
     3,
-  ).map((a) => ({
+  ).map((a: any) => ({
     id: a.id,
     title: a.title,
     type: a.type,
@@ -227,11 +227,11 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
   const scale = parseGradingScale(settingsRow?.gradingScale)
 
   const recentResults = sortAndLimit(
-    enriched.filter((a) => a.derivedStatus === 'completed'),
+    enriched.filter((a: any) => a.derivedStatus === 'completed'),
     'endsAt',
     'desc',
     4,
-  ).map((a) => {
+  ).map((a: any) => {
     const score = a.attempts[0]?.score ?? 0  // unsubmitted = 0
     return {
       id: a.id,
@@ -246,7 +246,7 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
   })
 
   const gradeDistribution: Record<string, number> = {}
-  for (const a of enriched.filter((x) => x.derivedStatus === 'completed')) {
+  for (const a of enriched.filter((x: any) => x.derivedStatus === 'completed')) {
     const score = a.attempts[0]?.score ?? 0
     const grade = computeGrade(score, a.totalMarks, scale)
     gradeDistribution[grade] = (gradeDistribution[grade] ?? 0) + 1
@@ -303,9 +303,9 @@ export async function getStudentAssessments(studentId: number): Promise<StudentA
   const scale2 = parseGradingScale(settingsRow2?.gradingScale)
 
   return rows
-    .map((r) => r.assessment)
-    .filter((a) => a.status === 'PUBLISHED' || a.status === 'CLOSED')
-    .map((a) => {
+    .map((r: any) => r.assessment)
+    .filter((a: any) => a.status === 'PUBLISHED' || a.status === 'CLOSED')
+    .map((a: any) => {
       const raw = a.attempts[0] ?? null
       return {
         id: a.id,
@@ -435,7 +435,7 @@ export async function getStudentAttempts(studentId: number, assessmentId: number
     },
   })
 
-  return rows.map((r) => ({
+  return rows.map((r: any) => ({
     ...r,
     grade: r.score !== null ? computeGrade(r.score, totalMarks, scale) : null,
   }))
@@ -489,9 +489,9 @@ export async function getScheduleAssessments(studentId: number): Promise<Schedul
   })
 
   return rows
-    .map((r) => r.assessment)
-    .filter((a) => a.status === 'PUBLISHED' || a.status === 'CLOSED')
-    .map((a) => ({
+    .map((r: any) => r.assessment)
+    .filter((a: any) => a.status === 'PUBLISHED' || a.status === 'CLOSED')
+    .map((a: any) => ({
       id: a.id,
       title: a.title,
       type: a.type,
@@ -505,7 +505,7 @@ export async function getScheduleAssessments(studentId: number): Promise<Schedul
       passwordProtected: a.passwordProtected,
       proctoringEnabled: a.proctoringEnabled,
     }))
-    .filter((a) => a.status === 'upcoming' || a.status === 'ongoing')
+    .filter((a: any) => a.status === 'upcoming' || a.status === 'ongoing')
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
 }
 

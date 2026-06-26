@@ -90,7 +90,7 @@ export default async function ResultsOverviewPage({
     // Get attempts
     const attempts = await getStudentAttempts(studentId, assessmentId)
     const latestSubmitted = attempts
-        .filter((a) => a.status === "SUBMITTED" || a.status === "TIMED_OUT")
+        .filter((a: any) => a.status === "SUBMITTED" || a.status === "TIMED_OUT")
         .sort((a, b) => (b.submittedAt?.getTime() ?? 0) - (a.submittedAt?.getTime() ?? 0))[0] ?? null
 
     if (!latestSubmitted) {
@@ -111,7 +111,7 @@ export default async function ResultsOverviewPage({
 
     // Build section performance
     const feedbackMap = new Map(
-        gradingDetail?.answerFeedbacks.map((f) => [f.questionId, f]) ?? [],
+        gradingDetail?.answerFeedbacks.map((f: any) => [f.questionId, f]) ?? [],
     )
 
     type SectionPerformance = {
@@ -135,18 +135,18 @@ export default async function ResultsOverviewPage({
         },
     })
     const answerMap = new Map(
-        attemptWithAnswers?.answers.map((a) => [a.questionId, a]) ?? [],
+        attemptWithAnswers?.answers.map((a: any) => [a.questionId, a]) ?? [],
     )
 
     // Get correct options for MCQ
-    const allQuestionIds = assessment.sections.flatMap((s) => s.questions.map((q) => q.id))
+    const allQuestionIds = assessment.sections.flatMap((s: any) => s.questions.map((q: any) => q.id))
     const questionsWithCorrect = await prisma.question.findMany({
         where: { id: { in: allQuestionIds } },
         select: { id: true, correctOption: true },
     })
-    const correctOptionMap = new Map(questionsWithCorrect.map((q) => [q.id, q.correctOption]))
+    const correctOptionMap = new Map(questionsWithCorrect.map((q: any) => [q.id, q.correctOption]))
 
-    const sectionPerformance: SectionPerformance[] = assessment.sections.map((section) => {
+    const sectionPerformance: SectionPerformance[] = assessment.sections.map((section: any) => {
         let earned = 0
         let possible = 0
         let answered = 0
@@ -347,7 +347,7 @@ export default async function ResultsOverviewPage({
                     </div>
 
                     <div className="divide-y divide-[#f1f5f9]">
-                        {sectionPerformance.map((section) => (
+                        {sectionPerformance.map((section: any) => (
                             <div key={section.id} className="px-5 py-4 flex items-center gap-4">
                                 {/* Section info */}
                                 <div className="flex-1 min-w-0">

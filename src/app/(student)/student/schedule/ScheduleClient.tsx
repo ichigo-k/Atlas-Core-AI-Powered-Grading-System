@@ -54,12 +54,12 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 	}, [items]);
 
 	const activeDates = useMemo(
-		() => Object.keys(grouped).filter((d) => d >= todayIso).sort().slice(0, 14),
+		() => Object.keys(grouped).filter((d: any) => d >= todayIso).sort().slice(0, 14),
 		[grouped, todayIso],
 	);
 
 	const pills = useMemo(
-		() => activeDates.map((iso) => {
+		() => activeDates.map((iso: any) => {
 			const d = new Date(`${iso}T00:00:00`);
 			return {
 				iso,
@@ -130,7 +130,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 				{/* -- Date pills -- */}
 				{pills.length > 0 && (
 					<div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-						{pills.map((p) => (
+						{pills.map((p: any) => (
 							<button
 								key={p.iso}
 								onClick={() => handlePillClick(p.iso)}
@@ -164,7 +164,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 					</div>
 				) : (
 					<div className="space-y-8">
-						{activeDates.map((date) => {
+						{activeDates.map((date: any) => {
 							const dayItems = grouped[date];
 							const isToday = date === todayIso;
 							const d = new Date(`${date}T00:00:00`);
@@ -199,7 +199,7 @@ export default function ScheduleClient({ items }: { items: ScheduleItemSerialize
 
 									{/* Day items */}
 									<div className="grid gap-2">
-										{dayItems.map((a) => (
+										{dayItems.map((a: any) => (
 											<AssessmentCard
 												key={a.id}
 												item={a}

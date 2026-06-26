@@ -111,7 +111,7 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
         throw new Error(data.error || "Failed to create bank")
       }
       const bank = await res.json()
-      const course = courses.find((c) => c.id === (courseId ? parseInt(courseId) : -1)) ?? null
+      const course = courses.find((c: any) => c.id === (courseId ? parseInt(courseId) : -1)) ?? null
       toast.success("Question bank created")
       onCreated({
         ...bank,
@@ -162,7 +162,7 @@ function CreateBankSheet({ open, courses, onCreated, onClose }: CreateBankSheetP
                   <SelectValue placeholder="No course filter — available for all" />
                 </SelectTrigger>
                 <SelectContent>
-                  {courses.map((c) => (
+                  {courses.map((c: any) => (
                     <SelectItem key={c.id} value={String(c.id)}>
                       {c.code} — {c.title}
                     </SelectItem>
@@ -256,7 +256,7 @@ export default function QuestionBankClient() {
         body: JSON.stringify({ isShared: !bank.isShared }),
       })
       if (!res.ok) throw new Error()
-      setBanks((prev) => prev.map((b) => b.id === bank.id ? { ...b, isShared: !bank.isShared } : b))
+      setBanks((prev) => prev.map((b: any) => b.id === bank.id ? { ...b, isShared: !bank.isShared } : b))
       toast.success(bank.isShared ? "Bank set to private" : "Bank shared with all lecturers")
     } catch {
       toast.error("Failed to update sharing")
@@ -287,7 +287,7 @@ export default function QuestionBankClient() {
       })
       if (!res.ok) throw new Error()
       toast.success("Question bank deleted")
-      setBanks((prev) => prev.filter((b) => b.id !== deleteTarget.id))
+      setBanks((prev) => prev.filter((b: any) => b.id !== deleteTarget.id))
       setDeleteTarget(null)
       router.refresh()
     } catch {
@@ -366,7 +366,7 @@ export default function QuestionBankClient() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {banks.map((bank) => {
+              {banks.map((bank: any) => {
                 const isOwner = bank.isOwn
                 return (
                   <TableRow

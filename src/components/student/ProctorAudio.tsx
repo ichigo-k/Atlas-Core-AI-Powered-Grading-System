@@ -46,7 +46,7 @@ export default function ProctorAudio({ attemptId }: Props) {
 
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       .then((s) => {
-        if (cancelled) { s.getTracks().forEach((t) => t.stop()); return }
+        if (cancelled) { s.getTracks().forEach((t: any) => t.stop()); return }
         stream = s
 
         audioCtx = new AudioContext()
@@ -121,7 +121,7 @@ export default function ProctorAudio({ attemptId }: Props) {
       cancelled = true
       proctorSignals.audioRms = 0
       if (intervalId) clearInterval(intervalId)
-      stream?.getTracks().forEach((t) => t.stop())
+      stream?.getTracks().forEach((t: any) => t.stop())
       audioCtx?.close()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

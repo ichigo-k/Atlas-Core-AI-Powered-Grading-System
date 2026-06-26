@@ -102,7 +102,7 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
                   <SelectValue placeholder="Select course..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {lecturerCourses.map((c) => (
+                  {lecturerCourses.map((c: any) => (
                     <SelectItem key={c.id} value={String(c.id)}>
                       {c.code} — {c.title}
                     </SelectItem>
@@ -147,7 +147,7 @@ export default function Step1Basics({ state, onChange, lecturerCourses, errors }
             Assessment Type <span className="text-rose-500">*</span>
           </Label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            {(["EXAM", "QUIZ", "ASSIGNMENT"] as const).map((type) => {
+            {(["EXAM", "QUIZ", "ASSIGNMENT"] as const).map((type: any) => {
               const labels: Record<string, { title: string; desc: string }> = {
                 EXAM: { title: "Exam", desc: "Formal evaluation with structured sections." },
                 QUIZ: { title: "Quiz", desc: "Short assessment for quick knowledge checks." },

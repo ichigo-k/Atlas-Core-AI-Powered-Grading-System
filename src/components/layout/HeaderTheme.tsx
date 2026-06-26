@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { Palette } from "lucide-react";
@@ -132,7 +132,7 @@ export function useHeaderTheme() {
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
-    if (stored && THEMES.some((t) => t.id === stored)) setThemeState(stored);
+    if (stored && THEMES.some((t: any) => t.id === stored)) setThemeState(stored);
   }, []);
 
   function setTheme(id: ThemeId) {
@@ -146,7 +146,7 @@ export function useHeaderTheme() {
 // ── Corner decoration renderer ────────────────────────────────────────────────
 
 export function HeaderDecoration({ theme }: { theme: ThemeId }) {
-  const entry = THEMES.find((t) => t.id === theme);
+  const entry = THEMES.find((t: any) => t.id === theme);
   if (!entry) return null;
   return <entry.Component />;
 }
@@ -212,7 +212,7 @@ export function ThemePicker({ theme, setTheme }: { theme: ThemeId; setTheme: (id
 }
 
 function ThemePreviewMini({ id }: { id: ThemeId }) {
-  const entry = THEMES.find((t) => t.id === id);
+  const entry = THEMES.find((t: any) => t.id === id);
   if (!entry) return null;
   return (
     <div className="absolute inset-0 scale-75 origin-top-right">

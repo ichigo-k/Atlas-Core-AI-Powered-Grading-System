@@ -16,7 +16,7 @@ interface AdminShellProps {
 function getInitials(name: string | null | undefined): string {
   if (!name) return "A";
   const parts = name.trim().split(/\s+/);
-  return parts.slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return parts.slice(0, 2).map((p: any) => p[0]).join("").toUpperCase();
 }
 
 export default function AdminShell({

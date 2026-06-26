@@ -39,7 +39,7 @@ export async function GET() {
   })
 
   return NextResponse.json(
-    assessments.map((a) => ({
+    assessments.map((a: any) => ({
       id: a.id,
       title: a.title,
       type: a.type,
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     where: { id: lecturerId },
     include: { courses: { select: { id: true } } },
   })
-  const courseIds = lecturerCourses?.courses.map((c) => c.id) ?? []
+  const courseIds = lecturerCourses?.courses.map((c: any) => c.id) ?? []
   if (!isCourseOwnedByLecturer(body.courseId, courseIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
       if (body.classes?.length) {
         await tx.assessmentClass.createMany({
-          data: body.classes.map((c) => ({
+          data: body.classes.map((c: any) => ({
             assessmentId: created.id,
             classId: c.classId,
           })),
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
               })
               if (q.rubricCriteria?.length) {
                 await tx.rubricCriterion.createMany({
-                  data: q.rubricCriteria.map((r) => ({
+                  data: q.rubricCriteria.map((r: any) => ({
                     questionId: question.id,
                     description: r.description,
                     maxMarks: r.maxMarks,

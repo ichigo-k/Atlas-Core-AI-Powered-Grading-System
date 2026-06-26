@@ -28,7 +28,7 @@ export default function CreateTestPage() {
       <div className="mb-12">
         <div className="flex items-center justify-between relative">
           <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10" />
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3].map((s: any) => (
             <div key={s} className="flex flex-col items-center gap-2 bg-[#F4F6FB] px-4">
               <div 
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
@@ -67,7 +67,7 @@ export default function CreateTestPage() {
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Select Course</label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {courses.map((c) => (
+                  {courses.map((c: any) => (
                     <button
                       key={c.id}
                       onClick={() => setSelectedCourse(c.id)}
@@ -112,7 +112,7 @@ export default function CreateTestPage() {
               </div>
             ) : (
               <div className="grid gap-3">
-                {filteredBatches.map((b) => (
+                {filteredBatches.map((b: any) => (
                   <label 
                     key={b.id}
                     className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${

@@ -117,12 +117,12 @@ function buildPayload(
     location: s2.isLocationBound ? s2.location : null,
     totalMarks: Number(s4.totalMarks),
     status,
-    classes: s2.selectedClasses.map((c) => ({ classId: c.classId })),
-    sections: s3.sections.map((sec) => ({
+    classes: s2.selectedClasses.map((c: any) => ({ classId: c.classId })),
+    sections: s3.sections.map((sec: any) => ({
       name: sec.name,
       type: sec.type as any,
       requiredQuestionsCount: sec.requiredQuestionsCount ? parseInt(sec.requiredQuestionsCount) : null,
-      questions: sec.questions.map((q) => ({
+      questions: sec.questions.map((q: any) => ({
         order: q.order,
         body: q.body,
         marks: Number(q.marks),
@@ -131,7 +131,7 @@ function buildPayload(
         correctOption: sec.type === "OBJECTIVE" ? q.correctOption : null,
         rubricCriteria:
           sec.type === "SUBJECTIVE"
-            ? q.rubricCriteria.map((r) => ({
+            ? q.rubricCriteria.map((r: any) => ({
               description: r.description,
               maxMarks: Number(r.maxMarks),
               order: r.order,
@@ -175,7 +175,7 @@ export default function AssessmentForm({
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const selectedCourse = lecturerCourses.find((c) => c.id === step1.courseId) ?? null
+  const selectedCourse = lecturerCourses.find((c: any) => c.id === step1.courseId) ?? null
 
   const handleContinue = () => {
     if (step === 0) {
@@ -192,7 +192,7 @@ export default function AssessmentForm({
       const calculated = step3.sections.reduce((total, sec) => {
         const required = Number(sec.requiredQuestionsCount) || sec.questions.length
         const sortedMarks = sec.questions
-          .map((q) => Number(q.marks) || 0)
+          .map((q: any) => Number(q.marks) || 0)
           .sort((a, b) => b - a)
         return total + sortedMarks.slice(0, required).reduce((sum, m) => sum + m, 0)
       }, 0)

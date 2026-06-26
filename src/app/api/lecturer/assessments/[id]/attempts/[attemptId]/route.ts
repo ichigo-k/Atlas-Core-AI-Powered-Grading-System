@@ -85,15 +85,15 @@ answers: {
   const gradingDetail = await getAttemptGradingDetail(attemptId)
 
   // Build answer map for quick lookup
-  const answerMap = new Map(attempt.answers.map((a) => [a.questionId, a]))
+  const answerMap = new Map(attempt.answers.map((a: any) => [a.questionId, a]))
   // Build feedback map for quick lookup
   const feedbackMap = new Map(
-    gradingDetail?.answerFeedbacks.map((f) => [f.questionId, f]) ?? []
+    gradingDetail?.answerFeedbacks.map((f: any) => [f.questionId, f]) ?? []
   )
 
   // Build the response — one entry per question
-  const questions = assessment.sections.flatMap((section) =>
-    section.questions.map((q) => {
+  const questions = assessment.sections.flatMap((section: any) =>
+    section.questions.map((q: any) => {
       const answer = answerMap.get(q.id) ?? null
       const feedback = feedbackMap.get(q.id) ?? null
       return {
@@ -106,7 +106,7 @@ answers: {
         answerType: q.answerType,
         options: q.options,
         correctOption: q.correctOption,
-        rubricCriteria: q.rubricCriteria.map((rc) => ({
+        rubricCriteria: q.rubricCriteria.map((rc: any) => ({
           description: rc.description,
           maxMarks: rc.maxMarks,
           order: rc.order,

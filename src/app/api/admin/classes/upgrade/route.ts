@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     // 2. Iterate and upgrade level, or mark as graduated if reached 400
     // Prisma doesn't support bulk update with computed fields easily in a single query across rows conditionally, 
     // so we'll do a transaction.
-    const updates = classes.map((cls) => {
+    const updates = classes.map((cls: any) => {
       if (cls.level >= 400) {
         return prisma.class.update({
           where: { id: cls.id },

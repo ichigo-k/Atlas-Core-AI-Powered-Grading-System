@@ -89,7 +89,7 @@ export async function createOrResumeAttempt(
     let questionOrder: { questionId: number }[] = []
     if (assessment.shuffleQuestions) {
       const questions = await prisma.question.findMany({ where: { assessmentId }, select: { id: true } })
-      questionOrder = shuffleWithSeed(questions.map((q) => q.id)).map((id) => ({ questionId: id }))
+      questionOrder = shuffleWithSeed(questions.map((q: any) => q.id)).map((id: any) => ({ questionId: id }))
     }
 
     const newAttempt = await prisma.assessmentAttempt.create({
@@ -229,7 +229,7 @@ export async function submitAttemptInternal(
     }
 
     // Auto-score MCQ questions
-    const questionMap = new Map(questions.map((q) => [q.id, q]))
+    const questionMap = new Map(questions.map((q: any) => [q.id, q]))
     let mcqScore = 0
 
     for (const answer of answers) {
@@ -263,7 +263,7 @@ export async function submitAttemptInternal(
 
     // Atomically hash all answers + mark attempt submitted in one transaction
     await prisma.$transaction([
-      ...answers.map((a) =>
+      ...answers.map((a: any) =>
         prisma.studentAnswer.update({
           where: { id: a.id },
           data: { answerHash: computeHash(a.answerText ?? null) },

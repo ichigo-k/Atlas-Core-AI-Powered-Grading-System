@@ -14,7 +14,7 @@ export default async function StudentAssessmentsPage() {
 	const rawAssessments = studentId ? await getStudentAssessments(studentId) : [];
 
 	// Serialize Date objects to ISO strings for client component
-	const assessments = rawAssessments.map((a) => ({
+	const assessments = rawAssessments.map((a: any) => ({
 		...a,
 		startsAt: a.startsAt.toISOString(),
 		endsAt: a.endsAt.toISOString(),

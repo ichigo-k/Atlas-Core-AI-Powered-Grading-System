@@ -62,7 +62,7 @@ export async function getAttemptGradingDetail(
     plagiarismFlagged: result.plagiarismFlagged,
     gradedAt: result.gradedAt,
     errorNotes: result.errorNotes,
-    answerFeedbacks: result.answerFeedbacks.map((fb) => ({
+    answerFeedbacks: result.answerFeedbacks.map((fb: any) => ({
       questionId: fb.questionId,
       totalScore: fb.totalScore,
       maxScore: fb.maxScore,
@@ -91,14 +91,14 @@ export async function getAssessmentGradingResults(
     orderBy: { gradedAt: 'desc' },
   })
 
-  return results.map((result) => ({
+  return results.map((result: any) => ({
     attemptId: result.attemptId,
     assessmentId: result.assessmentId,
     score: result.score,
     plagiarismFlagged: result.plagiarismFlagged,
     gradedAt: result.gradedAt,
     errorNotes: result.errorNotes,
-    answerFeedbacks: result.answerFeedbacks.map((fb) => ({
+    answerFeedbacks: result.answerFeedbacks.map((fb: any) => ({
       questionId: fb.questionId,
       totalScore: fb.totalScore,
       maxScore: fb.maxScore,
@@ -127,7 +127,7 @@ export async function getFlaggedAttempts(assessmentId: number): Promise<number[]
     where: { assessmentId, plagiarismFlagged: true },
     select: { attemptId: true },
   })
-  return results.map((r) => r.attemptId)
+  return results.map((r: any) => r.attemptId)
 }
 
 // ---------------------------------------------------------------------------

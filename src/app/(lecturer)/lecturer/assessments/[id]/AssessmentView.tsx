@@ -401,13 +401,13 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
   // ─── Results table rows ───────────────────────────────────────────────────
 
   const submissionByStudent = useMemo(
-    () => new Map((resultsData?.submissions ?? []).map((s) => [s.studentId, s])),
+    () => new Map((resultsData?.submissions ?? []).map((s: any) => [s.studentId, s])),
     [resultsData]
   )
 
   const tableRows = useMemo(() => {
     if (!resultsData) return []
-    const filtered = resultsData.enrolledStudents.filter((s) =>
+    const filtered = resultsData.enrolledStudents.filter((s: any) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase()) ||
       s.className.toLowerCase().includes(search.toLowerCase())
@@ -441,13 +441,13 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
   const totalQuestions = assessment.sections.reduce((acc, s) => acc + s.questions.length, 0)
   const status = statusBadge[assessment.status] ?? statusBadge.DRAFT
   const submittedCount = resultsData?.submissions.length ?? 0
-  const gradedCount = (resultsData?.submissions ?? []).filter((s) => s.status === "GRADED").length
+  const gradedCount = (resultsData?.submissions ?? []).filter((s: any) => s.status === "GRADED").length
   const notSubmittedCount = (resultsData?.enrolledStudents.length ?? 0) - submittedCount
   const submissionRate = (resultsData?.enrolledStudents.length ?? 0) > 0
     ? Math.round((submittedCount / (resultsData?.enrolledStudents.length ?? 1)) * 100) : 0
 
   // Chart data
-  const scoredSubmissions = (resultsData?.submissions ?? []).filter((s) => s.score != null)
+  const scoredSubmissions = (resultsData?.submissions ?? []).filter((s: any) => s.score != null)
   const bucketCounts = [0, 0, 0, 0, 0]
   for (const sub of scoredSubmissions) {
     const pct = ((sub.score ?? 0) / (resultsData?.totalMarks ?? 1)) * 100
@@ -654,7 +654,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
               <p className="text-[13px] text-muted-foreground">No classes assigned.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {assessment.classes.map((c) => (
+                {assessment.classes.map((c: any) => (
                   <span key={c.id} className="inline-flex items-center px-3 py-1.5 rounded-sm border border-border bg-[#f3f2f1] text-[12px] text-[#1e293b]">
                     {c.className}
                   </span>
@@ -687,7 +687,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
                 {assessment.sections.map((section, secIdx) => {
                   const isObjective = section.type === "OBJECTIVE"
                   const required = section.requiredQuestionsCount ?? section.questions.length
-                  const sectionMarks = section.questions.map((q) => q.marks).sort((a, b) => b - a).slice(0, required).reduce((acc, m) => acc + m, 0)
+                  const sectionMarks = section.questions.map((q: any) => q.marks).sort((a, b) => b - a).slice(0, required).reduce((acc, m) => acc + m, 0)
                   const pct = assessment.totalMarks > 0 ? Math.round((sectionMarks / assessment.totalMarks) * 100) : 0
                   return (
                     <tr key={section.id} className="hover:bg-slate-50/50 transition-colors">
@@ -818,7 +818,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
               <tbody className="divide-y divide-[#f1f5f9]">
                 {tableRows.length === 0 ? (
                   <tr><td colSpan={7} className="px-5 py-8 text-center text-[13px] text-muted-foreground">No students match your search.</td></tr>
-                ) : tableRows.map((student) => {
+                ) : tableRows.map((student: any) => {
                   const sub = submissionByStudent.get(student.id)
                   return (
                     <tr key={student.id}
@@ -952,10 +952,10 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
               <SheetDescription className="text-[12px]">Select columns to include in the export.</SheetDescription>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
-              {ALL_EXPORT_FIELDS.map((field) => (
+              {ALL_EXPORT_FIELDS.map((field: any) => (
                 <label key={field} className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" checked={selectedFields.includes(field)}
-                    onChange={(e) => setSelectedFields((prev) => e.target.checked ? [...prev, field] : prev.filter((f) => f !== field))}
+                    onChange={(e) => setSelectedFields((prev) => e.target.checked ? [...prev, field] : prev.filter((f: any) => f !== field))}
                     className="h-4 w-4 rounded-sm border-border accent-primary" />
                   <span className="text-[13px] text-[#1e293b]">{EXPORT_FIELD_LABELS[field]}</span>
                 </label>
@@ -1034,7 +1034,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
         {/* Tabs */}
         {tabs.length > 1 && (
           <div className="flex items-center border-b border-border">
-            {tabs.map((tab) => (
+            {tabs.map((tab: any) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}

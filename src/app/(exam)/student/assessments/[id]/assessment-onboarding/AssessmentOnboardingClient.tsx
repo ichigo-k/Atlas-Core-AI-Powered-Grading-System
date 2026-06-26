@@ -439,7 +439,7 @@ function StepMicCheck({
   useEffect(() => {
     requestMic();
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((t: any) => t.stop());
     };
   }, [requestMic]);
 
@@ -569,7 +569,7 @@ function StepCameraCheck({
   useEffect(() => {
     requestCamera();
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((t: any) => t.stop());
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [requestCamera]);

@@ -300,7 +300,7 @@ export default function GradebookClient() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All courses</SelectItem>
-            {data.courses.map((c) => (
+            {data.courses.map((c: any) => (
               <SelectItem key={c.id} value={String(c.id)}>{c.code} — {c.title}</SelectItem>
             ))}
           </SelectContent>
@@ -312,7 +312,7 @@ export default function GradebookClient() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All classes</SelectItem>
-            {data.classes.map((c) => (
+            {data.classes.map((c: any) => (
               <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
             ))}
           </SelectContent>
@@ -324,7 +324,7 @@ export default function GradebookClient() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All levels</SelectItem>
-            {data.levels.map((l) => (
+            {data.levels.map((l: any) => (
               <SelectItem key={l} value={String(l)}>Level {l}</SelectItem>
             ))}
           </SelectContent>
@@ -373,9 +373,9 @@ export default function GradebookClient() {
         <div className="rounded-sm border border-border overflow-hidden bg-white">
           <Table>
             <TableHeader>
-              {table.getHeaderGroups().map((hg) => (
+              {table.getHeaderGroups().map((hg: any) => (
                 <TableRow key={hg.id} className="bg-slate-50 hover:bg-slate-50 border-b border-border">
-                  {hg.headers.map((header) => (
+                  {hg.headers.map((header: any) => (
                     <TableHead key={header.id} className="h-10 px-5">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
@@ -384,13 +384,13 @@ export default function GradebookClient() {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.map((row) => (
+              {table.getRowModel().rows.map((row: any) => (
                 <TableRow
                   key={row.id}
                   className="cursor-pointer hover:bg-slate-50/70 transition-colors border-b border-slate-100 last:border-0"
                   onClick={() => router.push(`/lecturer/grades/${row.original.id}`)}
                 >
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getVisibleCells().map((cell: any) => (
                     <TableCell key={cell.id} className="px-5 py-3.5">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
@@ -419,7 +419,7 @@ export default function GradebookClient() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent side="top" className="rounded-sm">
-                  {[10, 20, 50].map((n) => (
+                  {[10, 20, 50].map((n: any) => (
                     <SelectItem key={n} value={String(n)} className="text-xs font-medium">{n}</SelectItem>
                   ))}
                 </SelectContent>

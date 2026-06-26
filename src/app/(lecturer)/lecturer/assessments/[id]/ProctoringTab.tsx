@@ -40,7 +40,7 @@ export default async function ProctoringTab({ assessmentId, userId }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {attempts.map((row) => (
+            {attempts.map((row: any) => (
               <ProctoringRow key={row.attemptId} row={row} userId={userId} />
             ))}
           </tbody>

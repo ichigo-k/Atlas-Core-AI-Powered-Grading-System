@@ -125,7 +125,7 @@ function AddItemSheet({ open, bankId, onAdded, onClose }: AddItemSheetProps) {
     const marks = parseInt(String(question.marks))
     if (!marks || marks < 1) { toast.error("Marks must be at least 1"); return }
     if (itemType === "OBJECTIVE") {
-      const validOptions = question.options.filter((o) => o.trim())
+      const validOptions = question.options.filter((o: any) => o.trim())
       if (validOptions.length < 2) { toast.error("Need at least 2 options"); return }
       if (question.correctOption === null) { toast.error("Please select the correct answer"); return }
     }
@@ -136,7 +136,7 @@ function AddItemSheet({ open, bankId, onAdded, onClose }: AddItemSheetProps) {
     try {
       const payload: Record<string, unknown> = { type: itemType, body: question.body, marks }
       if (itemType === "OBJECTIVE") {
-        payload.options = question.options.filter((o) => o.trim())
+        payload.options = question.options.filter((o: any) => o.trim())
         payload.correctOption = question.correctOption
       }
       if (itemType === "SUBJECTIVE") {
@@ -376,7 +376,7 @@ export default function BankDetailClient({ bankId }: { bankId: number }) {
       )
       if (!res.ok) throw new Error()
       toast.success("Question deleted")
-      setItems((prev) => prev.filter((i) => i.id !== deleteItem.id))
+      setItems((prev) => prev.filter((i: any) => i.id !== deleteItem.id))
       setDeleteItem(null)
     } catch {
       toast.error("Failed to delete question")
@@ -385,8 +385,8 @@ export default function BankDetailClient({ bankId }: { bankId: number }) {
     }
   }
 
-  const objective = items.filter((i) => i.type === "OBJECTIVE")
-  const subjective = items.filter((i) => i.type === "SUBJECTIVE")
+  const objective = items.filter((i: any) => i.type === "OBJECTIVE")
+  const subjective = items.filter((i: any) => i.type === "SUBJECTIVE")
 
   if (loading) {
     return (

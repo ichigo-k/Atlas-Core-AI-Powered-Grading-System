@@ -1,4 +1,4 @@
-﻿const GRADE_ORDER = [
+const GRADE_ORDER = [
   "A+", "A", "A-",
   "B+", "B", "B-",
   "C+", "C", "C-",
@@ -32,18 +32,18 @@ export default function GradeDonut({ distribution, total }: GradeDonutProps) {
   }
 
   const entries = [
-    ...GRADE_ORDER.filter((g) => (distribution[g] ?? 0) > 0).map((g) => ({
+    ...GRADE_ORDER.filter((g: any) => (distribution[g] ?? 0) > 0).map((g: any) => ({
       grade: g,
       count: distribution[g],
       color: gradeColor(g),
     })),
     ...Object.keys(distribution)
-      .filter((g) => !GRADE_ORDER.includes(g) && distribution[g] > 0)
-      .map((g) => ({ grade: g, count: distribution[g], color: gradeColor(g) })),
+      .filter((g: any) => !GRADE_ORDER.includes(g) && distribution[g] > 0)
+      .map((g: any) => ({ grade: g, count: distribution[g], color: gradeColor(g) })),
   ];
 
   let cumulative = 0;
-  const segments = entries.map((e) => {
+  const segments = entries.map((e: any) => {
     const len = (e.count / total) * CIRC;
     const seg = { ...e, len, offset: cumulative };
     cumulative += len;
@@ -85,7 +85,7 @@ export default function GradeDonut({ distribution, total }: GradeDonutProps) {
 
       {/* Legend */}
       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-        {segments.map((s) => (
+        {segments.map((s: any) => (
           <div key={s.grade} className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <div

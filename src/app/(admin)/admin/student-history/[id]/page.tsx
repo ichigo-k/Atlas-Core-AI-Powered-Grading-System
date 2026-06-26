@@ -189,7 +189,7 @@ export default async function StudentDetailPage({
     // Compute course averages
     const courses: CourseGroup[] = []
     for (const course of courseMap.values()) {
-        const scored = course.assessments.filter((a) => a.score !== null)
+        const scored = course.assessments.filter((a: any) => a.score !== null)
         if (scored.length > 0) {
             course.avgPct = Math.round(scored.reduce((sum, a) => sum + a.pct, 0) / scored.length)
             course.avgGrade = computeGrade(course.avgPct, 100, scale)
@@ -202,7 +202,7 @@ export default async function StudentDetailPage({
     // Summary stats
     const totalAssessments = bestByAssessment.size
     const totalCourses = courses.length
-    const scoredAttempts = Array.from(bestByAssessment.values()).filter((a) => a.score !== null)
+    const scoredAttempts = Array.from(bestByAssessment.values()).filter((a: any) => a.score !== null)
     const overallAvgPct = scoredAttempts.length > 0
         ? Math.round(scoredAttempts.reduce((sum, a) => sum + ((a.score ?? 0) / a.assessment.totalMarks) * 100, 0) / scoredAttempts.length)
         : null
@@ -343,7 +343,7 @@ export default async function StudentDetailPage({
                             <div className="flex-1 h-px bg-border ml-2" />
                         </div>
 
-                        {courses.map((course) => (
+                        {courses.map((course: any) => (
                             <details key={course.courseId} className="group bg-white border border-border rounded-sm overflow-hidden">
                                 <summary className="flex items-center gap-3 px-5 py-3.5 cursor-pointer list-none hover:bg-[#f8f9fa] transition-colors">
                                     <ChevronRight size={14} className="text-muted-foreground transition-transform group-open:rotate-90 shrink-0" />
@@ -376,7 +376,7 @@ export default async function StudentDetailPage({
 
                                 {/* Assessment rows */}
                                 <div className="border-t border-border divide-y divide-[#f1f5f9] bg-[#fafaf9]">
-                                    {course.assessments.map((a) => {
+                                    {course.assessments.map((a: any) => {
                                         const typeBadge = TYPE_BADGE[a.type] ?? { bg: "#f8f9fa", text: "#605e5c" }
                                         return (
                                             <div key={a.id} className="flex items-center gap-3 px-5 py-3 pl-11 hover:bg-white/60 transition-colors">

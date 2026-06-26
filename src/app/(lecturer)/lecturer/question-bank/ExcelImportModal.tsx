@@ -117,7 +117,7 @@ async function downloadTemplate() {
     { key: "answer_type",    header: "answer_type",    width: 16 },
   ]
 
-  ws.columns = COLS.map((c) => ({ key: c.key, width: c.width }))
+  ws.columns = COLS.map((c: any) => ({ key: c.key, width: c.width }))
 
   // Header row
   const headerRow = ws.getRow(1)
@@ -275,9 +275,9 @@ async function parseExcelFile(file: File): Promise<ParsedRow[]> {
 
   if (file.name.toLowerCase().endsWith(".csv")) {
     const text = new TextDecoder().decode(buffer)
-    const lines = text.split(/\r?\n/).filter((l) => l.trim())
+    const lines = text.split(/\r?\n/).filter((l: any) => l.trim())
     if (lines.length < 2) return []
-    const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().trim())
+    const headers = parseCSVLine(lines[0]).map((h: any) => h.toLowerCase().trim())
     const rows: ParsedRow[] = []
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCSVLine(lines[i])
@@ -400,8 +400,8 @@ export default function ExcelImportModal({
   const [parsing, setParsing] = useState(false)
   const [importing, setImporting] = useState(false)
 
-  const validRows = rows.filter((r) => !r.error)
-  const errorRows = rows.filter((r) => r.error)
+  const validRows = rows.filter((r: any) => !r.error)
+  const errorRows = rows.filter((r: any) => r.error)
 
   const handleFile = async (file: File) => {
     if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
@@ -433,7 +433,7 @@ export default function ExcelImportModal({
     if (validRows.length === 0) return
     setImporting(true)
     try {
-      const items = validRows.map((r) => ({
+      const items = validRows.map((r: any) => ({
         type: r.type,
         body: r.body,
         marks: r.marks,
@@ -581,7 +581,7 @@ export default function ExcelImportModal({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {rows.map((row) => (
+                      {rows.map((row: any) => (
                         <tr
                           key={row.rowNum}
                           className={cn(

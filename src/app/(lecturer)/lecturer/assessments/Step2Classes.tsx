@@ -29,9 +29,9 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
   const [searchTerm, setSearchTerm] = useState("")
 
   const toggleClass = (classId: number, className: string, level: number) => {
-    const existing = state.selectedClasses.find((c) => c.classId === classId)
+    const existing = state.selectedClasses.find((c: any) => c.classId === classId)
     if (existing) {
-      onChange({ selectedClasses: state.selectedClasses.filter((c) => c.classId !== classId) })
+      onChange({ selectedClasses: state.selectedClasses.filter((c: any) => c.classId !== classId) })
     } else {
       onChange({
         selectedClasses: [
@@ -97,8 +97,8 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((cls) => {
-                      const isSelected = !!state.selectedClasses.find((c) => c.classId === cls.id)
+                    filtered.map((cls: any) => {
+                      const isSelected = !!state.selectedClasses.find((c: any) => c.classId === cls.id)
                       return (
                         <tr
                           key={cls.id}

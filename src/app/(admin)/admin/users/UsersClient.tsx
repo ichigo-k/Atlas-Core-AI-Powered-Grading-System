@@ -211,15 +211,15 @@ export default function UsersClient({
 
 	const counts = useMemo(
 		() => ({
-			STUDENT: users.filter((u) => u.role === "STUDENT").length,
-			LECTURER: users.filter((u) => u.role === "LECTURER").length,
-			ADMIN: users.filter((u) => u.role === "ADMIN").length,
+			STUDENT: users.filter((u: any) => u.role === "STUDENT").length,
+			LECTURER: users.filter((u: any) => u.role === "LECTURER").length,
+			ADMIN: users.filter((u: any) => u.role === "ADMIN").length,
 		}),
 		[users],
 	);
 
 	const filteredData = useMemo(
-		() => users.filter((u) => u.role === activeTab),
+		() => users.filter((u: any) => u.role === activeTab),
 		[users, activeTab],
 	);
 

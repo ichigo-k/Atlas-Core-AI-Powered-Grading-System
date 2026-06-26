@@ -8,7 +8,7 @@ export default function StudentFooter() {
           © {year} GCTU. All rights reserved.
         </p>
         <div className="flex items-center gap-4">
-          {["Privacy Policy", "Help Desk", "Contact"].map((item) => (
+          {["Privacy Policy", "Help Desk", "Contact"].map((item: any) => (
             <a key={item} href="#" className="text-xs transition-colors hover:text-[#002388]" style={{ color: "#94A3B8" }}>
               {item}
             </a>

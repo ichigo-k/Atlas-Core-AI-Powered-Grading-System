@@ -125,7 +125,7 @@ export async function getGradesData(studentId: number): Promise<GradesData> {
 
   const courseBreakdown: CoursePerformance[] = [];
   for (const c of courseMap.values()) {
-    const pcts = c.assessments.map((a) => (a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0));
+    const pcts = c.assessments.map((a: any) => (a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0));
     const avg = pcts.reduce((s, v) => s + v, 0) / pcts.length;
     c.avgScore = Math.round(avg * 10) / 10;
     c.avgGrade = computeGrade(avg, 100, scale);
@@ -134,7 +134,7 @@ export async function getGradesData(studentId: number): Promise<GradesData> {
   courseBreakdown.sort((a, b) => b.avgScore - a.avgScore);
 
   // Overall avg (percentage-based so scores across different totalMarks are comparable)
-  const allPcts = entries.map((e) => (e.totalMarks > 0 ? (e.score / e.totalMarks) * 100 : 0));
+  const allPcts = entries.map((e: any) => (e.totalMarks > 0 ? (e.score / e.totalMarks) * 100 : 0));
   const overallAvg = Math.round((allPcts.reduce((s, v) => s + v, 0) / allPcts.length) * 10) / 10;
   const overallGrade = computeGrade(overallAvg, 100, scale);
 
@@ -142,7 +142,7 @@ export async function getGradesData(studentId: number): Promise<GradesData> {
   const trendPoints = entries
     .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime())
     .slice(-10)
-    .map((e) => ({
+    .map((e: any) => ({
       label: e.title.length > 12 ? e.title.slice(0, 12) + "…" : e.title,
       score: Math.round((e.totalMarks > 0 ? (e.score / e.totalMarks) * 100 : 0) * 10) / 10,
       date: e.submittedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),

@@ -76,7 +76,7 @@ export async function getProctoringAttempts(
     },
   })
 
-  return records.map((record) => ({
+  return records.map((record: any) => ({
     attemptId: record.attemptId,
     sessionId: record.sessionId,
     flagCount: record.flagCount,

@@ -189,14 +189,14 @@ export default function ProctorCamera({ attemptId }: Props) {
     let cancelled = false
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
       .then((stream) => {
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
+        if (cancelled) { stream.getTracks().forEach((t: any) => t.stop()); return }
         streamRef.current = stream
         setCameraReady(true)
       })
       .catch(() => { if (!cancelled) setCameraError(true) })
     return () => {
       cancelled = true
-      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current?.getTracks().forEach((t: any) => t.stop())
     }
   }, [])
 
@@ -301,12 +301,12 @@ export default function ProctorCamera({ attemptId }: Props) {
             // mic is silent (i.e. mouthing without audible sound). Toast only.
             if (faceCount === 1 && result.faceBlendshapes?.[0]) {
               const jawOpen = result.faceBlendshapes[0].categories
-                .find((c) => c.categoryName === "jawOpen")?.score ?? 0
+                .find((c: any) => c.categoryName === "jawOpen")?.score ?? 0
               const m = mouth.current
               const now = performance.now()
               if (jawOpen > JAW_OPEN_HI && m.phase === "closed") m.phase = "open"
               else if (jawOpen < JAW_OPEN_LO && m.phase === "open") { m.phase = "closed"; m.cycles.push(now) }
-              m.cycles = m.cycles.filter((t) => now - t < MOUTH_WINDOW_MS)
+              m.cycles = m.cycles.filter((t: any) => now - t < MOUTH_WINDOW_MS)
               const moving = m.cycles.length >= MOUTH_CYCLES_FOR_WARN
               escalate("MOUTH_MOVING", moving && proctorSignals.audioSilent ? 1 : 0)
             } else {
@@ -356,10 +356,10 @@ export default function ProctorCamera({ attemptId }: Props) {
         if (video.readyState < 2) return
         try {
           const predictions = await cocoSsd.detect(video)
-          const classes = predictions.map((p) => p.class.toLowerCase())
+          const classes = predictions.map((p: any) => p.class.toLowerCase())
           // Phone → hard flag (severity 2). Other objects → toast only (severity 1).
-          escalate("PHONE_DETECTED", classes.some((c) => PHONE_CLASSES.includes(c)) ? 2 : 0)
-          escalate("SUSPICIOUS_OBJECT", classes.some((c) => SUSPICIOUS_CLASSES.includes(c)) ? 1 : 0)
+          escalate("PHONE_DETECTED", classes.some((c: any) => PHONE_CLASSES.includes(c)) ? 2 : 0)
+          escalate("SUSPICIOUS_OBJECT", classes.some((c: any) => SUSPICIOUS_CLASSES.includes(c)) ? 1 : 0)
         } catch { /* ignore */ }
       }
       const id = setInterval(run, OBJECT_INTERVAL_MS)

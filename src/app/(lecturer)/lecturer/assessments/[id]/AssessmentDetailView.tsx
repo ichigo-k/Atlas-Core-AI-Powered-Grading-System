@@ -155,7 +155,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
             <p className="text-sm text-slate-400">No classes assigned.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {assessment.classes.map((c) => (
+              {assessment.classes.map((c: any) => (
                 <span key={c.id} className="inline-flex items-center px-3 py-1.5 rounded-sm border border-slate-200 bg-slate-50 text-xs text-slate-700">
                   {c.className}
                 </span>
@@ -190,7 +190,7 @@ export default function AssessmentDetailView({ assessment, userId }: Props) {
                 const isObjective = section.type === "OBJECTIVE"
                 const required = section.requiredQuestionsCount ?? section.questions.length
                 const sectionMarks = section.questions
-                  .map((q) => q.marks)
+                  .map((q: any) => q.marks)
                   .sort((a, b) => b - a)
                   .slice(0, required)
                   .reduce((acc, m) => acc + m, 0)

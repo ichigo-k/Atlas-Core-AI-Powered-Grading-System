@@ -64,7 +64,7 @@ export default function SystemSettingsForm({
 
 	const handleSave = async () => {
 		// Validate scale — no empty labels, no duplicate labels
-		const labels = scale.map((e) => e.label.trim()).filter(Boolean);
+		const labels = scale.map((e: any) => e.label.trim()).filter(Boolean);
 		if (labels.length !== scale.length) {
 			toast.error("All grade labels must be filled in.");
 			return;
@@ -176,7 +176,7 @@ export default function SystemSettingsForm({
 					</div>
 
 					<div className="space-y-2">
-						{sortedScale.map((entry) => {
+						{sortedScale.map((entry: any) => {
 							// Find the real index in the unsorted scale array
 							const realIndex = scale.findIndex(
 								(e) =>

@@ -629,7 +629,7 @@ function AttemptSwitcher({
   return (
     <div className="flex items-center gap-2 rounded-sm border border-border bg-white px-4 py-2.5">
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.05em] mr-1">Attempt</span>
-      {attempts.map((a) => {
+      {attempts.map((a: any) => {
         const isCurrent = a.attemptId === current
         return (
           <button
@@ -674,8 +674,8 @@ export function AttemptDetailView({
       ? Math.round((detail.score / detail.totalMarks) * 100)
       : null
 
-  const overrideCount = detail.questions.filter((q) => q.lecturerAdjustedScore !== null).length
-  const flaggedCount = detail.questions.filter((q) => q.feedback?.flag).length
+  const overrideCount = detail.questions.filter((q: any) => q.lecturerAdjustedScore !== null).length
+  const flaggedCount = detail.questions.filter((q: any) => q.feedback?.flag).length
 
   const submittedDate = detail.submittedAt
     ? new Date(detail.submittedAt).toLocaleString("en-GB", {
@@ -697,7 +697,7 @@ export function AttemptDetailView({
   }
 
   // Section performance
-  const sectionPerformance = sections.map((section) => {
+  const sectionPerformance = sections.map((section: any) => {
     let earned = 0
     let possible = 0
     let answered = 0
@@ -750,7 +750,7 @@ export function AttemptDetailView({
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-1">
                 Attempt #{detail.attemptNumber}
-                {detail.allAttempts.find((a) => a.attemptId === detail.attemptId)?.isHighest && (
+                {detail.allAttempts.find((a: any) => a.attemptId === detail.attemptId)?.isHighest && (
                   <span className="ml-2 inline-flex items-center gap-0.5 text-amber-500">
                     <Star size={9} fill="currentColor" /> Highest
                   </span>
@@ -868,7 +868,7 @@ export function AttemptDetailView({
           <span className="text-[13px] font-semibold text-[#1e293b]">Section Performance</span>
         </div>
         <div className="divide-y divide-[#f1f5f9]">
-          {sectionPerformance.map((section) => (
+          {sectionPerformance.map((section: any) => (
             <div key={section.name} className="px-5 py-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">

@@ -38,7 +38,7 @@ export function applyFilters<T extends FilterableAssessment>(
   assessments: T[],
   filters: { courseId?: number; type?: string; search?: string },
 ): T[] {
-  return assessments.filter((a) => {
+  return assessments.filter((a: any) => {
     if (filters.courseId !== undefined && a.courseId !== filters.courseId) return false
     if (filters.type !== undefined && a.type !== filters.type) return false
     if (filters.search) {

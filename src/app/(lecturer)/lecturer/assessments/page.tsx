@@ -29,7 +29,7 @@ async function AssessmentsDataWrapper() {
     orderBy: { createdAt: "desc" },
   })
 
-  const assessmentList: AssessmentListItem[] = assessments.map((a) => ({
+  const assessmentList: AssessmentListItem[] = assessments.map((a: any) => ({
     id: a.id,
     title: a.title,
     type: a.type,

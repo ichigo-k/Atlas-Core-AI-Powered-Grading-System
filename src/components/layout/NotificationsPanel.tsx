@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -21,10 +21,10 @@ interface Props {
 }
 
 const TYPE_META = {
-  ASSESSMENT_LIVE:   { Icon: AlertCircle, color: "text-[#d83b01]", bg: "bg-red-50" },
-  RESULTS_RELEASED:  { Icon: Award,       color: "text-[#107c10]", bg: "bg-green-50" },
-  REMINDER:          { Icon: Calendar,    color: "text-[#002388]", bg: "bg-blue-50" },
-  SYSTEM:            { Icon: Bell,        color: "text-[#8a8886]", bg: "bg-slate-50" },
+  ASSESSMENT_LIVE: { Icon: AlertCircle, color: "text-[#d83b01]", bg: "bg-red-50" },
+  RESULTS_RELEASED: { Icon: Award, color: "text-[#107c10]", bg: "bg-green-50" },
+  REMINDER: { Icon: Calendar, color: "text-[#002388]", bg: "bg-blue-50" },
+  SYSTEM: { Icon: Bell, color: "text-[#8a8886]", bg: "bg-slate-50" },
 };
 
 function timeAgo(iso: string): string {
@@ -54,17 +54,17 @@ export default function NotificationsPanel({ open, onClose, ongoingCount }: Prop
 
   async function markAllRead() {
     setMarkingAll(true);
-    await fetch("/api/student/notifications/read-all", { method: "PATCH" }).catch(() => {});
-    setNotifications((n) => n.map((x) => ({ ...x, readAt: new Date().toISOString() })));
+    await fetch("/api/student/notifications/read-all", { method: "PATCH" }).catch(() => { });
+    setNotifications((n) => n.map((x: any) => ({ ...x, readAt: new Date().toISOString() })));
     setMarkingAll(false);
   }
 
   async function markOneRead(id: number) {
-    await fetch(`/api/student/notifications/${id}/read`, { method: "PATCH" }).catch(() => {});
-    setNotifications((n) => n.map((x) => x.id === id ? { ...x, readAt: new Date().toISOString() } : x));
+    await fetch(`/api/student/notifications/${id}/read`, { method: "PATCH" }).catch(() => { });
+    setNotifications((n) => n.map((x: any) => x.id === id ? { ...x, readAt: new Date().toISOString() } : x));
   }
 
-  const unread = notifications.filter((n) => !n.readAt).length;
+  const unread = notifications.filter((n: any) => !n.readAt).length;
 
   return (
     <>
@@ -145,14 +145,13 @@ export default function NotificationsPanel({ open, onClose, ongoingCount }: Prop
             </div>
           ) : (
             <div className="divide-y divide-[#f8f9fa]">
-              {notifications.map((n) => {
-                const meta = TYPE_META[n.type] ?? TYPE_META.SYSTEM;
+              {notifications.map((n: any) => {
+                const meta = TYPE_META[n.type as keyof typeof TYPE_META] ?? TYPE_META.SYSTEM;
                 const isUnread = !n.readAt;
                 const content = (
                   <div
-                    className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                      isUnread ? "bg-[#f0f6ff] hover:bg-[#e8f0fd]" : "hover:bg-[#f8f9fa]"
-                    }`}
+                    className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${isUnread ? "bg-[#f0f6ff] hover:bg-[#e8f0fd]" : "hover:bg-[#f8f9fa]"
+                      }`}
                     onClick={() => isUnread && markOneRead(n.id)}
                   >
                     <div className={`w-8 h-8 rounded-full ${meta.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
