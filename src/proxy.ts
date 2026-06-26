@@ -11,7 +11,13 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET
-  const token = await getToken({ req: request, secret })
+  // NextAuth v5 uses "authjs.session-token" (HTTP) or "__Secure-authjs.session-token" (HTTPS).
+  // getToken defaults to the old v4 name, so we must pass the correct one explicitly.
+  const secureCookie = request.nextUrl.protocol === "https:"
+  const cookieName = secureCookie
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token"
+  const token = await getToken({ req: request, secret, cookieName })
 
   // Enforce the absolute (refresh) cap: even within the 15-min idle window, a
   // token past its absoluteExp is treated as logged out.
