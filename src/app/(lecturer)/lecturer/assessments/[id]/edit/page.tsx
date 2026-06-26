@@ -109,7 +109,7 @@ async function EditAssessmentData({ id }: { id: string }) {
   if (!raw || raw.lecturerId !== user.id) notFound()
   if (raw.status !== "DRAFT") redirect(`/lecturer/assessments/${assessmentId}`)
 
-  const lecturerCourses: LecturerCourse[] = (profile?.courses ?? []).map((c) => ({
+  const lecturerCourses: LecturerCourse[] = (profile?.courses ?? []).map((c: { id: number; code: string; title: string; classes: { id: number; name: string; level: number }[] }) => ({
     id: c.id,
     code: c.code,
     title: c.title,
