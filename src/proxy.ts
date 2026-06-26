@@ -13,7 +13,15 @@ export async function proxy(request: NextRequest) {
   const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET
   const token = await getToken({ req: request, secret })
 
-  const isAuthenticated = !!token
+  // Enforce the absolute (refresh) cap: even within the 15-min idle window, a
+  // token past its absoluteExp is treated as logged out.
+  const nowSec = Math.floor(Date.now() / 1000)
+  const absoluteExpired =
+    !!token &&
+    typeof token.absoluteExp === "number" &&
+    nowSec > token.absoluteExp
+
+  const isAuthenticated = !!token && token.expired !== true && !absoluteExpired
   const role = token?.role as string | undefined
 
   // Authenticated user on login page → redirect to their dashboard
