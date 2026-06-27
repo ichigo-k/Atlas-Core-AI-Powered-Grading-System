@@ -9,6 +9,7 @@ import {
 	Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
 	createCourseAction,
@@ -42,6 +43,7 @@ export default function AddEditCourseSheet({
 	classes,
 	lecturers,
 }: AddEditCourseSheetProps) {
+	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 	const [selectedLecturerIds, setSelectedLecturerIds] = useState<
 		(string | number)[]
@@ -85,6 +87,7 @@ export default function AddEditCourseSheet({
 
 				toast.success(`Course ${course ? "updated" : "created"} successfully`);
 				onOpenChange(false);
+				router.refresh();
 			} else {
 				toast.error(
 					result.error || `Failed to ${course ? "update" : "create"} course`,

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createFacultyAction } from "@/app/actions/admin-entities";
 import { Button } from "@/components/ui/button";
@@ -20,12 +19,13 @@ export default function AddFacultySheet({
 	open,
 	onOpenChange,
 	editingFaculty,
+	onSaved,
 }: {
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
 	editingFaculty?: FacultySimple | null;
+	onSaved: (faculty: FacultySimple, isNew: boolean) => void;
 }) {
-	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 	const [name, setName] = useState("");
 	const [code, setCode] = useState("");
@@ -55,9 +55,10 @@ export default function AddFacultySheet({
 					body: JSON.stringify({ name: name.trim(), code: code.trim() }),
 				});
 				if (res.ok) {
+					const updated: FacultySimple = await res.json();
 					toast.success("Faculty updated");
 					onOpenChange(false);
-					router.refresh();
+					onSaved(updated, false);
 				} else if (res.status === 409) {
 					toast.error("A faculty with this name or code already exists");
 				} else {
@@ -68,12 +69,12 @@ export default function AddFacultySheet({
 				formData.set("name", name.trim());
 				if (code.trim()) formData.set("code", code.trim());
 				const res = await createFacultyAction(formData);
-				if (res.success) {
+				if (res.success && res.data) {
 					toast.success("Faculty created");
 					onOpenChange(false);
-					router.refresh();
+					onSaved(res.data as FacultySimple, true);
 				} else {
-					toast.error(res.error || "Failed to create faculty");
+					toast.error((res as any).error || "Failed to create faculty");
 				}
 			}
 		} catch {
@@ -94,30 +95,20 @@ export default function AddFacultySheet({
 									{isEditing ? "Edit Faculty" : "Add Faculty"}
 								</SheetTitle>
 								<SheetDescription className="text-xs text-slate-500">
-									{isEditing
-										? "Update the faculty details"
-										: "Create a new faculty"}
+									{isEditing ? "Update the faculty details" : "Create a new faculty"}
 								</SheetDescription>
 							</div>
 						</div>
 					</SheetHeader>
 
 					<div className="flex-1 overflow-y-auto">
-						<form
-							id="faculty-form"
-							onSubmit={handleSubmit}
-							className="p-8 space-y-6"
-						>
+						<form id="faculty-form" onSubmit={handleSubmit} className="p-8 space-y-6">
 							<div className="space-y-2">
-								<Label
-									htmlFor="name"
-									className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight"
-								>
+								<Label htmlFor="name" className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight">
 									Name
 								</Label>
 								<Input
 									id="name"
-									name="name"
 									value={name}
 									onChange={(e) => setName(e.target.value)}
 									placeholder="e.g. Faculty of Science"
@@ -126,15 +117,11 @@ export default function AddFacultySheet({
 							</div>
 
 							<div className="space-y-2">
-								<Label
-									htmlFor="code"
-									className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight"
-								>
+								<Label htmlFor="code" className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight">
 									Code (optional)
 								</Label>
 								<Input
 									id="code"
-									name="code"
 									value={code}
 									onChange={(e) => setCode(e.target.value)}
 									placeholder="e.g. SCI"
@@ -152,12 +139,8 @@ export default function AddFacultySheet({
 							disabled={loading}
 						>
 							{loading
-								? isEditing
-									? "Saving..."
-									: "Creating..."
-								: isEditing
-									? "Save Changes"
-									: "Create Faculty"}
+								? isEditing ? "Saving..." : "Creating..."
+								: isEditing ? "Save Changes" : "Create Faculty"}
 						</Button>
 					</div>
 				</div>

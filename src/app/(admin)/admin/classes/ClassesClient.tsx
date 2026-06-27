@@ -47,6 +47,7 @@ export default function ClassesClient({
 	courses: CourseSimple[];
 }) {
 	const router = useRouter();
+	const [classes, setClasses] = useState<ClassWithDetails[]>(initialClasses);
 	const [addEditOpen, setAddEditOpen] = useState(false);
 	const [editingClass, setEditingClass] = useState<ClassWithDetails | null>(null);
 	const [coursesOpen, setCoursesOpen] = useState(false);
@@ -82,8 +83,8 @@ export default function ClassesClient({
 		try {
 			const res = await fetch(`/api/admin/classes/${deleteConfirmId}`, { method: "DELETE" });
 			if (res.ok) {
+				setClasses(prev => prev.filter(c => c.id !== deleteConfirmId));
 				toast.success("Class deleted successfully.");
-				router.refresh();
 				setDeleteConfirmId(null);
 			} else {
 				toast.error("Failed to delete class.");
@@ -230,7 +231,7 @@ export default function ClassesClient({
 
 			<DataTable
 				columns={columns}
-				data={initialClasses}
+				data={classes}
 				searchKey="name"
 				placeholder="Search classes by name..."
 			/>

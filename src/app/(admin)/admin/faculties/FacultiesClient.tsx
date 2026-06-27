@@ -15,14 +15,21 @@ import {
 import AddFacultySheet from "./AddFacultySheet";
 import type { FacultySimple } from "@/lib/admin-entities";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 export default function FacultiesClient({ initialFaculties }: { initialFaculties: FacultySimple[] }) {
-  const router = useRouter();
+  const [faculties, setFaculties] = useState<FacultySimple[]>(initialFaculties);
   const [open, setOpen] = useState(false);
   const [editingFaculty, setEditingFaculty] = useState<FacultySimple | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<FacultySimple | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  function handleSaved(faculty: FacultySimple, isNew: boolean) {
+    if (isNew) {
+      setFaculties(prev => [...prev, faculty].sort((a, b) => a.name.localeCompare(b.name)));
+    } else {
+      setFaculties(prev => prev.map(f => f.id === faculty.id ? faculty : f));
+    }
+  }
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -30,9 +37,9 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
     try {
       const res = await fetch(`/api/admin/faculties/${deleteTarget.id}`, { method: "DELETE" });
       if (res.ok) {
+        setFaculties(prev => prev.filter(f => f.id !== deleteTarget.id));
         toast.success("Faculty deleted");
         setDeleteTarget(null);
-        router.refresh();
       } else {
         const data = await res.json().catch(() => null);
         toast.error(data?.error || "Failed to delete faculty");
@@ -61,12 +68,7 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => {
-                    setEditingFaculty(faculty);
-                    setOpen(true);
-                  }}
-                >
+                <DropdownMenuItem onClick={() => { setEditingFaculty(faculty); setOpen(true); }}>
                   <Edit2 className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -84,20 +86,19 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end gap-3">
-        <Button
-          onClick={() => {
-            setEditingFaculty(null);
-            setOpen(true);
-          }}
-          className="bg-[#002388]"
-        >
+        <Button onClick={() => { setEditingFaculty(null); setOpen(true); }} className="bg-[#002388]">
           Add Faculty
         </Button>
       </div>
 
-      <DataTable columns={columns} data={initialFaculties} searchKey="name" placeholder="Search faculties..." />
+      <DataTable columns={columns} data={faculties} searchKey="name" placeholder="Search faculties..." />
 
-      <AddFacultySheet open={open} onOpenChange={setOpen} editingFaculty={editingFaculty} />
+      <AddFacultySheet
+        open={open}
+        onOpenChange={setOpen}
+        editingFaculty={editingFaculty}
+        onSaved={handleSaved}
+      />
 
       <ConfirmModal
         open={deleteTarget !== null}

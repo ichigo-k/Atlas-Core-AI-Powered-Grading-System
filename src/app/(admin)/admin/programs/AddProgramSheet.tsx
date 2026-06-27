@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createProgramAction } from "@/app/actions/admin-entities";
 import { Button } from "@/components/ui/button";
@@ -23,18 +22,21 @@ import {
 } from "@/components/ui/sheet";
 import type { FacultySimple, ProgramSimple } from "@/lib/admin-entities";
 
+type ProgramWithFaculty = ProgramSimple & { faculty: FacultySimple | null };
+
 export default function AddProgramSheet({
 	open,
 	onOpenChange,
 	faculties,
 	editingProgram,
+	onSaved,
 }: {
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
 	faculties: FacultySimple[];
 	editingProgram?: ProgramSimple | null;
+	onSaved: (program: ProgramWithFaculty, isNew: boolean) => void;
 }) {
-	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 	const [name, setName] = useState("");
 	const [code, setCode] = useState("");
@@ -50,16 +52,14 @@ export default function AddProgramSheet({
 		}
 	}, [open, editingProgram, faculties]);
 
+	function withFaculty(program: ProgramSimple): ProgramWithFaculty {
+		return { ...program, faculty: faculties.find(f => f.id === program.facultyId) ?? null };
+	}
+
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		if (!name.trim()) {
-			toast.error("Name is required");
-			return;
-		}
-		if (!facultyId) {
-			toast.error("Faculty is required");
-			return;
-		}
+		if (!name.trim()) { toast.error("Name is required"); return; }
+		if (!facultyId) { toast.error("Faculty is required"); return; }
 
 		setLoading(true);
 		try {
@@ -70,9 +70,10 @@ export default function AddProgramSheet({
 					body: JSON.stringify({ name: name.trim(), code: code.trim(), facultyId }),
 				});
 				if (res.ok) {
+					const updated: ProgramSimple = await res.json();
 					toast.success("Program updated");
 					onOpenChange(false);
-					router.refresh();
+					onSaved(withFaculty(updated), false);
 				} else if (res.status === 409) {
 					toast.error("A program with this name or code already exists");
 				} else {
@@ -84,12 +85,12 @@ export default function AddProgramSheet({
 				if (code.trim()) formData.set("code", code.trim());
 				formData.set("facultyId", String(facultyId));
 				const res = await createProgramAction(formData);
-				if (res.success) {
+				if (res.success && res.data) {
 					toast.success("Program created");
 					onOpenChange(false);
-					router.refresh();
+					onSaved(withFaculty(res.data as ProgramSimple), true);
 				} else {
-					toast.error(res.error || "Failed to create program");
+					toast.error((res as any).error || "Failed to create program");
 				}
 			}
 		} catch {
@@ -110,30 +111,20 @@ export default function AddProgramSheet({
 									{isEditing ? "Edit Program" : "Add Program"}
 								</SheetTitle>
 								<SheetDescription className="text-xs text-slate-500">
-									{isEditing
-										? "Update the academic program details"
-										: "Create a new academic program"}
+									{isEditing ? "Update the academic program details" : "Create a new academic program"}
 								</SheetDescription>
 							</div>
 						</div>
 					</SheetHeader>
 
 					<div className="flex-1 overflow-y-auto">
-						<form
-							id="program-form"
-							onSubmit={handleSubmit}
-							className="p-8 space-y-6"
-						>
+						<form id="program-form" onSubmit={handleSubmit} className="p-8 space-y-6">
 							<div className="space-y-2">
-								<Label
-									htmlFor="name"
-									className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight"
-								>
+								<Label htmlFor="name" className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight">
 									Name
 								</Label>
 								<Input
 									id="name"
-									name="name"
 									value={name}
 									onChange={(e) => setName(e.target.value)}
 									placeholder="e.g. Bachelor of Information Technology"
@@ -142,15 +133,11 @@ export default function AddProgramSheet({
 							</div>
 
 							<div className="space-y-2">
-								<Label
-									htmlFor="code"
-									className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight"
-								>
+								<Label htmlFor="code" className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-tight">
 									Code (optional)
 								</Label>
 								<Input
 									id="code"
-									name="code"
 									value={code}
 									onChange={(e) => setCode(e.target.value)}
 									placeholder="e.g. BIT"
@@ -171,9 +158,7 @@ export default function AddProgramSheet({
 									</SelectTrigger>
 									<SelectContent>
 										{faculties.map((f) => (
-											<SelectItem key={f.id} value={String(f.id)}>
-												{f.name}
-											</SelectItem>
+											<SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
 										))}
 									</SelectContent>
 								</Select>
@@ -189,12 +174,8 @@ export default function AddProgramSheet({
 							disabled={loading}
 						>
 							{loading
-								? isEditing
-									? "Saving..."
-									: "Creating..."
-								: isEditing
-									? "Save Changes"
-									: "Create Program"}
+								? isEditing ? "Saving..." : "Creating..."
+								: isEditing ? "Save Changes" : "Create Program"}
 						</Button>
 					</div>
 				</div>

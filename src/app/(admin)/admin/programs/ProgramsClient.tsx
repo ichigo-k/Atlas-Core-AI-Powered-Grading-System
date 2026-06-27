@@ -15,16 +15,23 @@ import {
 import AddProgramSheet from "./AddProgramSheet";
 import type { FacultySimple, ProgramSimple } from "@/lib/admin-entities";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 type ProgramWithFaculty = ProgramSimple & { faculty: FacultySimple | null };
 
 export default function ProgramsClient({ initialPrograms, faculties }: { initialPrograms: ProgramWithFaculty[]; faculties: FacultySimple[] }) {
-  const router = useRouter();
+  const [programs, setPrograms] = useState<ProgramWithFaculty[]>(initialPrograms);
   const [open, setOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<ProgramSimple | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProgramWithFaculty | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  function handleSaved(program: ProgramWithFaculty, isNew: boolean) {
+    if (isNew) {
+      setPrograms(prev => [...prev, program].sort((a, b) => a.name.localeCompare(b.name)));
+    } else {
+      setPrograms(prev => prev.map(p => p.id === program.id ? program : p));
+    }
+  }
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -32,9 +39,9 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
     try {
       const res = await fetch(`/api/admin/programs/${deleteTarget.id}`, { method: "DELETE" });
       if (res.ok) {
+        setPrograms(prev => prev.filter(p => p.id !== deleteTarget.id));
         toast.success("Program deleted");
         setDeleteTarget(null);
-        router.refresh();
       } else {
         const data = await res.json().catch(() => null);
         toast.error(data?.error || "Failed to delete program");
@@ -64,12 +71,7 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => {
-                    setEditingProgram(program);
-                    setOpen(true);
-                  }}
-                >
+                <DropdownMenuItem onClick={() => { setEditingProgram(program); setOpen(true); }}>
                   <Edit2 className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -87,20 +89,20 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end gap-3">
-        <Button
-          onClick={() => {
-            setEditingProgram(null);
-            setOpen(true);
-          }}
-          className="bg-[#002388]"
-        >
+        <Button onClick={() => { setEditingProgram(null); setOpen(true); }} className="bg-[#002388]">
           Add Program
         </Button>
       </div>
 
-      <DataTable columns={columns} data={initialPrograms} searchKey="name" placeholder="Search programs..." />
+      <DataTable columns={columns} data={programs} searchKey="name" placeholder="Search programs..." />
 
-      <AddProgramSheet open={open} onOpenChange={setOpen} faculties={faculties} editingProgram={editingProgram} />
+      <AddProgramSheet
+        open={open}
+        onOpenChange={setOpen}
+        faculties={faculties}
+        editingProgram={editingProgram}
+        onSaved={handleSaved}
+      />
 
       <ConfirmModal
         open={deleteTarget !== null}
