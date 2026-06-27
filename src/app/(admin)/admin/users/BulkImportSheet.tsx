@@ -283,6 +283,14 @@ export default function BulkImportSheet({
 								Click the import button below to process this file. Our system
 								will validate each row and create the users.
 							</div>
+							<div className="flex items-start gap-2 rounded-sm bg-amber-50 border border-amber-200 px-3 py-2.5">
+								<span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
+								<p className="text-xs text-amber-800">
+									All imported users will have a default password of{" "}
+									<span className="font-mono font-bold">P@ss55</span>.
+									Remind them to change it after their first login.
+								</p>
+							</div>
 						</>
 					)}
 
