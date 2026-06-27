@@ -17,6 +17,22 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   ADMIN: ["email", "name"],
 };
 
+// Validated row ready for DB insert
+type ValidRow = {
+  rowNum: number;
+  email: string;
+  name: string;
+  emailLocal: string;
+  // student
+  indexNumber?: string;
+  programId?: number;
+  classId?: number | null;
+  legacyProgram?: string;
+  // lecturer
+  facultyId?: number;
+  title?: string;
+};
+
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
@@ -40,10 +56,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Excel file is required" }, { status: 400 });
   }
 
-  const requiredFields = REQUIRED_FIELDS[role];
   const buffer = Buffer.from(await file.arrayBuffer());
   const workbook = new ExcelJS.Workbook();
-
   try {
     await workbook.xlsx.load(buffer as any);
   } catch {
@@ -57,7 +71,6 @@ export async function POST(request: NextRequest) {
 
   const rows: Record<string, string>[] = [];
   let headers: string[] = [];
-
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) {
       headers = (row.values as string[]).map(h =>
@@ -82,24 +95,84 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Excel file contains no data rows" }, { status: 400 });
   }
 
-  // Pre-fetch lookup maps before streaming starts
+  // Pre-fetch lookup maps
   const classMap = new Map<string, number>();
   const programMap = new Map<string, number>();
   const facultyMap = new Map<string, number>();
 
   if (role === "STUDENT") {
     const [programs, classes] = await Promise.all([
-      prisma.program.findMany({ orderBy: { name: "asc" } }),
+      prisma.program.findMany(),
       prisma.class.findMany({ where: { isGraduated: false } }),
     ]);
     for (const p of programs) programMap.set(p.name.toLowerCase(), p.id);
     for (const c of classes) classMap.set(`${c.name} - Level ${c.level}`.toLowerCase(), c.id);
   } else if (role === "LECTURER") {
-    const faculties = await prisma.faculty.findMany({ orderBy: { name: "asc" } });
+    const faculties = await prisma.faculty.findMany();
     for (const f of faculties) facultyMap.set(f.name.toLowerCase(), f.id);
   }
 
-  // Stream NDJSON progress events
+  // ── Phase 1: validate all rows (synchronous, instant) ──────────────────────
+  const validRows: ValidRow[] = [];
+  const errors: RowError[] = [];
+  const requiredFields = REQUIRED_FIELDS[role];
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2;
+    const row = rows[i];
+
+    let skip = false;
+    for (const field of requiredFields) {
+      if (!row[field]) {
+        errors.push({ row: rowNum, field, message: `${field} is required` });
+        skip = true;
+        break;
+      }
+    }
+    if (skip) continue;
+
+    const emailLocal = row.email.includes("@") ? row.email.split("@")[0] : row.email;
+
+    if (role === "STUDENT") {
+      const indexNumber =
+        row.indexnumber?.trim() || row.index_number?.trim() || row.indexNumber?.trim() || "";
+      if (!indexNumber) {
+        errors.push({ row: rowNum, field: "indexNumber", message: "Index number is required" });
+        continue;
+      }
+      const programId = programMap.get(row.program.toLowerCase()) ?? null;
+      if (!programId) {
+        errors.push({ row: rowNum, field: "program", message: "Program not found: " + row.program });
+        continue;
+      }
+      let classId: number | null = null;
+      if (row.class) {
+        classId = classMap.get(row.class.toLowerCase()) ?? null;
+        if (classId === null) {
+          errors.push({ row: rowNum, field: "class", message: "Class not found: " + row.class });
+          continue;
+        }
+      }
+      validRows.push({ rowNum, email: row.email, name: row.name, emailLocal, indexNumber, programId, classId, legacyProgram: row.program });
+    } else if (role === "LECTURER") {
+      const facultyName = row.faculty?.trim() || row.department?.trim() || "";
+      const facultyId = facultyMap.get(facultyName.toLowerCase()) ?? null;
+      if (!facultyId) {
+        errors.push({ row: rowNum, field: "faculty", message: "Faculty not found: " + facultyName });
+        continue;
+      }
+      const title = row.title?.trim() || "";
+      if (!VALID_TITLES.includes(title as (typeof VALID_TITLES)[number])) {
+        errors.push({ row: rowNum, field: "title", message: "Invalid title: " + title });
+        continue;
+      }
+      validRows.push({ rowNum, email: row.email, name: row.name, emailLocal, facultyId, title });
+    } else {
+      validRows.push({ rowNum, email: row.email, name: row.name, emailLocal });
+    }
+  }
+
+  // ── Stream response (disable proxy buffering) ───────────────────────────────
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -107,119 +180,76 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
 
       let created = 0;
-      const errors: RowError[] = [];
 
       try {
         send({ type: "start", total: rows.length });
 
-        for (let i = 0; i < rows.length; i++) {
-          const rowNum = i + 2;
-          const row = rows[i];
+        // ── Phase 2: process valid rows in batches ────────────────────────────
+        // Hash 20 passwords in parallel per batch (bcrypt cost 10 ≈ 40ms each)
+        // then DB-insert that batch before moving on.
+        const HASH_BATCH = 20;
+        const DB_BATCH = 25;
 
-          // Required field validation
-          let skip = false;
-          for (const field of requiredFields) {
-            if (!row[field]) {
-              errors.push({ row: rowNum, field, message: `${field} is required` });
-              skip = true;
-              break;
-            }
+        for (let i = 0; i < validRows.length; i += DB_BATCH) {
+          const dbBatch = validRows.slice(i, i + DB_BATCH);
+
+          // Hash all passwords in this DB batch, HASH_BATCH at a time
+          const hashes: string[] = [];
+          for (let h = 0; h < dbBatch.length; h += HASH_BATCH) {
+            const chunk = dbBatch.slice(h, h + HASH_BATCH);
+            const chunkHashes = await Promise.all(
+              chunk.map(r => bcrypt.hash(r.emailLocal, 10)),
+            );
+            hashes.push(...chunkHashes);
           }
 
-          if (!skip) {
+          // Insert each row in this DB batch
+          for (let j = 0; j < dbBatch.length; j++) {
+            const item = dbBatch[j];
+            const passwordHash = hashes[j];
             try {
-              const emailLocal = row.email.includes("@") ? row.email.split("@")[0] : row.email;
-              const passwordHash = await bcrypt.hash(emailLocal, 12);
-
-              if (role === "STUDENT") {
-                const indexNumber =
-                  row.indexnumber?.trim() ||
-                  row.index_number?.trim() ||
-                  row.indexNumber?.trim() ||
-                  "";
-                if (!indexNumber) {
-                  errors.push({ row: rowNum, field: "indexNumber", message: "Index number is required" });
-                } else {
-                  const programId = programMap.get(row.program.toLowerCase()) ?? null;
-                  if (!programId) {
-                    errors.push({ row: rowNum, field: "program", message: "Selected program is not valid" });
-                  } else {
-                    let classId: number | null = null;
-                    if (row.class) {
-                      classId = classMap.get(row.class.toLowerCase()) ?? null;
-                      if (classId === null) {
-                        errors.push({ row: rowNum, field: "class", message: "Selected class is not valid" });
-                        skip = true;
-                      }
-                    }
-                    if (!skip) {
-                      await prisma.$transaction(async tx => {
-                        const user = await tx.user.create({
-                          data: { email: row.email, name: row.name, role: "STUDENT", passwordHash },
-                        });
-                        await tx.studentProfile.create({
-                          data: { id: user.id, indexNumber, legacyProgram: row.program, programId, classId },
-                        });
-                      });
-                      created++;
-                    }
-                  }
-                }
-              } else if (role === "LECTURER") {
-                const facultyName = row.faculty?.trim() || row.department?.trim() || "";
-                const facultyId = facultyMap.get(facultyName.toLowerCase()) ?? null;
-                if (!facultyId) {
-                  errors.push({ row: rowNum, field: "faculty", message: "Selected faculty is not valid" });
-                } else {
-                  const title = row.title?.trim() || "";
-                  if (!VALID_TITLES.includes(title as (typeof VALID_TITLES)[number])) {
-                    errors.push({ row: rowNum, field: "title", message: "Selected title is not valid" });
-                  } else {
-                    await prisma.$transaction(async tx => {
-                      const user = await tx.user.create({
-                        data: { email: row.email, name: row.name, role: "LECTURER", passwordHash },
-                      });
-                      await tx.lecturerProfile.create({ data: { id: user.id, facultyId, title } });
-                    });
-                    created++;
-                  }
-                }
-              } else {
-                await prisma.$transaction(async tx => {
-                  const user = await tx.user.create({
-                    data: { email: row.email, name: row.name, role: "ADMIN", passwordHash },
-                  });
-                  await tx.adminProfile.create({ data: { id: user.id } });
+              await prisma.$transaction(async tx => {
+                const user = await tx.user.create({
+                  data: { email: item.email, name: item.name, role: role as "STUDENT" | "LECTURER" | "ADMIN", passwordHash },
                 });
-                created++;
-              }
+                if (role === "STUDENT") {
+                  await tx.studentProfile.create({
+                    data: { id: user.id, indexNumber: item.indexNumber!, legacyProgram: item.legacyProgram, programId: item.programId!, classId: item.classId ?? null },
+                  });
+                } else if (role === "LECTURER") {
+                  await tx.lecturerProfile.create({
+                    data: { id: user.id, facultyId: item.facultyId!, title: item.title! },
+                  });
+                } else {
+                  await tx.adminProfile.create({ data: { id: user.id } });
+                }
+              });
+              created++;
             } catch (err) {
               if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-                errors.push({ row: rowNum, field: "email", message: "Email already exists" });
+                errors.push({ row: item.rowNum, field: "email", message: "Email already exists" });
               } else {
-                errors.push({ row: rowNum, field: "unknown", message: "Unexpected error creating user" });
+                errors.push({ row: item.rowNum, field: "unknown", message: "Unexpected error creating user" });
               }
             }
           }
 
-          // Push progress every 5 rows and on the last row
-          if ((i + 1) % 5 === 0 || i === rows.length - 1) {
-            send({ type: "progress", processed: i + 1, total: rows.length, created, failed: errors.length });
-          }
+          // Progress after each DB batch
+          // "processed" = validation-failed rows + rows we've attempted to insert so far
+          const attempted = i + dbBatch.length;
+          const totalProcessed = (rows.length - validRows.length) + attempted;
+          send({ type: "progress", processed: Math.min(totalProcessed, rows.length), total: rows.length, created, failed: errors.length });
         }
 
         if (created > 0) {
-          await logAction(
-            "USER_BULK_IMPORT",
-            `Bulk import: ${created} ${role.toLowerCase()}s created`,
-            "USER",
-          );
+          await logAction("USER_BULK_IMPORT", `Bulk import: ${created} ${role.toLowerCase()}s created`, "USER");
         }
 
         send({ type: "done", created, failed: errors.length, errors });
       } catch (err) {
         console.error("[POST /api/admin/users/bulk] stream error", {
           error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
         });
         send({ type: "error", message: "Server error during import" });
       } finally {
@@ -229,6 +259,11 @@ export async function POST(request: NextRequest) {
   });
 
   return new Response(stream, {
-    headers: { "Content-Type": "application/x-ndjson" },
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      // Prevent nginx / CDN proxy from buffering the stream
+      "X-Accel-Buffering": "no",
+      "Cache-Control": "no-cache, no-transform",
+    },
   });
 }
