@@ -30,16 +30,10 @@ import {
 } from "@/components/ui/sheet";
 
 type Role = "STUDENT" | "LECTURER" | "ADMIN";
-
 type RowError = { row: number; field: string; message: string };
-
-type ImportResult = {
-	created: number;
-	failed: number;
-	errors: RowError[];
-};
-
-type Step = "upload" | "ready" | "result";
+type ImportResult = { created: number; failed: number; errors: RowError[] };
+type Progress = { processed: number; total: number; created: number; failed: number };
+type Step = "upload" | "ready" | "importing" | "result";
 
 export default function BulkImportSheet({
 	open,
@@ -57,6 +51,7 @@ export default function BulkImportSheet({
 	const [fileError, setFileError] = useState<string | null>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [importing, setImporting] = useState(false);
+	const [progress, setProgress] = useState<Progress | null>(null);
 	const [result, setResult] = useState<ImportResult | null>(null);
 	const [isDragging, setIsDragging] = useState(false);
 
@@ -65,6 +60,7 @@ export default function BulkImportSheet({
 		setFileError(null);
 		setSelectedFile(null);
 		setResult(null);
+		setProgress(null);
 		setImporting(false);
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
@@ -77,9 +73,7 @@ export default function BulkImportSheet({
 	function processFile(file: File) {
 		setFileError(null);
 		if (!file.name.endsWith(".xlsx")) {
-			setFileError(
-				"Only Excel (.xlsx) files are accepted. Please download and use the provided template.",
-			);
+			setFileError("Only Excel (.xlsx) files are accepted. Please download and use the provided template.");
 			return;
 		}
 		setSelectedFile(file);
@@ -105,6 +99,9 @@ export default function BulkImportSheet({
 	async function handleConfirm() {
 		if (!selectedFile) return;
 		setImporting(true);
+		setStep("importing");
+		setProgress({ processed: 0, total: 0, created: 0, failed: 0 });
+
 		try {
 			const formData = new FormData();
 			formData.append("role", role);
@@ -114,33 +111,73 @@ export default function BulkImportSheet({
 				method: "POST",
 				body: formData,
 			});
-			const json = await res.json();
 
-			if (res.status === 400 && json.error) {
-				toast.error(json.error);
+			// Non-streaming error (auth, bad file, etc.)
+			if (!res.body || res.status === 400 || res.status === 403) {
+				const json = await res.json().catch(() => ({ error: "Import failed" }));
+				toast.error(json.error || "Import failed");
 				setImporting(false);
+				setStep("ready");
 				return;
 			}
 
-			setResult(json);
-			setStep("result");
-			if (json.failed === 0) {
-				toast.success(
-					`${json.created} user${json.created !== 1 ? "s" : ""} imported successfully`,
-				);
-				router.refresh();
-			} else if (json.created > 0) {
-				toast.warning(`${json.created} imported, ${json.failed} failed`);
-				router.refresh();
-			} else {
-				toast.error("Import failed — no users were created");
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = "";
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split("\n");
+				buffer = lines.pop() || "";
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+					try {
+						const event = JSON.parse(line);
+						if (event.type === "start") {
+							setProgress({ processed: 0, total: event.total, created: 0, failed: 0 });
+						} else if (event.type === "progress") {
+							setProgress({
+								processed: event.processed,
+								total: event.total,
+								created: event.created,
+								failed: event.failed,
+							});
+						} else if (event.type === "done") {
+							setResult({ created: event.created, failed: event.failed, errors: event.errors });
+							setStep("result");
+							if (event.failed === 0) {
+								toast.success(`${event.created} user${event.created !== 1 ? "s" : ""} imported successfully`);
+								router.refresh();
+							} else if (event.created > 0) {
+								toast.warning(`${event.created} imported, ${event.failed} failed`);
+								router.refresh();
+							} else {
+								toast.error("Import failed — no users were created");
+							}
+						} else if (event.type === "error") {
+							toast.error(event.message || "Server error during import");
+							setStep("ready");
+						}
+					} catch {
+						// malformed chunk — skip
+					}
+				}
 			}
 		} catch {
 			toast.error("Network error. Please try again.");
+			setStep("ready");
 		} finally {
 			setImporting(false);
 		}
 	}
+
+	const pct = progress && progress.total > 0
+		? Math.round((progress.processed / progress.total) * 100)
+		: 0;
 
 	return (
 		<Sheet open={open} onOpenChange={handleClose}>
@@ -154,15 +191,12 @@ export default function BulkImportSheet({
 				</SheetHeader>
 
 				<div className="flex flex-col gap-5 px-4 pb-4 mt-6">
-					{/* Role selector — always visible */}
+					{/* Role selector */}
 					<div className="flex flex-col gap-1.5">
 						<Label>Role</Label>
 						<Select
 							value={role}
-							onValueChange={(v) => {
-								setRole(v as Role);
-								reset();
-							}}
+							onValueChange={(v) => { setRole(v as Role); reset(); }}
 						>
 							<SelectTrigger className="w-full rounded-sm focus-visible:ring-[#002388]">
 								<SelectValue />
@@ -175,7 +209,7 @@ export default function BulkImportSheet({
 						</Select>
 					</div>
 
-					{/* Download template link */}
+					{/* Download template */}
 					<button
 						type="button"
 						onClick={handleDownloadTemplate}
@@ -189,10 +223,7 @@ export default function BulkImportSheet({
 					{step === "upload" && (
 						<>
 							<div
-								onDragOver={(e) => {
-									e.preventDefault();
-									setIsDragging(true);
-								}}
+								onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
 								onDragLeave={() => setIsDragging(false)}
 								onDrop={handleDrop}
 								onClick={() => fileInputRef.current?.click()}
@@ -207,9 +238,7 @@ export default function BulkImportSheet({
 									<p className="text-sm font-semibold text-slate-700">
 										Drop your Excel (.xlsx) file here or click to browse
 									</p>
-									<p className="text-xs text-slate-400 mt-1">
-										Only .xlsx files accepted
-									</p>
+									<p className="text-xs text-slate-400 mt-1">Only .xlsx files accepted</p>
 								</div>
 								<input
 									ref={fileInputRef}
@@ -222,10 +251,7 @@ export default function BulkImportSheet({
 
 							{fileError && (
 								<div className="flex items-start gap-2 rounded-sm bg-red-50 border border-red-200 px-3 py-2.5">
-									<AlertCircle
-										size={15}
-										className="text-red-500 mt-0.5 shrink-0"
-									/>
+									<AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
 									<p className="text-xs text-red-600">{fileError}</p>
 								</div>
 							)}
@@ -260,29 +286,74 @@ export default function BulkImportSheet({
 						</>
 					)}
 
+					{/* Step: importing — progress bar */}
+					{step === "importing" && progress && (
+						<div className="flex flex-col gap-4">
+							<div className="flex items-center justify-between">
+								<span className="text-sm font-semibold text-slate-700">Importing…</span>
+								<span className="text-sm font-bold text-[#002388] tabular-nums">
+									{progress.processed} / {progress.total}
+								</span>
+							</div>
+
+							{/* Bar */}
+							<div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+								<div
+									className="bg-[#002388] h-3 rounded-full transition-all duration-300 ease-out"
+									style={{ width: `${pct}%` }}
+								/>
+							</div>
+							<p className="text-xs text-slate-400 text-center -mt-2">{pct}% complete</p>
+
+							{/* Live counters */}
+							<div className="grid grid-cols-2 gap-3">
+								<div className="rounded-sm bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
+									<p className="text-2xl font-bold text-emerald-600 tabular-nums">
+										{progress.created}
+									</p>
+									<p className="text-xs font-medium text-emerald-700 mt-0.5">Created</p>
+								</div>
+								<div className={`rounded-sm border px-4 py-3 text-center ${
+									progress.failed > 0 ? "bg-red-50 border-red-200" : "bg-slate-50 border-border"
+								}`}>
+									<p className={`text-2xl font-bold tabular-nums ${
+										progress.failed > 0 ? "text-red-600" : "text-slate-400"
+									}`}>
+										{progress.failed}
+									</p>
+									<p className={`text-xs font-medium mt-0.5 ${
+										progress.failed > 0 ? "text-red-700" : "text-slate-500"
+									}`}>
+										Failed
+									</p>
+								</div>
+							</div>
+
+							<p className="text-xs text-slate-400 text-center">
+								Please don't close this window while importing
+							</p>
+						</div>
+					)}
+
 					{/* Step: result */}
 					{step === "result" && result && (
 						<div className="flex flex-col gap-3">
 							<div className="grid grid-cols-2 gap-3">
 								<div className="rounded-sm bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
-									<p className="text-2xl font-bold text-emerald-600">
-										{result.created}
-									</p>
-									<p className="text-xs font-medium text-emerald-700 mt-0.5">
-										Created
-									</p>
+									<p className="text-2xl font-bold text-emerald-600">{result.created}</p>
+									<p className="text-xs font-medium text-emerald-700 mt-0.5">Created</p>
 								</div>
-								<div
-									className={`rounded-sm border px-4 py-3 text-center ${result.failed > 0 ? "bg-red-50 border-red-200" : "bg-slate-50 border-border"}`}
-								>
-									<p
-										className={`text-2xl font-bold ${result.failed > 0 ? "text-red-600" : "text-slate-400"}`}
-									>
+								<div className={`rounded-sm border px-4 py-3 text-center ${
+									result.failed > 0 ? "bg-red-50 border-red-200" : "bg-slate-50 border-border"
+								}`}>
+									<p className={`text-2xl font-bold ${
+										result.failed > 0 ? "text-red-600" : "text-slate-400"
+									}`}>
 										{result.failed}
 									</p>
-									<p
-										className={`text-xs font-medium mt-0.5 ${result.failed > 0 ? "text-red-700" : "text-slate-500"}`}
-									>
+									<p className={`text-xs font-medium mt-0.5 ${
+										result.failed > 0 ? "text-red-700" : "text-slate-500"
+									}`}>
 										Failed
 									</p>
 								</div>
@@ -290,10 +361,7 @@ export default function BulkImportSheet({
 
 							{result.failed === 0 && (
 								<div className="flex items-center gap-2 rounded-sm bg-emerald-50 border border-emerald-200 px-3 py-2.5">
-									<CheckCircle2
-										size={15}
-										className="text-emerald-500 shrink-0"
-									/>
+									<CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
 									<p className="text-xs text-emerald-700 font-medium">
 										All users imported successfully.
 									</p>
@@ -311,12 +379,8 @@ export default function BulkImportSheet({
 												key={i}
 												className="flex items-start gap-2 text-xs text-red-700 py-1 border-b border-red-100 last:border-0"
 											>
-												<span className="font-bold shrink-0">
-													Row {err.row}:
-												</span>
-												<span className="font-medium text-red-500">
-													{err.field}
-												</span>
+												<span className="font-bold shrink-0">Row {err.row}:</span>
+												<span className="font-medium text-red-500">{err.field}</span>
 												<span className="text-red-600">— {err.message}</span>
 											</div>
 										))}
@@ -334,7 +398,12 @@ export default function BulkImportSheet({
 							disabled={importing}
 							className="w-full bg-[#002388] hover:bg-[#001570] text-white rounded-sm h-10"
 						>
-							{importing ? "Importing…" : "Import Users"}
+							Import Users
+						</Button>
+					)}
+					{step === "importing" && (
+						<Button disabled className="w-full bg-[#002388] text-white rounded-sm h-10 opacity-60">
+							Importing…
 						</Button>
 					)}
 					{step === "result" && (
