@@ -172,6 +172,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Hash the shared default password once — reused for every user
+  const DEFAULT_PASSWORD = "P@ss55";
+  const defaultPasswordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+
   // ── Stream response (disable proxy buffering) ───────────────────────────────
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -184,29 +188,15 @@ export async function POST(request: NextRequest) {
       try {
         send({ type: "start", total: rows.length });
 
-        // ── Phase 2: process valid rows in batches ────────────────────────────
-        // Hash 20 passwords in parallel per batch (bcrypt cost 10 ≈ 40ms each)
-        // then DB-insert that batch before moving on.
-        const HASH_BATCH = 20;
         const DB_BATCH = 25;
 
         for (let i = 0; i < validRows.length; i += DB_BATCH) {
           const dbBatch = validRows.slice(i, i + DB_BATCH);
 
-          // Hash all passwords in this DB batch, HASH_BATCH at a time
-          const hashes: string[] = [];
-          for (let h = 0; h < dbBatch.length; h += HASH_BATCH) {
-            const chunk = dbBatch.slice(h, h + HASH_BATCH);
-            const chunkHashes = await Promise.all(
-              chunk.map(r => bcrypt.hash(r.emailLocal, 10)),
-            );
-            hashes.push(...chunkHashes);
-          }
-
           // Insert each row in this DB batch
           for (let j = 0; j < dbBatch.length; j++) {
             const item = dbBatch[j];
-            const passwordHash = hashes[j];
+            const passwordHash = defaultPasswordHash;
             try {
               await prisma.$transaction(async tx => {
                 const user = await tx.user.create({
