@@ -211,6 +211,7 @@ interface GroupCardProps {
   onChange: (updates: Partial<GroupFormState>) => void
   onRemove: () => void
   onAddQuestion: () => void
+  onImport: () => void
   onUpdateQuestion: (qId: string, updated: QuestionFormState) => void
   onRemoveQuestion: (qId: string) => void
 }
@@ -223,64 +224,67 @@ function GroupCard({
   onChange,
   onRemove,
   onAddQuestion,
+  onImport,
   onUpdateQuestion,
   onRemoveQuestion,
 }: GroupCardProps) {
   const subMarks = groupQuestionMarks(group)
   const cap = parseInt(group.totalMarks) || 0
   const over = cap > 0 && subMarks > cap
+  const partCount = group.questions.length
 
   return (
-    <div className="rounded-lg border border-indigo-200 bg-indigo-50/30 overflow-hidden">
-      {/* Group header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50/60 border-b border-indigo-100">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white">
-          <Layers size={13} />
+    <div className="group rounded-lg border border-slate-200 bg-slate-50/40 transition-colors hover:border-slate-300">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#002388] text-white">
+            <Layers size={13} />
+          </div>
+          <span className="text-sm font-semibold text-slate-900">Question Group {index + 1}</span>
+          <span className="text-xs text-slate-400">{partCount} {partCount === 1 ? "part" : "parts"}</span>
         </div>
-        <span className="text-sm font-semibold text-indigo-900">Question Group {index + 1}</span>
-        <span className="text-[11px] text-indigo-400">
-          {group.questions.length} {group.questions.length === 1 ? "part" : "parts"}
-        </span>
-        <div className="ml-auto flex items-center gap-2">
+
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <Label className="text-[11px] text-slate-500">Total marks</Label>
+            <Label className="text-[11px] text-slate-500 uppercase tracking-wider">Total marks</Label>
             <Input
               type="number"
               min={1}
               value={group.totalMarks}
               onChange={(e) => onChange({ totalMarks: e.target.value })}
-              placeholder="—"
-              className="h-8 w-20 border-slate-200 bg-white text-sm focus-visible:ring-indigo-300"
+              placeholder="0"
+              className="h-8 w-20 border-slate-200 bg-white text-center text-sm font-medium focus-visible:ring-[#002388]/30"
             />
           </div>
           <button
             type="button"
             onClick={onRemove}
-            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-all"
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all"
           >
-            <Trash2 size={14} />
+            <Trash2 size={15} />
           </button>
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-5 space-y-4">
         {/* Shared context */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-[11px] text-slate-500 uppercase tracking-wider">
-            Shared context <span className="text-slate-300 normal-case">(optional)</span>
+            Shared context <span className="text-slate-400 normal-case">(optional)</span>
           </Label>
           <textarea
             value={group.context}
             onChange={(e) => onChange({ context: e.target.value })}
             placeholder="Shared passage / scenario shown above all sub-questions. Leave blank to just group them."
             rows={3}
-            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-y"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none resize-none focus:border-[#002388]/40 focus:ring-2 focus:ring-[#002388]/10 transition-all placeholder:text-slate-400 leading-relaxed"
           />
         </div>
 
         {/* Marks tally / cap warning */}
         <div className={cn(
-          "flex items-center gap-2 text-[12px]",
+          "flex items-center gap-1.5 text-[12px]",
           over ? "text-rose-600" : "text-slate-500",
         )}>
           {over && <AlertCircle size={13} />}
@@ -290,48 +294,69 @@ function GroupCard({
           </span>
         </div>
 
-        {/* Sub-questions */}
-        <div className="space-y-3">
-          {group.questions.map((q, idx) =>
-            isObjective ? (
-              <QuestionBuilderA
-                key={q.id}
-                question={q}
-                onChange={(updated) => onUpdateQuestion(q.id, updated)}
-                onRemove={() => onRemoveQuestion(q.id)}
-                onMoveUp={() => {}}
-                onMoveDown={() => {}}
-                isFirst={idx === 0}
-                isLast={idx === group.questions.length - 1}
-                readonlyMarks={false}
-              />
-            ) : (
-              <QuestionBuilderB
-                key={q.id}
-                question={q}
-                onChange={(updated) => onUpdateQuestion(q.id, updated)}
-                onRemove={() => onRemoveQuestion(q.id)}
-                onMoveUp={() => {}}
-                onMoveDown={() => {}}
-                isFirst={idx === 0}
-                isLast={idx === group.questions.length - 1}
-                readonlyMarks={false}
-                assessmentType={assessmentType}
-              />
-            ),
-          )}
+        {/* Toolbar */}
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-slate-500">{partCount} {partCount === 1 ? "sub-question" : "sub-questions"}</p>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onImport}
+              className="h-8 px-3 text-xs text-[#002388] hover:bg-[#002388]/5"
+            >
+              <Library size={13} className="mr-1.5" />
+              Import from Bank
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={onAddQuestion}
+              className="h-8 px-3 text-xs bg-[#002388] hover:bg-[#0B4DBB] text-white"
+            >
+              <Plus size={13} className="mr-1.5" />
+              Add sub-question
+            </Button>
+          </div>
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onAddQuestion}
-          className="h-8 px-3 text-xs text-indigo-700 hover:bg-indigo-100"
-        >
-          <Plus size={13} className="mr-1.5" />
-          Add sub-question
-        </Button>
+        {/* Sub-questions */}
+        {partCount === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 bg-white px-6 py-8 text-center">
+            <p className="text-sm text-slate-400">No sub-questions yet. Add one or import from the bank.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {group.questions.map((q, idx) =>
+              isObjective ? (
+                <QuestionBuilderA
+                  key={q.id}
+                  question={q}
+                  onChange={(updated) => onUpdateQuestion(q.id, updated)}
+                  onRemove={() => onRemoveQuestion(q.id)}
+                  onMoveUp={() => {}}
+                  onMoveDown={() => {}}
+                  isFirst={idx === 0}
+                  isLast={idx === partCount - 1}
+                  readonlyMarks={false}
+                />
+              ) : (
+                <QuestionBuilderB
+                  key={q.id}
+                  question={q}
+                  onChange={(updated) => onUpdateQuestion(q.id, updated)}
+                  onRemove={() => onRemoveQuestion(q.id)}
+                  onMoveUp={() => {}}
+                  onMoveDown={() => {}}
+                  isFirst={idx === 0}
+                  isLast={idx === partCount - 1}
+                  readonlyMarks={false}
+                  assessmentType={assessmentType}
+                />
+              ),
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -343,8 +368,8 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
   const [openSectionId, setOpenSectionId] = useState<string | null>(
     state.sections[0]?.id ?? null
   )
-  const [bankModal, setBankModal] = useState<{ open: boolean; sectionId: string | null; type: string }>({
-    open: false, sectionId: null, type: "",
+  const [bankModal, setBankModal] = useState<{ open: boolean; sectionId: string | null; groupId: string | null; type: string }>({
+    open: false, sectionId: null, groupId: null, type: "",
   })
 
   const toggleSection = (id: string) => {
@@ -425,16 +450,27 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
   }
 
   const handleImport = (imported: QuestionFormState[]) => {
-    const { sectionId } = bankModal
+    const { sectionId, groupId } = bankModal
     if (!sectionId) return
     onChange({
       sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
+        // Importing into a group → append to that group's sub-questions.
+        if (groupId) {
+          return {
+            ...s,
+            groups: (s.groups ?? []).map((g: any) => {
+              if (g.id !== groupId) return g
+              let nextOrder = g.questions.length + 1
+              return { ...g, questions: [...g.questions, ...imported.map((q: any) => ({ ...q, order: nextOrder++ }))] }
+            }),
+          }
+        }
         let nextOrder = s.questions.length + 1
         return { ...s, questions: [...s.questions, ...imported.map((q: any) => ({ ...q, order: nextOrder++ }))] }
       }),
     })
-    setBankModal({ open: false, sectionId: null, type: "" })
+    setBankModal({ open: false, sectionId: null, groupId: null, type: "" })
   }
 
   // ── Group handlers ───────────────────────────────────────────────────────────
@@ -618,7 +654,7 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => setBankModal({ open: true, sectionId: section.id, type: section.type })}
+                              onClick={() => setBankModal({ open: true, sectionId: section.id, groupId: null, type: section.type })}
                               className="h-8 px-3 text-xs text-[#002388] hover:bg-[#002388]/5"
                             >
                               <Library size={13} className="mr-1.5" />
@@ -692,6 +728,7 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                                 onChange={(updates) => updateGroup(section.id, g.id, updates)}
                                 onRemove={() => removeGroup(section.id, g.id)}
                                 onAddQuestion={() => addGroupQuestion(section.id, g.id)}
+                                onImport={() => setBankModal({ open: true, sectionId: section.id, groupId: g.id, type: section.type })}
                                 onUpdateQuestion={(qId, updated) => updateGroupQuestion(section.id, g.id, qId, updated)}
                                 onRemoveQuestion={(qId) => removeGroupQuestion(section.id, g.id, qId)}
                               />
@@ -724,7 +761,7 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
 
       <ImportFromBankModal
         open={bankModal.open}
-        onClose={() => setBankModal({ open: false, sectionId: null, type: "" })}
+        onClose={() => setBankModal({ open: false, sectionId: null, groupId: null, type: "" })}
         onImport={handleImport}
         courseId={courseId}
         type={bankModal.type}
