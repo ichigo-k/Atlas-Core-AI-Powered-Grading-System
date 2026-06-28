@@ -19,7 +19,7 @@ export async function createCourseAction(formData: FormData) {
     const title = formData.get("title") as string;
     const credits = parseInt(formData.get("credits") as string);
 
-    await prisma.course.create({
+    const course = await prisma.course.create({
       data: { code, title, credits },
     });
 
@@ -30,7 +30,7 @@ export async function createCourseAction(formData: FormData) {
     );
 
     revalidatePath("/admin/courses");
-    return { success: true };
+    return { success: true, courseId: course.id };
   } catch (error: any) {
     console.error("Failed to create course:", error);
     if (error.code === "P2002") {

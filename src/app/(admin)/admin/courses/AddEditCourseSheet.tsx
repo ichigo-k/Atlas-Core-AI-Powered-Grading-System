@@ -74,17 +74,18 @@ export default function AddEditCourseSheet({
 				: await createCourseAction(formData);
 
 			if (result.success) {
-				// If it's an edit, also update assignments
-				if (course) {
+				// Save lecturer + class assignments for both create and edit
+				const courseId = course ? course.id : (result as any).courseId;
+				if (courseId && (selectedLecturerIds.length > 0 || selectedClassIds.length > 0)) {
 					const assignmentResult = await updateCourseAssignmentsAction(
-						course.id,
+						courseId,
 						selectedLecturerIds as number[],
 						selectedClassIds as number[],
 					);
 					if (!assignmentResult.success) {
 						toast.error(
 							assignmentResult.error ||
-								"Course updated but failed to update assignments",
+								`Course ${course ? "updated" : "created"} but failed to save assignments`,
 						);
 					}
 				}
