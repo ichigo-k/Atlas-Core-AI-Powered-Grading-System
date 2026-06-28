@@ -38,7 +38,16 @@ export async function POST(req: Request) {
         }
 
         if (!user.mustChangePassword) {
-            return NextResponse.json({ error: "Password change not required" }, { status: 400 })
+            // User already changed it (perhaps a previous request crashed halfway).
+            // We should still clear their stale cookies to break them out of the loop.
+            const cookieStore = await cookies()
+            const allCookies = cookieStore.getAll()
+            for (const cookie of allCookies) {
+                if (cookie.name.includes("session-token")) {
+                    cookieStore.delete(cookie.name)
+                }
+            }
+            return NextResponse.json({ success: true, signedOut: true })
         }
 
         // Hash and update
@@ -57,7 +66,7 @@ export async function POST(req: Request) {
             "USER"
         )
 
-        const cookieStore = cookies()
+        const cookieStore = await cookies()
         const allCookies = cookieStore.getAll()
         for (const cookie of allCookies) {
             if (cookie.name.includes("session-token")) {
