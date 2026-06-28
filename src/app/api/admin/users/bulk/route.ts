@@ -188,46 +188,38 @@ export async function POST(request: NextRequest) {
       try {
         send({ type: "start", total: rows.length });
 
-        const DB_BATCH = 25;
+        const validationFailed = rows.length - validRows.length;
 
-        for (let i = 0; i < validRows.length; i += DB_BATCH) {
-          const dbBatch = validRows.slice(i, i + DB_BATCH);
-
-          // Insert each row in this DB batch
-          for (let j = 0; j < dbBatch.length; j++) {
-            const item = dbBatch[j];
-            const passwordHash = defaultPasswordHash;
-            try {
-              await prisma.$transaction(async tx => {
-                const user = await tx.user.create({
-                  data: { email: item.email, name: item.name, role: role as "STUDENT" | "LECTURER" | "ADMIN", passwordHash },
-                });
-                if (role === "STUDENT") {
-                  await tx.studentProfile.create({
-                    data: { id: user.id, indexNumber: item.indexNumber!, legacyProgram: item.legacyProgram, programId: item.programId!, classId: item.classId ?? null },
-                  });
-                } else if (role === "LECTURER") {
-                  await tx.lecturerProfile.create({
-                    data: { id: user.id, facultyId: item.facultyId!, title: item.title! },
-                  });
-                } else {
-                  await tx.adminProfile.create({ data: { id: user.id } });
-                }
+        for (let i = 0; i < validRows.length; i++) {
+          const item = validRows[i];
+          try {
+            await prisma.$transaction(async tx => {
+              const user = await tx.user.create({
+                data: { email: item.email, name: item.name, role: role as "STUDENT" | "LECTURER" | "ADMIN", passwordHash: defaultPasswordHash },
               });
-              created++;
-            } catch (err) {
-              if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-                errors.push({ row: item.rowNum, field: "email", message: "Email already exists" });
+              if (role === "STUDENT") {
+                await tx.studentProfile.create({
+                  data: { id: user.id, indexNumber: item.indexNumber!, legacyProgram: item.legacyProgram, programId: item.programId!, classId: item.classId ?? null },
+                });
+              } else if (role === "LECTURER") {
+                await tx.lecturerProfile.create({
+                  data: { id: user.id, facultyId: item.facultyId!, title: item.title! },
+                });
               } else {
-                errors.push({ row: item.rowNum, field: "unknown", message: "Unexpected error creating user" });
+                await tx.adminProfile.create({ data: { id: user.id } });
               }
+            });
+            created++;
+          } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+              errors.push({ row: item.rowNum, field: "email", message: "Email already exists" });
+            } else {
+              errors.push({ row: item.rowNum, field: "unknown", message: "Unexpected error creating user" });
             }
           }
 
-          // Progress after each DB batch
-          // "processed" = validation-failed rows + rows we've attempted to insert so far
-          const attempted = i + dbBatch.length;
-          const totalProcessed = (rows.length - validRows.length) + attempted;
+          // Progress after every single insert
+          const totalProcessed = validationFailed + i + 1;
           send({ type: "progress", processed: Math.min(totalProcessed, rows.length), total: rows.length, created, failed: errors.length });
         }
 
