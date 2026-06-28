@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { signOut } from "next-auth/react"
 import Image from "next/image"
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -48,8 +49,9 @@ export default function ForceChangePasswordClient() {
             }
 
             toast.success("Password changed successfully")
-            // Redirect to home — the login action will now send them to their dashboard
-            window.location.href = "/"
+            // Sign out to clear the stale JWT (which still has mustChangePassword:true),
+            // then redirect to login. Fresh login will issue a clean token.
+            await signOut({ callbackUrl: "/" })
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong")
         } finally {
