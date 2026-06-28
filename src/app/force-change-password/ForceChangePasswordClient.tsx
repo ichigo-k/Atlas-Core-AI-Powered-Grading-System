@@ -94,7 +94,7 @@ export default function ForceChangePasswordClient() {
                             </p>
                             <button
                                 onClick={() => signOut({ callbackUrl: "/" })}
-                                className="w-full h-[38px] mt-6 rounded-sm text-[13px] font-semibold text-[#002388] border border-[#002388] hover:bg-[#f3f6fc] active:bg-[#e4ebf7] transition-colors"
+                                className="w-full h-[38px] mt-6 rounded-sm text-[13px] font-semibold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 transition-all animate-pulse shadow-sm"
                             >
                                 Logout & Login Again
                             </button>
