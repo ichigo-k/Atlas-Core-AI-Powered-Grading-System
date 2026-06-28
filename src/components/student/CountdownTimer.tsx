@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { Clock } from "lucide-react"
 import { computeRemaining } from "@/lib/student-utils"
 
@@ -19,7 +19,7 @@ interface CountdownTimerProps {
   compact?: boolean
 }
 
-export default function CountdownTimer({ startedAt, durationMinutes, onExpire, compact }: CountdownTimerProps) {
+function CountdownTimer({ startedAt, durationMinutes, onExpire, compact }: CountdownTimerProps) {
   const expiredRef = useRef(false)
   // null on first render so server and client produce identical HTML
   const [remaining, setRemaining] = useState<number | null>(null)
@@ -66,3 +66,7 @@ export default function CountdownTimer({ startedAt, durationMinutes, onExpire, c
     </div>
   )
 }
+
+// Memoised so typing/clicking elsewhere in the exam shell (which re-renders the
+// parent on every keystroke) doesn't repaint the ticking timer.
+export default memo(CountdownTimer)

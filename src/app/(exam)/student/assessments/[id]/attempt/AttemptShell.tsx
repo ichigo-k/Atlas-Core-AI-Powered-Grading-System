@@ -683,7 +683,9 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     setAnswers((prev) => new Map(prev).set(questionId, payload))
   }, [])
 
-  async function handleExpire() {
+  // Stable identity so CountdownTimer's effect doesn't tear down/rebuild its
+  // interval on every keystroke (which made the timer flicker while typing).
+  const handleExpire = useCallback(async () => {
     if (simulation) {
       window.location.href = simulationReturnUrl ?? `/lecturer/assessments/${assessmentId}`
       return
@@ -695,7 +697,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     lockdownRef.current?.allowUnload()
     await submitAttempt(attempt.id, "TIMED_OUT")
     window.location.href = `/student/assessments/${assessmentId}`
-  }
+  }, [simulation, simulationReturnUrl, assessmentId, attempt.id])
 
   function handleSubmitConfirm(reason?: "TIMED_OUT" | "FULLSCREEN_VIOLATION" | "TAB_SWITCH" | ViolationReason) {
     startTransition(async () => {
