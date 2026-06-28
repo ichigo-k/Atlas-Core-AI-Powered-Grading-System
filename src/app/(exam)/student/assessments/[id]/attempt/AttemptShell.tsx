@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { submitAttempt } from "@/lib/assessment-actions"
+import { submitAttempt, deleteAnswers } from "@/lib/assessment-actions"
 import type { SerializedActiveAttempt, SerializedAssessmentDetail, ProctorSession } from "./page"
 import LockdownOverlay from "@/components/student/LockdownOverlay"
 import type { LockdownOverlayHandle } from "@/components/student/LockdownOverlay"
@@ -256,14 +256,12 @@ function QuestionSelectionScreen({
           const disabled = !checked && count >= required
           const isGroup = p.kind === "group"
           const marks = isGroup ? p.totalMarks : p.question.marks
-          const body = isGroup
-            ? (p.context?.trim() || `Group of ${p.questions.length} sub-questions`)
-            : p.question.body
           return (
             <label
               key={p.key}
               className={[
-                "flex items-start gap-4 py-4 cursor-pointer transition-colors",
+                "flex items-start gap-4 py-4 px-3 -mx-3 rounded-lg cursor-pointer transition-colors",
+                checked ? "bg-[#f5f7ff]" : "",
                 disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-[#fafafa]",
               ].join(" ")}
             >
@@ -284,19 +282,39 @@ function QuestionSelectionScreen({
                 {checked && <CheckCircle2 size={12} className="text-white" strokeWidth={3} />}
               </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af]">
-                    {isGroup ? `Group ${idx + 1}` : `Q${idx + 1}`}
+              <div className="flex-1 min-w-0" style={{ fontFamily: "var(--font-sans,'Poppins',sans-serif)" }}>
+                <div className="flex items-baseline gap-2.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#002388]">
+                    {isGroup ? `Group ${idx + 1}` : `Question ${idx + 1}`}
                   </span>
                   {isGroup && (
                     <span className="text-[11px] text-[#9ca3af]">{p.questions.length} {p.questions.length === 1 ? "part" : "parts"}</span>
                   )}
-                  <span className="text-[11px] text-[#9ca3af]">{marks} {marks === 1 ? "mark" : "marks"}</span>
+                  <span className="text-[11px] text-[#9ca3af]">·</span>
+                  <span className="text-[11px] font-medium text-[#6b7280]">{marks} {marks === 1 ? "mark" : "marks"}</span>
                 </div>
-                <p className="mt-0.5 text-[15px] text-[#374151] leading-relaxed line-clamp-3" style={{ fontFamily: "'Georgia','Times New Roman',serif" }}>
-                  {body}
-                </p>
+
+                {isGroup ? (
+                  <div className="mt-1.5">
+                    {p.context?.trim() && (
+                      <p className="text-[14px] text-[#374151] leading-relaxed line-clamp-2 whitespace-pre-wrap">
+                        {p.context}
+                      </p>
+                    )}
+                    <ul className="mt-1 space-y-1">
+                      {p.questions.map((q, i) => (
+                        <li key={q.id} className="flex gap-2 text-[13.5px] text-[#6b7280] leading-snug">
+                          <span className="font-semibold text-[#9ca3af] shrink-0">{String.fromCharCode(97 + i)}.</span>
+                          <span className="line-clamp-1">{q.body || "Untitled"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-[14.5px] text-[#374151] leading-relaxed line-clamp-3 whitespace-pre-wrap">
+                    {p.question.body || "Untitled question"}
+                  </p>
+                )}
               </div>
             </label>
           )
@@ -674,6 +692,24 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   function handleConfirmSelection() {
     if (!activeSection) return
+    const pages = buildSectionPages(activeSection)
+    // Questions that belong to units the student did NOT pick — their saved
+    // answers must be discarded so dropped work is never graded.
+    const droppedIds = pages
+      .filter((p) => !pendingSelection.has(p.key))
+      .flatMap((p) => pageIdsOf(p))
+
+    if (droppedIds.length > 0) {
+      setAnswers((prev) => {
+        const next = new Map(prev)
+        for (const id of droppedIds) next.delete(id)
+        return next
+      })
+      if (!simulation) {
+        void deleteAnswers(attempt.id, droppedIds)
+      }
+    }
+
     setSectionSelections((prev) => new Map(prev).set(activeSection.id, new Set(pendingSelection)))
     setEverConfirmedSections((prev) => new Set(prev).add(activeSection.id))
     setActiveQuestionIndex(0)
@@ -890,7 +926,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-[#e5e7eb]" />
             </div>
-            <SidebarContent onClose={() => setMobileSidebarOpen(false)} />
+            {SidebarContent({ onClose: () => setMobileSidebarOpen(false) })}
           </div>
         </div>
       )}
@@ -907,7 +943,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
         {/* ── Desktop sidebar ── */}
         <aside className="hidden lg:flex w-60 shrink-0 flex-col overflow-hidden border-r border-[#ebebeb] bg-[#fafafa]">
-          <SidebarContent />
+          {SidebarContent({})}
         </aside>
 
         {/* ── Main content ── */}

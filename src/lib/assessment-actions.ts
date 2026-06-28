@@ -153,6 +153,33 @@ export async function saveAnswer(
   }
 }
 
+// Remove saved answers for questions the student has dropped from a quota
+// selection, so deselected work is never graded (it's as if never answered).
+export async function deleteAnswers(attemptId: number, questionIds: number[]): Promise<void> {
+  try {
+    if (questionIds.length === 0) return
+    const session = await getSession()
+    if (!session?.user || session.user.role !== 'STUDENT') return
+
+    const studentId = await getStudentId(session.user.email!)
+    if (!studentId) return
+
+    const attempt = await prisma.assessmentAttempt.findUnique({ where: { id: attemptId }, select: { studentId: true } })
+    if (!attempt || attempt.studentId !== studentId) return
+
+    await prisma.studentAnswer.deleteMany({
+      where: { attemptId, questionId: { in: questionIds } },
+    })
+  } catch (err) {
+    console.error('[deleteAnswers] Failed to delete answers', {
+      attemptId,
+      questionIds,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
+  }
+}
+
 export async function logTabSwitch(attemptId: number, timestamp: string): Promise<void> {
   try {
     const session = await getSession()
