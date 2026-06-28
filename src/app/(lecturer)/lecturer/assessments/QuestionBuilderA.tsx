@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { QuestionFormState } from "@/lib/assessment-types"
 import { ChevronUp, ChevronDown, Trash2, Plus, X } from "lucide-react"
+import { CollapsedQuestionRow } from "./QuestionRow"
 
 interface QuestionBuilderAProps {
   question: QuestionFormState
@@ -15,6 +16,8 @@ interface QuestionBuilderAProps {
   isFirst: boolean
   isLast: boolean
   readonlyMarks?: boolean
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
 }
 
 export default function QuestionBuilderA({
@@ -26,7 +29,22 @@ export default function QuestionBuilderA({
   isFirst,
   isLast,
   readonlyMarks = false,
+  collapsed = false,
+  onToggleCollapsed,
 }: QuestionBuilderAProps) {
+  if (collapsed && onToggleCollapsed) {
+    return (
+      <CollapsedQuestionRow
+        order={question.order}
+        body={question.body}
+        typeLabel="MCQ"
+        marks={question.marks}
+        onExpand={onToggleCollapsed}
+        onRemove={onRemove}
+      />
+    )
+  }
+
   const updateOption = (index: number, value: string) => {
     const options = [...question.options]
     options[index] = value
@@ -53,12 +71,18 @@ export default function QuestionBuilderA({
     <div className="group rounded-lg border border-slate-200 bg-white p-5 transition-colors hover:border-slate-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          disabled={!onToggleCollapsed}
+          className="flex items-center gap-2.5 disabled:cursor-default"
+        >
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 text-white text-[11px] font-medium">
             {question.order}
           </div>
           <span className="text-xs text-slate-400">Objective</span>
-        </div>
+          {onToggleCollapsed && <ChevronUp size={14} className="text-slate-400" />}
+        </button>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button

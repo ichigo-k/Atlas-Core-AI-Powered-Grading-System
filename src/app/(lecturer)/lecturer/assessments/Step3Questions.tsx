@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Step3State, QuestionFormState, SectionFormState, GroupFormState, SectionTypeEnum } from "@/lib/assessment-types"
-import { Plus, Library, Trash2, ChevronDown, Target, PenLine, AlertCircle, Layers } from "lucide-react"
+import { Plus, Library, Trash2, ChevronDown, Target, PenLine, AlertCircle, Layers, Settings } from "lucide-react"
 import QuestionBuilderA from "./QuestionBuilderA"
 import QuestionBuilderB from "./QuestionBuilderB"
 import ImportFromBankModal from "./ImportFromBankModal"
+import { CollapsedGroupRow } from "./QuestionRow"
 import { cn } from "@/lib/utils"
 
 interface Step3QuestionsProps {
@@ -208,6 +209,9 @@ interface GroupCardProps {
   index: number
   isObjective: boolean
   assessmentType?: string
+  expandedQuestionId: string | null
+  onToggleQuestion: (qId: string) => void
+  onToggleCollapsed: () => void
   onChange: (updates: Partial<GroupFormState>) => void
   onRemove: () => void
   onAddQuestion: () => void
@@ -221,6 +225,9 @@ function GroupCard({
   index,
   isObjective,
   assessmentType,
+  expandedQuestionId,
+  onToggleQuestion,
+  onToggleCollapsed,
   onChange,
   onRemove,
   onAddQuestion,
@@ -234,16 +241,17 @@ function GroupCard({
   const partCount = group.questions.length
 
   return (
-    <div className="group rounded-lg border border-slate-200 bg-slate-50/40 transition-colors hover:border-slate-300">
+    <div className="group rounded-lg border border-slate-200 border-l-[3px] border-l-[#002388] bg-slate-50/40 transition-colors hover:border-slate-300">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
+        <button type="button" onClick={onToggleCollapsed} className="flex items-center gap-2.5">
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#002388] text-white">
             <Layers size={13} />
           </div>
           <span className="text-sm font-semibold text-slate-900">Question Group {index + 1}</span>
           <span className="text-xs text-slate-400">{partCount} {partCount === 1 ? "part" : "parts"}</span>
-        </div>
+          <ChevronDown size={14} className="text-slate-400 rotate-180" />
+        </button>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
@@ -339,6 +347,8 @@ function GroupCard({
                   isFirst={idx === 0}
                   isLast={idx === partCount - 1}
                   readonlyMarks={false}
+                  collapsed={expandedQuestionId !== q.id}
+                  onToggleCollapsed={() => onToggleQuestion(q.id)}
                 />
               ) : (
                 <QuestionBuilderB
@@ -352,6 +362,8 @@ function GroupCard({
                   isLast={idx === partCount - 1}
                   readonlyMarks={false}
                   assessmentType={assessmentType}
+                  collapsed={expandedQuestionId !== q.id}
+                  onToggleCollapsed={() => onToggleQuestion(q.id)}
                 />
               ),
             )}
@@ -371,6 +383,15 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
   const [bankModal, setBankModal] = useState<{ open: boolean; sectionId: string | null; groupId: string | null; type: string }>({
     open: false, sectionId: null, groupId: null, type: "",
   })
+  // Progressive disclosure: only one question editor and one group are open at a time.
+  const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null)
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null)
+  const [openSettingsId, setOpenSettingsId] = useState<string | null>(null)
+
+  const toggleQuestion = (id: string) =>
+    setExpandedQuestionId((prev) => (prev === id ? null : id))
+  const toggleGroup = (id: string) =>
+    setExpandedGroupId((prev) => (prev === id ? null : id))
 
   const toggleSection = (id: string) => {
     setOpenSectionId((prev) => (prev === id ? null : id))
@@ -404,12 +425,14 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
   }
 
   const addQuestion = (sectionId: string) => {
+    const q = newQuestion(0)
     onChange({
       sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
-        return { ...s, questions: [...s.questions, newQuestion(s.questions.length + 1)] }
+        return { ...s, questions: [...s.questions, { ...q, order: s.questions.length + 1 }] }
       }),
     })
+    setExpandedQuestionId(q.id)
   }
 
   const updateQuestion = (sectionId: string, qId: string, updated: QuestionFormState) => {
@@ -476,13 +499,16 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
   // ── Group handlers ───────────────────────────────────────────────────────────
 
   const addGroup = (sectionId: string) => {
+    const g = newGroup(0)
     onChange({
       sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
         const groups = s.groups ?? []
-        return { ...s, groups: [...groups, newGroup(groups.length + 1)] }
+        return { ...s, groups: [...groups, { ...g, order: groups.length + 1 }] }
       }),
     })
+    setExpandedGroupId(g.id)
+    setExpandedQuestionId(g.questions[0]?.id ?? null)
   }
 
   const updateGroup = (sectionId: string, groupId: string, updates: Partial<GroupFormState>) => {
@@ -504,17 +530,19 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
   }
 
   const addGroupQuestion = (sectionId: string, groupId: string) => {
+    const q = newQuestion(0)
     onChange({
       sections: state.sections.map((s: any) => {
         if (s.id !== sectionId) return s
         return {
           ...s,
           groups: (s.groups ?? []).map((g: any) =>
-            g.id === groupId ? { ...g, questions: [...g.questions, newQuestion(g.questions.length + 1)] } : g,
+            g.id === groupId ? { ...g, questions: [...g.questions, { ...q, order: g.questions.length + 1 }] } : g,
           ),
         }
       }),
     })
+    setExpandedQuestionId(q.id)
   }
 
   const updateGroupQuestion = (sectionId: string, groupId: string, qId: string, updated: QuestionFormState) => {
@@ -606,35 +634,53 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
 
-                      {/* Required count */}
-                      <div className="flex-1 space-y-1">
-                        <Label className="text-[11px] text-slate-500 uppercase tracking-wider">Questions to Answer</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={section.requiredQuestionsCount}
-                          onChange={(e) => updateSection(section.id, { requiredQuestionsCount: e.target.value })}
-                          placeholder="Leave blank for all"
-                          className="h-9 border-slate-200 bg-white text-sm focus-visible:ring-[#002388]/30"
-                        />
-                      </div>
-
-                      {/* Points per question — only when required count is set */}
+                    {/* Advanced settings — hidden by default to keep things uncluttered */}
+                    <button
+                      type="button"
+                      onClick={() => setOpenSettingsId((p) => (p === section.id ? null : section.id))}
+                      className="mt-3 flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-[#002388] transition-colors"
+                    >
+                      <Settings size={13} />
+                      Section settings
                       {section.requiredQuestionsCount && (
-                        <div className="flex-1 space-y-1 animate-in fade-in duration-200">
-                          <Label className="text-[11px] text-slate-500 uppercase tracking-wider">Points / Question</Label>
+                        <span className="text-slate-400">· {section.requiredQuestionsCount} to answer</span>
+                      )}
+                      <ChevronDown size={13} className={cn("transition-transform", openSettingsId === section.id && "rotate-180")} />
+                    </button>
+
+                    {openSettingsId === section.id && (
+                      <div className="mt-3 flex flex-col sm:flex-row gap-3 animate-in fade-in duration-150">
+                        {/* Required count */}
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-[11px] text-slate-500 uppercase tracking-wider">Questions to Answer</Label>
                           <Input
                             type="number"
                             min={1}
-                            value={section.pointsPerQuestion}
-                            onChange={(e) => updateSection(section.id, { pointsPerQuestion: e.target.value })}
-                            placeholder="Marks"
+                            value={section.requiredQuestionsCount}
+                            onChange={(e) => updateSection(section.id, { requiredQuestionsCount: e.target.value })}
+                            placeholder="Leave blank for all"
                             className="h-9 border-slate-200 bg-white text-sm focus-visible:ring-[#002388]/30"
                           />
                         </div>
-                      )}
-                    </div>
+
+                        {/* Points per question — only when required count is set */}
+                        {section.requiredQuestionsCount && (
+                          <div className="flex-1 space-y-1 animate-in fade-in duration-200">
+                            <Label className="text-[11px] text-slate-500 uppercase tracking-wider">Points / Question</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={section.pointsPerQuestion}
+                              onChange={(e) => updateSection(section.id, { pointsPerQuestion: e.target.value })}
+                              placeholder="Marks"
+                              className="h-9 border-slate-200 bg-white text-sm focus-visible:ring-[#002388]/30"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Questions area */}
@@ -700,6 +746,8 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                                   isFirst={idx === 0}
                                   isLast={idx === section.questions.length - 1}
                                   readonlyMarks={!!section.requiredQuestionsCount}
+                                  collapsed={expandedQuestionId !== q.id}
+                                  onToggleCollapsed={() => toggleQuestion(q.id)}
                                 />
                               ) : (
                                 <QuestionBuilderB
@@ -713,26 +761,43 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                                   isLast={idx === section.questions.length - 1}
                                   readonlyMarks={!!section.requiredQuestionsCount}
                                   assessmentType={assessmentType}
+                                  collapsed={expandedQuestionId !== q.id}
+                                  onToggleCollapsed={() => toggleQuestion(q.id)}
                                 />
                               )
                             )}
 
                             {/* Question groups */}
-                            {(section.groups ?? []).map((g, gIdx) => (
-                              <GroupCard
-                                key={g.id}
-                                group={g}
-                                index={gIdx}
-                                isObjective={isObjective}
-                                assessmentType={assessmentType}
-                                onChange={(updates) => updateGroup(section.id, g.id, updates)}
-                                onRemove={() => removeGroup(section.id, g.id)}
-                                onAddQuestion={() => addGroupQuestion(section.id, g.id)}
-                                onImport={() => setBankModal({ open: true, sectionId: section.id, groupId: g.id, type: section.type })}
-                                onUpdateQuestion={(qId, updated) => updateGroupQuestion(section.id, g.id, qId, updated)}
-                                onRemoveQuestion={(qId) => removeGroupQuestion(section.id, g.id, qId)}
-                              />
-                            ))}
+                            {(section.groups ?? []).map((g, gIdx) =>
+                              expandedGroupId === g.id ? (
+                                <GroupCard
+                                  key={g.id}
+                                  group={g}
+                                  index={gIdx}
+                                  isObjective={isObjective}
+                                  assessmentType={assessmentType}
+                                  expandedQuestionId={expandedQuestionId}
+                                  onToggleQuestion={toggleQuestion}
+                                  onToggleCollapsed={() => toggleGroup(g.id)}
+                                  onChange={(updates) => updateGroup(section.id, g.id, updates)}
+                                  onRemove={() => removeGroup(section.id, g.id)}
+                                  onAddQuestion={() => addGroupQuestion(section.id, g.id)}
+                                  onImport={() => setBankModal({ open: true, sectionId: section.id, groupId: g.id, type: section.type })}
+                                  onUpdateQuestion={(qId, updated) => updateGroupQuestion(section.id, g.id, qId, updated)}
+                                  onRemoveQuestion={(qId) => removeGroupQuestion(section.id, g.id, qId)}
+                                />
+                              ) : (
+                                <CollapsedGroupRow
+                                  key={g.id}
+                                  index={gIdx}
+                                  context={g.context}
+                                  partCount={g.questions.length}
+                                  totalMarks={g.totalMarks}
+                                  onExpand={() => toggleGroup(g.id)}
+                                  onRemove={() => removeGroup(section.id, g.id)}
+                                />
+                              ),
+                            )}
                           </div>
                         )}
                       </div>
