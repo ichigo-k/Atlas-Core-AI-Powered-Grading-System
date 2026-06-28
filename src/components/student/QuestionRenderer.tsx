@@ -30,6 +30,7 @@ interface QuestionRendererProps {
   displayNumber: number;
   shuffledOptions?: number[];
   locked?: boolean;
+  simulation?: boolean;
   assessmentType?: string;
   onAnswerChange?: (
     questionId: number,
@@ -60,6 +61,7 @@ export default function QuestionRenderer({
   displayNumber,
   shuffledOptions,
   locked = false,
+  simulation = false,
   assessmentType,
   onAnswerChange,
 }: QuestionRendererProps) {
@@ -80,6 +82,7 @@ export default function QuestionRenderer({
   }, [question.id]);
 
   function scheduleDebounce(payload: { answerText: string | null; selectedOption: number | null; fileUrl: string | null }) {
+    if (simulation) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => saveAnswer(attemptId, question.id, payload), 2500);
   }
@@ -245,7 +248,7 @@ export default function QuestionRenderer({
               const { fileUrl } = await res.json();
               const payload = { answerText: null, selectedOption: null, fileUrl };
               onAnswerChange?.(question.id, payload);
-              await saveAnswer(attemptId, question.id, payload);
+              if (!simulation) await saveAnswer(attemptId, question.id, payload);
             } catch (err: unknown) {
               const message = err instanceof Error ? err.message : "An error occurred during upload. Please try again.";
               setPdfError(message);

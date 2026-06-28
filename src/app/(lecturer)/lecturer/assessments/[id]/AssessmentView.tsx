@@ -488,6 +488,14 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
   function ActionBar() {
     return (
       <div className="flex items-center gap-2 flex-wrap">
+        {/* Simulate — always available so lecturers can preview the exam */}
+        <Link
+          href={`/lecturer/assessments/${assessment.id}/simulate`}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] text-[12px] font-semibold hover:bg-[#e0e7ff] transition-colors"
+        >
+          <Eye size={12} /> Simulate
+        </Link>
+
         {/* DRAFT actions */}
         {assessment.status === "DRAFT" && (
           <>

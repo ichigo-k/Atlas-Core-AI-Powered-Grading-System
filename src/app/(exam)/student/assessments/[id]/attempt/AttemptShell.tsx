@@ -54,6 +54,8 @@ type AttemptShellProps = {
   assessment: SerializedAssessmentDetail
   assessmentId: number
   proctorSession: ProctorSession
+  simulation?: boolean
+  simulationReturnUrl?: string
 }
 
 export type SectionWithProgress = {
@@ -426,7 +428,7 @@ function QuestionPalette({ questions, answeredIds, selectedIds, activeIndex, onS
 }
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function AttemptShell({ attempt, assessment, assessmentId, proctorSession }: AttemptShellProps) {
+export default function AttemptShell({ attempt, assessment, assessmentId, proctorSession, simulation = false, simulationReturnUrl }: AttemptShellProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const lockdownRef = useRef<LockdownOverlayHandle>(null)
@@ -437,7 +439,9 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   const { reset: resetViolations, syncCount, showFinalWarning } = useViolationStore()
 
   // Hydrate violation count from server on mount so page refreshes don't reset the dots.
+  // Skip in simulation mode — no real attempt exists.
   useEffect(() => {
+    if (simulation) return
     getProctorFlagCount(attempt.id).then((serverCount) => {
       if (serverCount > 0) {
         syncCount(serverCount)
@@ -610,6 +614,10 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   }, [])
 
   async function handleExpire() {
+    if (simulation) {
+      window.location.href = simulationReturnUrl ?? `/lecturer/assessments/${assessmentId}`
+      return
+    }
     // Mark submitting so the fullscreen-exit/blur from navigating away isn't flagged.
     useViolationStore.getState().beginSubmit()
     // Disable the beforeunload prompt so the browser doesn't ask "leave site?"
@@ -621,6 +629,10 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   function handleSubmitConfirm(reason?: "TIMED_OUT" | "FULLSCREEN_VIOLATION" | "TAB_SWITCH" | ViolationReason) {
     startTransition(async () => {
+      if (simulation) {
+        window.location.href = simulationReturnUrl ?? `/lecturer/assessments/${assessmentId}`
+        return
+      }
       // Mark submitting so the fullscreen-exit/blur from navigating away isn't flagged.
       useViolationStore.getState().beginSubmit()
       lockdownRef.current?.allowUnload()
@@ -756,9 +768,9 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
         {/* Submit */}
         <div className="border-t border-[#ebebeb] p-3 shrink-0">
-          <button type="button" onClick={() => { setShowSubmitDialog(true); onClose?.() }} disabled={isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#002388] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#0B4DBB] disabled:opacity-50">
-            <Send size={13} />Submit Assessment
+          <button type="button" onClick={() => { simulation ? handleSubmitConfirm() : (setShowSubmitDialog(true), onClose?.()) }} disabled={isPending}
+            className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-colors disabled:opacity-50 ${simulation ? "bg-amber-600 hover:bg-amber-700" : "bg-[#002388] hover:bg-[#0B4DBB]"}`}>
+            <Send size={13} />{simulation ? "End Simulation" : "Submit Assessment"}
           </button>
         </div>
       </div>
@@ -769,11 +781,11 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   return (
     <>
-      <LockdownOverlay ref={lockdownRef} isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
-      <AntiCheatGuard isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />
-      <ViolationOverlay assessmentId={assessmentId} />
-      {assessment.proctoringEnabled && <ProctorCamera attemptId={attempt.id} />}
-      <ProctorAudio attemptId={attempt.id} />
+      {!simulation && <LockdownOverlay ref={lockdownRef} isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />}
+      {!simulation && <AntiCheatGuard isSecured={isSecured} attemptId={attempt.id} onSubmit={(reason) => handleSubmitConfirm(reason)} />}
+      {!simulation && <ViolationOverlay assessmentId={assessmentId} />}
+      {!simulation && assessment.proctoringEnabled && <ProctorCamera attemptId={attempt.id} />}
+      {!simulation && <ProctorAudio attemptId={attempt.id} />}
 
       {showSubmitDialog && (
         <SubmitReviewScreen
@@ -803,7 +815,15 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
         </div>
       )}
 
-      <div className="fixed inset-0 z-50 flex overflow-hidden bg-white">
+      {simulation && (
+        <div className="fixed top-0 inset-x-0 z-[200] flex items-center justify-center gap-2 bg-amber-500 px-4 py-1.5 text-[12px] font-semibold text-white">
+          <span>SIMULATION MODE</span>
+          <span className="opacity-60">·</span>
+          <span className="font-normal opacity-90">No answers will be saved. Click "End Simulation" to exit.</span>
+        </div>
+      )}
+
+      <div className={`fixed inset-0 z-50 flex overflow-hidden bg-white ${simulation ? "pt-[34px]" : ""}`}>
 
         {/* ── Desktop sidebar ── */}
         <aside className="hidden lg:flex w-60 shrink-0 flex-col overflow-hidden border-r border-[#ebebeb] bg-[#fafafa]">
@@ -901,6 +921,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
                       displayNumber={safeActiveIndex + 1}
                       shuffledOptions={optionShuffleMap.get(activeQuestion.id)}
                       assessmentType={assessment.type}
+                      simulation={simulation}
                       onAnswerChange={handleAnswerChange}
                     />
                   ) : (
@@ -966,10 +987,10 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
                     <span className="hidden sm:inline">Next Section</span><ChevronRight size={15} />
                   </button>
                 ) : (
-                  <button type="button" onClick={() => setShowSubmitDialog(true)} disabled={isPending}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#002388] px-3 sm:px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0B4DBB] transition-colors disabled:opacity-50"
+                  <button type="button" onClick={() => simulation ? handleSubmitConfirm() : setShowSubmitDialog(true)} disabled={isPending}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-[13px] font-medium text-white transition-colors disabled:opacity-50 ${simulation ? "bg-amber-600 hover:bg-amber-700" : "bg-[#002388] hover:bg-[#0B4DBB]"}`}
                   >
-                    <Send size={13} /><span className="hidden sm:inline">Submit</span>
+                    <Send size={13} /><span className="hidden sm:inline">{simulation ? "End Simulation" : "Submit"}</span>
                   </button>
                 )}
               </footer>
