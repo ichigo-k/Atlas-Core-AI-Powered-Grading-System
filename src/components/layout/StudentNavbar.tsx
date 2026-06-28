@@ -183,7 +183,7 @@ export default function StudentNavbar({ ongoingCount, onClose }: StudentNavbarPr
 
       {/* Sign out */}
       <div className="border-t border-border py-1 flex-shrink-0">
-        {/* Collapse toggle — desktop only */}
+        {/* Collapse toggle - desktop only */}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
