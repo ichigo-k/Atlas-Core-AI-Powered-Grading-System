@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createProgramAction } from "@/app/actions/admin-entities";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export default function AddProgramSheet({
 	onSaved: (program: ProgramWithFaculty, isNew: boolean) => void;
 }) {
 	const [loading, setLoading] = useState(false);
+	const submittingRef = useRef(false);
 	const [name, setName] = useState("");
 	const [code, setCode] = useState("");
 	const [facultyId, setFacultyId] = useState<number | null>(null);
@@ -60,7 +62,8 @@ export default function AddProgramSheet({
 		e.preventDefault();
 		if (!name.trim()) { toast.error("Name is required"); return; }
 		if (!facultyId) { toast.error("Faculty is required"); return; }
-
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		setLoading(true);
 		try {
 			if (isEditing) {
@@ -97,6 +100,7 @@ export default function AddProgramSheet({
 			toast.error("An unexpected error occurred");
 		} finally {
 			setLoading(false);
+			submittingRef.current = false;
 		}
 	}
 
@@ -170,12 +174,14 @@ export default function AddProgramSheet({
 						<Button
 							type="submit"
 							form="program-form"
-							className="w-full h-12 bg-[#002388] text-white"
+							className="w-full h-12 bg-[#002388] text-white flex items-center justify-center gap-2"
 							disabled={loading}
 						>
-							{loading
-								? isEditing ? "Saving..." : "Creating..."
-								: isEditing ? "Save Changes" : "Create Program"}
+							{loading ? (
+								<><Loader2 className="h-4 w-4 animate-spin" />{isEditing ? "Saving..." : "Creating..."}</>
+							) : (
+								isEditing ? "Save Changes" : "Create Program"
+							)}
 						</Button>
 					</div>
 				</div>

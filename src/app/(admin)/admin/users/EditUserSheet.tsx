@@ -5,11 +5,12 @@ import {
 	BadgeInfo,
 	Building2,
 	GraduationCap,
+	Loader2,
 	Mail,
 	Save,
 	User,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	reassignClassAction,
@@ -48,10 +49,13 @@ export default function EditUserSheet({
 	classes,
 }: EditUserSheetProps) {
 	const [loading, setLoading] = useState(false);
+	const submittingRef = useRef(false);
 
 	if (!user) return null;
 
 	async function handleSubmit(formData: FormData) {
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		setLoading(true);
 		try {
 			const result = await updateUserAction(user!.id, formData);
@@ -65,10 +69,13 @@ export default function EditUserSheet({
 			toast.error("An unexpected error occurred");
 		} finally {
 			setLoading(false);
+			submittingRef.current = false;
 		}
 	}
 
 	async function handleReassign(classId: string) {
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		setLoading(true);
 		try {
 			const result = await reassignClassAction(user!.id, parseInt(classId));
@@ -82,6 +89,7 @@ export default function EditUserSheet({
 			toast.error("An unexpected error occurred");
 		} finally {
 			setLoading(false);
+			submittingRef.current = false;
 		}
 	}
 
@@ -275,7 +283,7 @@ export default function EditUserSheet({
 							className="w-full h-12 bg-[#002388] hover:bg-[#001570] text-white font-bold rounded-sm transition-all flex items-center justify-center gap-2"
 							disabled={loading}
 						>
-							<Save size={18} />
+							{loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
 							{loading ? "Updating..." : "Save Changes"}
 						</Button>
 					</div>

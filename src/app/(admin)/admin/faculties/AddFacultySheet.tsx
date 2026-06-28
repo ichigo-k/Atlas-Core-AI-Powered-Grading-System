@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createFacultyAction } from "@/app/actions/admin-entities";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export default function AddFacultySheet({
 	onSaved: (faculty: FacultySimple, isNew: boolean) => void;
 }) {
 	const [loading, setLoading] = useState(false);
+	const submittingRef = useRef(false);
 	const [name, setName] = useState("");
 	const [code, setCode] = useState("");
 
@@ -45,7 +47,8 @@ export default function AddFacultySheet({
 			toast.error("Name is required");
 			return;
 		}
-
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		setLoading(true);
 		try {
 			if (isEditing) {
@@ -81,6 +84,7 @@ export default function AddFacultySheet({
 			toast.error("An unexpected error occurred");
 		} finally {
 			setLoading(false);
+			submittingRef.current = false;
 		}
 	}
 
@@ -135,12 +139,14 @@ export default function AddFacultySheet({
 						<Button
 							type="submit"
 							form="faculty-form"
-							className="w-full h-12 bg-[#002388] text-white"
+							className="w-full h-12 bg-[#002388] text-white flex items-center justify-center gap-2"
 							disabled={loading}
 						>
-							{loading
-								? isEditing ? "Saving..." : "Creating..."
-								: isEditing ? "Save Changes" : "Create Faculty"}
+							{loading ? (
+								<><Loader2 className="h-4 w-4 animate-spin" />{isEditing ? "Saving..." : "Creating..."}</>
+							) : (
+								isEditing ? "Save Changes" : "Create Faculty"
+							)}
 						</Button>
 					</div>
 				</div>

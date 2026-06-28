@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -28,6 +28,7 @@ export default function AddEditClassSheet({
 }) {
 	const router = useRouter();
 	const [isPending, setIsPending] = useState(false);
+	const submittingRef = useRef(false);
 	const [name, setName] = useState("");
 	const [level, setLevel] = useState("100");
 
@@ -46,7 +47,8 @@ export default function AddEditClassSheet({
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		if (!name.trim() || !level) return;
-
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		setIsPending(true);
 		try {
 			const method = editingClass ? "PATCH" : "POST";

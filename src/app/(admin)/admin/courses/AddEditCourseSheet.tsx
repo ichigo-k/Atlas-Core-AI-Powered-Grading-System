@@ -5,10 +5,11 @@ import {
 	BookOpen,
 	GraduationCap,
 	Hash,
+	Loader2,
 	Save,
 	Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -45,6 +46,7 @@ export default function AddEditCourseSheet({
 }: AddEditCourseSheetProps) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
+	const submittingRef = useRef(false);
 	const [selectedLecturerIds, setSelectedLecturerIds] = useState<
 		(string | number)[]
 	>([]);
@@ -63,6 +65,8 @@ export default function AddEditCourseSheet({
 	}, [course, open]);
 
 	async function handleSubmit(formData: FormData) {
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		setLoading(true);
 		try {
 			const result = course
@@ -97,6 +101,7 @@ export default function AddEditCourseSheet({
 			toast.error("An unexpected error occurred");
 		} finally {
 			setLoading(false);
+			submittingRef.current = false;
 		}
 	}
 
@@ -238,7 +243,7 @@ export default function AddEditCourseSheet({
 							className="w-full h-12 bg-[#002388] hover:bg-[#001570] text-white font-bold rounded-sm transition-all flex items-center justify-center gap-2"
 							disabled={loading}
 						>
-							<Save size={18} />
+							{loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
 							{loading
 								? "Saving..."
 								: course
