@@ -282,7 +282,7 @@ export default function QuestionRenderer({
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#9ca3af] mb-2.5">
             Question {displayLabel ?? displayNumber}
           </p>
-          <p className="text-[16px] font-normal text-[#111827] leading-[1.75]">
+          <p className="text-[16px] font-normal text-[#111827] leading-[1.75] whitespace-pre-wrap">
             {question.body}
           </p>
         </div>

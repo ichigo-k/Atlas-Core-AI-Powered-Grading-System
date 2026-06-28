@@ -1018,7 +1018,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
                           </span>
                         </div>
                         {activePage.context && activePage.context.trim() !== "" && (
-                          <p className="mt-2.5 text-[16px] font-normal text-[#111827] leading-[1.75]">
+                          <p className="mt-2.5 text-[16px] font-normal text-[#111827] leading-[1.75] whitespace-pre-wrap">
                             {activePage.context}
                           </p>
                         )}
