@@ -12,6 +12,7 @@ export interface RubricCriterionPayload {
 }
 
 export interface QuestionPayload {
+  id?: number
   order: number
   body: string
   marks: number
@@ -28,6 +29,7 @@ export interface ClassAssignmentPayload {
 // A group bundles a shared (optional) context with several sub-questions.
 // `questions` here are the group's sub-parts; the group's totalMarks caps their sum.
 export interface QuestionGroupPayload {
+  id?: number
   order: number
   context?: string | null
   totalMarks: number
@@ -35,6 +37,7 @@ export interface QuestionGroupPayload {
 }
 
 export interface AssessmentSectionPayload {
+  id?: number
   name: string
   type: SectionTypeEnum
   requiredQuestionsCount?: number | null

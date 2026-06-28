@@ -9,11 +9,145 @@ import {
   validateDateRange,
   canDeleteAssessment,
 } from "@/lib/assessment-validation"
-import type { CreateAssessmentPayload } from "@/lib/assessment-types"
+import type { AssessmentSectionPayload, CreateAssessmentPayload, QuestionPayload } from "@/lib/assessment-types"
+import { assessmentTotalMarks } from "@/lib/assessment-marks"
 
 async function getLecturerId(email: string): Promise<number | null> {
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
   return user?.id ?? null
+}
+class StructuralEditError extends Error {}
+
+type AssessmentTx = Prisma.TransactionClient
+
+function questionWriteData(q: QuestionPayload, assessmentId: number, sectionId: number, groupId?: number, groupOrder?: number) {
+  return {
+    assessmentId,
+    sectionId,
+    groupId,
+    groupOrder,
+    order: q.order,
+    body: q.body,
+    marks: q.marks,
+    answerType: q.answerType ?? null,
+    options: q.options != null ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
+    correctOption: q.correctOption ?? null,
+  }
+}
+
+async function createQuestionWithRubrics(
+  tx: AssessmentTx,
+  assessmentId: number,
+  sectionId: number,
+  q: QuestionPayload,
+  groupId?: number,
+  groupOrder?: number,
+) {
+  const question = await tx.question.create({
+    data: questionWriteData(q, assessmentId, sectionId, groupId, groupOrder),
+  })
+  if (q.rubricCriteria?.length) {
+    await tx.rubricCriterion.createMany({
+      data: q.rubricCriteria.map((r: any) => ({
+        questionId: question.id,
+        description: r.description,
+        maxMarks: r.maxMarks,
+        order: r.order,
+      })),
+    })
+  }
+}
+
+async function updateQuestionWithRubrics(tx: AssessmentTx, q: QuestionPayload, sectionId: number, groupId?: number, groupOrder?: number) {
+  if (!q.id) throw new StructuralEditError("Existing question id is required")
+  await tx.question.update({
+    where: { id: q.id },
+    data: {
+      sectionId,
+      groupId,
+      groupOrder,
+      order: q.order,
+      body: q.body,
+      marks: q.marks,
+      answerType: q.answerType ?? null,
+      options: q.options != null ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
+      correctOption: q.correctOption ?? null,
+    },
+  })
+  await tx.rubricCriterion.deleteMany({ where: { questionId: q.id } })
+  if (q.rubricCriteria?.length) {
+    await tx.rubricCriterion.createMany({
+      data: q.rubricCriteria.map((r: any) => ({
+        questionId: q.id!,
+        description: r.description,
+        maxMarks: r.maxMarks,
+        order: r.order,
+      })),
+    })
+  }
+}
+
+function sameIds(actual: number[], incoming: Array<number | undefined>): boolean {
+  const a = [...actual].sort((x, y) => x - y)
+  const b = incoming.filter((id): id is number => typeof id === "number").sort((x, y) => x - y)
+  return a.length === b.length && a.every((id, idx) => id === b[idx])
+}
+
+async function updateExistingAssessmentContent(tx: AssessmentTx, assessmentId: number, sections: AssessmentSectionPayload[]) {
+  const existingSections = await tx.assessmentSection.findMany({
+    where: { assessmentId },
+    include: {
+      questions: { where: { groupId: null }, select: { id: true } },
+      groups: { include: { questions: { select: { id: true } } } },
+    },
+  })
+
+  if (!sameIds(existingSections.map((s) => s.id), sections.map((s) => s.id))) {
+    throw new StructuralEditError("Closed assessments with submissions cannot add or remove sections")
+  }
+
+  const sectionMap = new Map(existingSections.map((s) => [s.id, s]))
+  for (const s of sections) {
+    if (!s.id) throw new StructuralEditError("Existing section id is required")
+    const existingSection = sectionMap.get(s.id)
+    if (!existingSection) throw new StructuralEditError("Unknown section id")
+
+    if (!sameIds(existingSection.questions.map((q) => q.id), s.questions.map((q) => q.id))) {
+      throw new StructuralEditError("Closed assessments with submissions cannot add or remove standalone questions")
+    }
+    if (!sameIds(existingSection.groups.map((g) => g.id), (s.groups ?? []).map((g) => g.id))) {
+      throw new StructuralEditError("Closed assessments with submissions cannot add or remove groups")
+    }
+
+    await tx.assessmentSection.update({
+      where: { id: s.id },
+      data: { name: s.name, type: s.type, requiredQuestionsCount: s.requiredQuestionsCount ?? null },
+    })
+
+    for (const q of s.questions) {
+      await updateQuestionWithRubrics(tx, q, s.id)
+    }
+
+    const groupMap = new Map(existingSection.groups.map((g) => [g.id, g]))
+    for (const g of s.groups ?? []) {
+      if (!g.id) throw new StructuralEditError("Existing group id is required")
+      const existingGroup = groupMap.get(g.id)
+      if (!existingGroup) throw new StructuralEditError("Unknown group id")
+      if (!sameIds(existingGroup.questions.map((q) => q.id), g.questions.map((q) => q.id))) {
+        throw new StructuralEditError("Closed assessments with submissions cannot add or remove grouped questions")
+      }
+
+      await tx.questionGroup.update({
+        where: { id: g.id },
+        data: { order: g.order, context: g.context ?? null, totalMarks: g.totalMarks },
+      })
+
+      let groupOrder = 1
+      for (const q of g.questions) {
+        await updateQuestionWithRubrics(tx, q, s.id, g.id, groupOrder++)
+      }
+    }
+  }
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -91,8 +225,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (!existing || existing.lecturerId !== lecturerId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
-  if (existing.status !== "DRAFT") {
-    return NextResponse.json({ error: "Only DRAFT assessments can be edited" }, { status: 400 })
+  if (existing.status !== "DRAFT" && existing.status !== "CLOSED") {
+    return NextResponse.json({ error: "Only DRAFT or CLOSED assessments can be edited" }, { status: 400 })
   }
 
   let body: CreateAssessmentPayload
@@ -110,6 +244,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const passwordErr = validatePasswordProtection(body.passwordProtected, body.accessPassword)
   if (passwordErr) return NextResponse.json({ error: passwordErr }, { status: 400 })
 
+  const attemptCount = await prisma.assessmentAttempt.count({ where: { assessmentId } })
+  const preserveExistingContent = existing.status === "CLOSED" && attemptCount > 0
+
   try {
     const updated = await prisma.$transaction(async (tx) => {
       const a = await tx.assessment.update({
@@ -118,7 +255,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           title: body.title,
           type: body.type,
           courseId: body.courseId,
-          totalMarks: body.totalMarks,
+          totalMarks: assessmentTotalMarks(body.sections ?? []),
           instructions: body.instructions ?? "",
           startsAt: new Date(body.startsAt),
           endsAt: new Date(body.endsAt),
@@ -145,8 +282,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         })
       }
 
-      // Replace sections and questions
-      await tx.assessmentSection.deleteMany({ where: { assessmentId } })
+      if (preserveExistingContent) {
+        await updateExistingAssessmentContent(tx, assessmentId, body.sections ?? [])
+      } else {
+        // Replace sections and questions
+        await tx.assessmentSection.deleteMany({ where: { assessmentId } })
       if (body.sections?.length) {
         for (const s of body.sections) {
           const section = await tx.assessmentSection.create({
@@ -228,12 +368,22 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
 
+      }
+
       return a
     })
 
     return NextResponse.json(updated)
   } catch (err) {
-    console.error("[PUT /api/lecturer/assessments/[id]]", err)
+    if (err instanceof StructuralEditError) {
+      return NextResponse.json({ error: err.message }, { status: 400 })
+    }
+    console.error("[PUT /api/lecturer/assessments/[id]] Failed to update assessment", {
+      assessmentId,
+      lecturerId,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
     return NextResponse.json({ error: "Failed to update assessment" }, { status: 500 })
   }
 }

@@ -52,6 +52,10 @@ function initStep4(): Step4State {
   return { totalMarks: "" }
 }
 
+function numericId(id: unknown): number | undefined {
+  const n = Number(id)
+  return Number.isInteger(n) && n > 0 ? n : undefined
+}
 const STEPS = [
   { label: "Basics", desc: "Name, course, schedule, and security settings" },
   { label: "Classes", desc: "Assign student classes and set location rules" },
@@ -121,6 +125,7 @@ function buildPayload(
     classes: s2.selectedClasses.map((c: any) => ({ classId: c.classId })),
     sections: s3.sections.map((sec: any) => {
       const mapQuestion = (q: any) => ({
+        id: numericId(q.id),
         order: q.order,
         body: q.body,
         marks: Number(q.marks),
@@ -137,11 +142,13 @@ function buildPayload(
             : [],
       })
       return {
+        id: numericId(sec.id),
         name: sec.name,
         type: sec.type as any,
         requiredQuestionsCount: sec.requiredQuestionsCount ? parseInt(sec.requiredQuestionsCount) : null,
         questions: sec.questions.map(mapQuestion),
         groups: (sec.groups ?? []).map((g: any, gi: number) => ({
+          id: numericId(g.id),
           order: gi + 1,
           context: g.context?.trim() ? g.context.trim() : null,
           totalMarks: Number(g.totalMarks) || 0,

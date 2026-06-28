@@ -556,6 +556,12 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
         {/* CLOSED actions */}
         {assessment.status === "CLOSED" && (
           <>
+            <Link
+              href={`/lecturer/assessments/${assessment.id}/edit`}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm bg-primary text-white text-[12px] font-semibold hover:bg-[#001570] transition-colors"
+            >
+              <Edit2 size={12} /> Edit Assessment
+            </Link>
             <button
               onClick={handleReopen}
               disabled={isReopening}

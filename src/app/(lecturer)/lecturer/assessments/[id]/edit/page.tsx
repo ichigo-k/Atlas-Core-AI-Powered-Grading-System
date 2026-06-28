@@ -118,7 +118,7 @@ async function EditAssessmentData({ id }: { id: string }) {
   ])
 
   if (!raw || raw.lecturerId !== user.id) notFound()
-  if (raw.status !== "DRAFT") redirect(`/lecturer/assessments/${assessmentId}`)
+  if (raw.status !== "DRAFT" && raw.status !== "CLOSED") redirect(`/lecturer/assessments/${assessmentId}`)
 
   const lecturerCourses: LecturerCourse[] = (profile?.courses ?? []).map((c: { id: number; code: string; title: string; classes: { id: number; name: string; level: number }[] }) => ({
     id: c.id,
@@ -153,7 +153,7 @@ async function EditAssessmentData({ id }: { id: string }) {
   }
 
   const mapQuestionToForm = (q: any) => ({
-    id: crypto.randomUUID(),
+    id: String(q.id),
     order: q.order,
     body: q.body,
     marks: String(q.marks),
@@ -170,14 +170,14 @@ async function EditAssessmentData({ id }: { id: string }) {
 
   const initialStep3: Step3State = {
     sections: (raw as any).sections.map((s: any) => ({
-      id: crypto.randomUUID(),
+      id: String(s.id),
       name: s.name,
       type: s.type,
       requiredQuestionsCount: s.requiredQuestionsCount ? String(s.requiredQuestionsCount) : "",
       pointsPerQuestion: s.questions[0] ? String(s.questions[0].marks) : "",
       questions: s.questions.map(mapQuestionToForm),
       groups: (s.groups ?? []).map((g: any) => ({
-        id: crypto.randomUUID(),
+        id: String(g.id),
         order: g.order,
         context: g.context ?? "",
         totalMarks: String(g.totalMarks),

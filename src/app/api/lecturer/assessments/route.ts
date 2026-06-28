@@ -10,6 +10,7 @@ import {
   isCourseOwnedByLecturer,
 } from "@/lib/assessment-validation"
 import type { CreateAssessmentPayload } from "@/lib/assessment-types"
+import { assessmentTotalMarks } from "@/lib/assessment-marks"
 
 async function getLecturerId(email: string): Promise<number | null> {
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
           status: body.status ?? "DRAFT",
           courseId: body.courseId,
           lecturerId,
-          totalMarks: body.totalMarks,
+          totalMarks: assessmentTotalMarks(body.sections ?? []),
           instructions: body.instructions ?? "",
           startsAt: new Date(body.startsAt),
           endsAt: new Date(body.endsAt),
