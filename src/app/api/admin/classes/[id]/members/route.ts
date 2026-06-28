@@ -34,7 +34,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       name: m.user.name,
       email: m.user.email,
       status: m.user.status,
-      program: m.legacyProgram,
+      program: m.program?.name ?? "Unassigned",
     }));
 
     return NextResponse.json(formattedMembers, { status: 200 });

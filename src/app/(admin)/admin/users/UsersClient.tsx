@@ -359,6 +359,7 @@ export default function UsersClient({
 				open={!!editUser}
 				onOpenChange={(open) => !open && setEditUser(null)}
 				classes={classes}
+				programs={programs}
 			/>
 
 			<ConfirmModal

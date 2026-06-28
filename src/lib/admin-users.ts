@@ -10,32 +10,48 @@ export type UserWithProfile = {
   createdAt: Date
   studentProfile: {
     indexNumber: string | null
-    program: string
+    programId: number | null
+    program: string | null
     classId: number | null
   } | null
   lecturerProfile: {
-    department: string
+    department: string | null
     title: string
   } | null
-  adminProfile: Record<string, never> | null
+  adminProfile: { id: number } | null
 }
 
 export async function getUsersWithProfiles(): Promise<UserWithProfile[]> {
-  return prisma.user.findMany({
+  const users = await prisma.user.findMany({
     include: {
-      studentProfile: true,
+      studentProfile: {
+        include: { program: { select: { name: true } } },
+      },
       lecturerProfile: true,
       adminProfile: true,
     },
     orderBy: { createdAt: "desc" },
-  }) as Promise<UserWithProfile[]>
+  })
+
+  return users.map((user) => ({
+    ...user,
+    studentProfile: user.studentProfile
+      ? {
+          indexNumber: user.studentProfile.indexNumber,
+          programId: user.studentProfile.programId,
+          program: user.studentProfile.program?.name ?? null,
+          classId: user.studentProfile.classId,
+        }
+      : null,
+  }))
 }
+
 export async function getLecturers() {
   return prisma.lecturerProfile.findMany({
     include: {
       user: {
-        select: { name: true, email: true }
-      }
-    }
+        select: { name: true, email: true },
+      },
+    },
   })
 }

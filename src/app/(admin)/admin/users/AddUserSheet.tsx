@@ -44,8 +44,7 @@ function validate(
 	if (!data.email?.trim()) errors.email = "Email is required";
 	if (role === "STUDENT") {
 		if (!data.indexNumber?.trim()) errors.indexNumber = "Index number is required";
-		// programId expected from dropdown; fall back to program string
-		if (!data.programId && !data.program) errors.program = "Program is required";
+		if (!data.programId) errors.program = "Program is required";
 	}
 	if (role === "LECTURER") {
 		// facultyId expected from dropdown; fall back to department string
@@ -120,8 +119,6 @@ export default function AddUserSheet({
 		if (currentRole === "STUDENT") {
 			if (data.indexNumber) body.indexNumber = data.indexNumber;
 			if (data.programId) body.programId = Number(data.programId);
-			// keep legacy program string if provided
-			if (data.program) body.program = data.program;
 			if (data.classId?.trim()) body.classId = Number(data.classId);
 		} else if (currentRole === "LECTURER") {
 			if (data.facultyId) body.facultyId = Number(data.facultyId);

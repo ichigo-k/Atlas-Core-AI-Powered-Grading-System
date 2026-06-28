@@ -1,9 +1,16 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { ColumnDef } from "@tanstack/react-table"
-import { ChevronRight } from "lucide-react"
+import { BarChart3, Eye, MoreVertical } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { format } from "date-fns"
 import type { AssessmentListItem, AssessmentTypeEnum, AssessmentStatusEnum } from "@/lib/assessment-types"
 
@@ -94,10 +101,47 @@ const columns: ColumnDef<AssessmentListItem>[] = [
     ),
   },
   {
-    id: "chevron",
-    cell: () => (
-      <ChevronRight size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
-    ),
+    id: "actions",
+    header: "",
+    enableHiding: false,
+    cell: ({ row }) => {
+      const assessment = row.original
+      const canViewResults = assessment.status !== "DRAFT"
+
+      return (
+        <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Open actions for ${assessment.title}`}
+                className="flex h-8 w-8 items-center justify-center rounded-sm border border-transparent text-muted-foreground hover:border-border hover:bg-[#f3f2f1] hover:text-[#1e293b] transition-colors"
+              >
+                <MoreVertical size={15} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 rounded-sm">
+              <DropdownMenuItem asChild className="text-[12px]">
+                <Link href={`/lecturer/assessments/${assessment.id}`}>
+                  <Eye className="mr-2 h-3.5 w-3.5" /> View assessment
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild={canViewResults} disabled={!canViewResults} className="text-[12px]">
+                {canViewResults ? (
+                  <Link href={`/lecturer/assessments/${assessment.id}/results`}>
+                    <BarChart3 className="mr-2 h-3.5 w-3.5" /> View results
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center">
+                    <BarChart3 className="mr-2 h-3.5 w-3.5" /> View results
+                  </span>
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )
+    },
   },
 ]
 

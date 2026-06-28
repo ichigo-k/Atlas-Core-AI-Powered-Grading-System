@@ -29,7 +29,6 @@ export async function GET(
                 studentProfile: {
                     select: {
                         indexNumber: true,
-                        legacyProgram: true,
                         program: { select: { id: true, name: true, code: true } },
                         class: { select: { id: true, name: true, level: true } },
                     },
@@ -174,7 +173,7 @@ export async function GET(
                 email: student.email,
                 dateJoined: student.dateJoined,
                 indexNumber: student.studentProfile.indexNumber,
-                program: student.studentProfile.program?.name ?? student.studentProfile.legacyProgram ?? null,
+                program: student.studentProfile.program?.name ?? null,
                 programCode: student.studentProfile.program?.code ?? null,
                 currentClass: student.studentProfile.class?.name ?? null,
                 currentLevel: student.studentProfile.class?.level ?? null,

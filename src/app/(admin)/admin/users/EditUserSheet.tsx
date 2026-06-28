@@ -40,6 +40,7 @@ interface EditUserSheetProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	classes: any[];
+	programs: Array<{ id: number; name: string; code?: string | null }>;
 }
 
 export default function EditUserSheet({
@@ -47,6 +48,7 @@ export default function EditUserSheet({
 	open,
 	onOpenChange,
 	classes,
+	programs,
 }: EditUserSheetProps) {
 	const [loading, setLoading] = useState(false);
 	const submittingRef = useRef(false);
@@ -194,21 +196,36 @@ export default function EditUserSheet({
 										/>
 									</div>
 								)}
-
 								{user.role === "STUDENT" && (
 									<div className="space-y-2">
 										<Label
-											htmlFor="program"
+											htmlFor="programId"
 											className="text-xs font-bold text-slate-700 ml-1"
 										>
 											Academic Program
 										</Label>
-										<Input
-											id="program"
-											name="program"
-											defaultValue={user.studentProfile?.program || ""}
-											className="h-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all px-4"
-										/>
+										<Select
+											name="programId"
+											defaultValue={user.studentProfile?.programId?.toString()}
+										>
+											<SelectTrigger
+												id="programId"
+												className="h-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all px-4"
+											>
+												<SelectValue placeholder="Select a program" />
+											</SelectTrigger>
+											<SelectContent className="rounded-sm border-border">
+												{programs.map((program) => (
+													<SelectItem
+														key={program.id}
+														value={program.id.toString()}
+														className="text-sm rounded-sm"
+													>
+														{program.name}{program.code ? ` (${program.code})` : ""}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</div>
 								)}
 

@@ -85,7 +85,6 @@ model StudentProfile {
   id            Int      @id
   user          User     @relation(fields: [id], references: [id])
   indexNumber   String?  @map("index_number")
-  legacyProgram String?  @map("program")
   programId     Int?
   program       Program? @relation(fields: [programId], references: [id])
   classId       Int?

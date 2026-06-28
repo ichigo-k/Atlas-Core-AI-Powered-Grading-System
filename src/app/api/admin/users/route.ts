@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
     role,
     // Student fields
     indexNumber,
-    program,
     programId,
     classId,
     // Lecturer fields
@@ -64,9 +63,8 @@ export async function POST(request: NextRequest) {
     if (!indexNumber || typeof indexNumber !== "string") {
       return NextResponse.json({ error: "indexNumber is required" }, { status: 400 })
     }
-    // prefer programId (new dropdown), fall back to legacy program string
-    if ((programId === undefined || typeof programId !== 'number') && (!program || typeof program !== "string")) {
-      return NextResponse.json({ error: "programId or program is required" }, { status: 400 })
+    if (programId === undefined || typeof programId !== "number") {
+      return NextResponse.json({ error: "programId is required" }, { status: 400 })
     }
   }
 
@@ -102,8 +100,7 @@ export async function POST(request: NextRequest) {
           data: {
             id: created.id,
             indexNumber: indexNumber as string,
-            programId: typeof programId === 'number' ? programId : null,
-            legacyProgram: typeof program === 'string' ? program : undefined,
+            programId: programId as number,
             classId: typeof classId === "number" ? classId : null,
           },
         })

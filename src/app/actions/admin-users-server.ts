@@ -85,10 +85,13 @@ export async function updateUserAction(userId: number, formData: FormData) {
 
     if (user.role === "STUDENT") {
       const indexNumber = formData.get("indexNumber") as string;
-      const program = formData.get("program") as string;
+      const programId = Number(formData.get("programId"));
       await prisma.studentProfile.update({
         where: { id: userId },
-        data: { indexNumber, legacyProgram: program },
+        data: {
+          indexNumber,
+          programId: Number.isInteger(programId) && programId > 0 ? programId : null,
+        },
       });
     } else if (user.role === "LECTURER") {
       const department = formData.get("department") as string;

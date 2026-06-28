@@ -74,7 +74,6 @@ export default async function StudentDetailPage({
             studentProfile: {
                 select: {
                     indexNumber: true,
-                    legacyProgram: true,
                     program: { select: { name: true, code: true } },
                     class: { select: { name: true, level: true } },
                 },
@@ -266,7 +265,7 @@ export default async function StudentDetailPage({
                                 </div>
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                     <GraduationCap size={12} />
-                                    <span className="text-[#1e293b] truncate">{profile.program?.name ?? profile.legacyProgram ?? "–"}</span>
+                                    <span className="text-[#1e293b] truncate">{profile.program?.name ?? "–"}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                     <Layers size={12} />

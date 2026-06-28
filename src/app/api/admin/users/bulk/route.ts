@@ -27,7 +27,6 @@ type ValidRow = {
   indexNumber?: string;
   programId?: number;
   classId?: number | null;
-  legacyProgram?: string;
   // lecturer
   facultyId?: number;
   title?: string;
@@ -153,7 +152,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
       }
-      validRows.push({ rowNum, email: row.email, name: row.name, emailLocal, indexNumber, programId, classId, legacyProgram: row.program });
+      validRows.push({ rowNum, email: row.email, name: row.name, emailLocal, indexNumber, programId, classId });
     } else if (role === "LECTURER") {
       const facultyName = row.faculty?.trim() || row.department?.trim() || "";
       const facultyId = facultyMap.get(facultyName.toLowerCase()) ?? null;
@@ -199,7 +198,7 @@ export async function POST(request: NextRequest) {
               });
               if (role === "STUDENT") {
                 await tx.studentProfile.create({
-                  data: { id: user.id, indexNumber: item.indexNumber!, legacyProgram: item.legacyProgram, programId: item.programId!, classId: item.classId ?? null },
+                  data: { id: user.id, indexNumber: item.indexNumber!, programId: item.programId!, classId: item.classId ?? null },
                 });
               } else if (role === "LECTURER") {
                 await tx.lecturerProfile.create({
