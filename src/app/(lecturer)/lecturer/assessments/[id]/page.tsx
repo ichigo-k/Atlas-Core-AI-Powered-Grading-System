@@ -85,8 +85,19 @@ async function AssessmentData({
       classes: { include: { class: { select: { name: true, level: true } } } },
       sections: {
         include: {
+          // Standalone questions only — grouped ones come back under `groups`.
           questions: {
+            where: { groupId: null },
             include: { rubricCriteria: { orderBy: { order: "asc" } } },
+            orderBy: { order: "asc" },
+          },
+          groups: {
+            include: {
+              questions: {
+                include: { rubricCriteria: { orderBy: { order: "asc" } } },
+                orderBy: { groupOrder: "asc" },
+              },
+            },
             orderBy: { order: "asc" },
           },
         },
@@ -99,6 +110,22 @@ async function AssessmentData({
 
   const { autoCloseIfExpired } = await import("@/lib/auto-close-assessment")
   const resolvedStatus = await autoCloseIfExpired(raw)
+
+  const mapQuestion = (q: any) => ({
+    id: q.id,
+    order: q.order,
+    body: q.body,
+    marks: q.marks,
+    answerType: q.answerType as any,
+    options: q.options as string[] | null,
+    correctOption: q.correctOption,
+    rubricCriteria: q.rubricCriteria.map((rc: any) => ({
+      id: rc.id,
+      description: rc.description,
+      maxMarks: rc.maxMarks,
+      order: rc.order,
+    })),
+  })
 
   const assessment: AssessmentWithDetails = {
     id: raw.id,
@@ -133,20 +160,13 @@ async function AssessmentData({
       name: s.name,
       type: s.type as any,
       requiredQuestionsCount: s.requiredQuestionsCount,
-      questions: s.questions.map((q: any) => ({
-        id: q.id,
-        order: q.order,
-        body: q.body,
-        marks: q.marks,
-        answerType: q.answerType as any,
-        options: q.options as string[] | null,
-        correctOption: q.correctOption,
-        rubricCriteria: q.rubricCriteria.map((rc: any) => ({
-          id: rc.id,
-          description: rc.description,
-          maxMarks: rc.maxMarks,
-          order: rc.order,
-        })),
+      questions: s.questions.map(mapQuestion),
+      groups: (s.groups ?? []).map((g: any) => ({
+        id: g.id,
+        order: g.order,
+        context: g.context ?? null,
+        totalMarks: g.totalMarks,
+        questions: g.questions.map(mapQuestion),
       })),
     })),
   }

@@ -193,6 +193,25 @@ function EditSettingsSheet({ assessment, open, onClose }: {
   )
 }
 
+// A group counts as one answerable unit, same as a standalone question.
+function sectionUnitCount(s: AssessmentWithDetails["sections"][number]): number {
+  return s.questions.length + (s.groups?.length ?? 0)
+}
+
+// Marks for a section: each question and each group (its total) is one unit;
+// when fewer units are required than exist, only the top-marked units count.
+function sectionUnitMarks(s: AssessmentWithDetails["sections"][number]): number {
+  const unitMarks = [
+    ...s.questions.map((q) => q.marks),
+    ...(s.groups ?? []).map((g) => g.totalMarks),
+  ]
+  const required = s.requiredQuestionsCount
+  const list = required != null && required < unitMarks.length
+    ? [...unitMarks].sort((a, b) => b - a).slice(0, required)
+    : unitMarks
+  return list.reduce((sum, m) => sum + m, 0)
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -439,7 +458,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
 
   // ─── Derived values ───────────────────────────────────────────────────────
 
-  const totalQuestions = assessment.sections.reduce((acc, s) => acc + s.questions.length, 0)
+  const totalQuestions = assessment.sections.reduce((acc, s) => acc + sectionUnitCount(s), 0)
   const status = statusBadge[assessment.status] ?? statusBadge.DRAFT
   const submittedCount = resultsData?.submissions.length ?? 0
   const gradedCount = (resultsData?.submissions ?? []).filter((s: any) => s.status === "GRADED").length
@@ -695,8 +714,8 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
               <tbody className="divide-y divide-[#f1f5f9]">
                 {assessment.sections.map((section, secIdx) => {
                   const isObjective = section.type === "OBJECTIVE"
-                  const required = section.requiredQuestionsCount ?? section.questions.length
-                  const sectionMarks = section.questions.map((q: any) => q.marks).sort((a, b) => b - a).slice(0, required).reduce((acc, m) => acc + m, 0)
+                  const units = sectionUnitCount(section)
+                  const sectionMarks = sectionUnitMarks(section)
                   const pct = assessment.totalMarks > 0 ? Math.round((sectionMarks / assessment.totalMarks) * 100) : 0
                   return (
                     <tr key={section.id} className="hover:bg-slate-50/50 transition-colors">
@@ -713,7 +732,7 @@ export default function AssessmentView({ assessment, resultsData, userId, initia
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-[11px] text-muted-foreground">
-                        {section.requiredQuestionsCount ? `Answer ${section.requiredQuestionsCount} of ${section.questions.length}` : `All ${section.questions.length}`}
+                        {section.requiredQuestionsCount && section.requiredQuestionsCount < units ? `Answer ${section.requiredQuestionsCount} of ${units}` : `All ${units}`}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <span className="text-[13px] font-semibold text-[#1e293b]">{sectionMarks}</span>
