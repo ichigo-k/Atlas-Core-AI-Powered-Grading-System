@@ -20,6 +20,7 @@ import type {
   AnswerTypeEnum,
 } from "@/lib/assessment-types"
 import { validatePublishConditions } from "@/lib/assessment-validation"
+import { sectionUnitMarks } from "@/lib/assessment-marks"
 
 function initStep1(): Step1State {
   return {
@@ -198,16 +199,7 @@ export default function AssessmentForm({
       if (Object.keys(errors).length > 0) return
     }
     if (step === 2) {
-      const calculated = step3.sections.reduce((total, sec) => {
-        const required = Number(sec.requiredQuestionsCount) || sec.questions.length
-        const sortedMarks = sec.questions
-          .map((q: any) => Number(q.marks) || 0)
-          .sort((a, b) => b - a)
-        const standalone = sortedMarks.slice(0, required).reduce((sum, m) => sum + m, 0)
-        // Each group contributes its declared total marks.
-        const groupMarks = (sec.groups ?? []).reduce((sum: number, g: any) => sum + (Number(g.totalMarks) || 0), 0)
-        return total + standalone + groupMarks
-      }, 0)
+      const calculated = step3.sections.reduce((total, sec) => total + sectionUnitMarks(sec), 0)
       setStep4({ totalMarks: String(calculated) })
     }
     setStep((s) => Math.min(s + 1, 3))

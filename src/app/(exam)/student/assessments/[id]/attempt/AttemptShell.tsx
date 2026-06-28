@@ -72,6 +72,7 @@ export type SectionWithProgress = {
     questions: { id: number; order: number; body: string; marks: number; answerType: string | null; options: unknown }[]
   }[]
   totalQuestionCount: number
+  requiredCount: number
   answeredCount: number
 }
 
@@ -172,6 +173,11 @@ export type ExamPage =
       questions: SectionQuestion[]
     }
 
+// All answerable question ids on a page (one for a single, many for a group).
+function pageIdsOf(p: ExamPage): number[] {
+  return p.kind === "single" ? [p.question.id] : p.questions.map((q) => q.id)
+}
+
 // Build the ordered list of pages for a section: standalone questions first
 // (each its own page), then each group as a single multi-question page.
 function buildSectionPages(section: SerializedAssessmentDetail["sections"][number]): ExamPage[] {
@@ -193,25 +199,27 @@ function buildSectionPages(section: SerializedAssessmentDetail["sections"][numbe
 }
 
 // ─── Question Selection Screen ────────────────────────────────────────────────
-// Shown when a section has requiredQuestionsCount < total questions.
-// Student must pick exactly N questions before they can answer any.
+// Shown when a section requires fewer units than it has. A "unit" is one
+// standalone question OR one whole group. The student picks exactly N units.
 
 function QuestionSelectionScreen({
-  section,
+  sectionName,
+  pages,
   required,
-  selectedIds,
+  selectedKeys,
   isReselecting,
   onToggle,
   onConfirm,
 }: {
-  section: SectionWithProgress
+  sectionName: string
+  pages: ExamPage[]
   required: number
-  selectedIds: Set<number>
+  selectedKeys: Set<string>
   isReselecting?: boolean
-  onToggle: (id: number) => void
+  onToggle: (key: string) => void
   onConfirm: () => void
 }) {
-  const count = selectedIds.size
+  const count = selectedKeys.size
   const ready = count === required
 
   return (
@@ -219,16 +227,14 @@ function QuestionSelectionScreen({
       {/* Instruction banner */}
       <div className="mb-8">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af] mb-1">
-          {section.name}
+          {sectionName}
         </p>
         <h2 className="text-[20px] font-semibold text-[#111827] mb-1" style={{ fontFamily: "var(--font-sans,'Poppins',sans-serif)" }}>
-          {isReselecting ? "Change your selection" : "Choose your questions"}
+          {isReselecting ? "Change your selection" : "Choose what to answer"}
         </h2>
         <p className="text-[14px] text-[#6b7280]" style={{ fontFamily: "var(--font-sans,'Poppins',sans-serif)" }}>
-          {isReselecting
-            ? <>Update your selection — pick exactly <strong className="text-[#111827]">{required}</strong> questions from the {section.questions.length} below.</>
-            : <>Select exactly <strong className="text-[#111827]">{required}</strong> questions to answer from the {section.questions.length} below.</>
-          }
+          Select exactly <strong className="text-[#111827]">{required}</strong> of the {pages.length} below.
+          {pages.some((p) => p.kind === "group") && " A group counts as one — picking it includes all its parts."}
         </p>
         <div className="mt-3 flex items-center gap-2">
           <div className="h-1.5 w-48 rounded-full bg-[#f3f4f6] overflow-hidden">
@@ -243,14 +249,19 @@ function QuestionSelectionScreen({
         </div>
       </div>
 
-      {/* Question list */}
+      {/* Unit list */}
       <div className="flex flex-col divide-y divide-[#f3f4f6]">
-        {section.questions.map((q, idx) => {
-          const checked = selectedIds.has(q.id)
+        {pages.map((p, idx) => {
+          const checked = selectedKeys.has(p.key)
           const disabled = !checked && count >= required
+          const isGroup = p.kind === "group"
+          const marks = isGroup ? p.totalMarks : p.question.marks
+          const body = isGroup
+            ? (p.context?.trim() || `Group of ${p.questions.length} sub-questions`)
+            : p.question.body
           return (
             <label
-              key={q.id}
+              key={p.key}
               className={[
                 "flex items-start gap-4 py-4 cursor-pointer transition-colors",
                 disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-[#fafafa]",
@@ -260,7 +271,7 @@ function QuestionSelectionScreen({
                 type="checkbox"
                 checked={checked}
                 disabled={disabled}
-                onChange={() => !disabled && onToggle(q.id)}
+                onChange={() => !disabled && onToggle(p.key)}
                 className="sr-only"
               />
               {/* Custom checkbox */}
@@ -276,12 +287,15 @@ function QuestionSelectionScreen({
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-3">
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af]">
-                    Q{idx + 1}
+                    {isGroup ? `Group ${idx + 1}` : `Q${idx + 1}`}
                   </span>
-                  <span className="text-[11px] text-[#9ca3af]">{q.marks} {q.marks === 1 ? "mark" : "marks"}</span>
+                  {isGroup && (
+                    <span className="text-[11px] text-[#9ca3af]">{p.questions.length} {p.questions.length === 1 ? "part" : "parts"}</span>
+                  )}
+                  <span className="text-[11px] text-[#9ca3af]">{marks} {marks === 1 ? "mark" : "marks"}</span>
                 </div>
-                <p className="mt-0.5 text-[15px] text-[#374151] leading-relaxed" style={{ fontFamily: "'Georgia','Times New Roman',serif" }}>
-                  {q.body}
+                <p className="mt-0.5 text-[15px] text-[#374151] leading-relaxed line-clamp-3" style={{ fontFamily: "'Georgia','Times New Roman',serif" }}>
+                  {body}
                 </p>
               </div>
             </label>
@@ -302,7 +316,7 @@ function QuestionSelectionScreen({
         </button>
         {!ready && (
           <span className="text-[12px] text-[#9ca3af]">
-            Select {required - count} more question{required - count !== 1 ? "s" : ""} to continue
+            Select {required - count} more to continue
           </span>
         )}
       </div>
@@ -391,10 +405,7 @@ function SubmitReviewScreen({ assessment, sections, totalRequired, answeredCount
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-2 px-1">By section</p>
           <div className="rounded-xl border border-[#e5e7eb] bg-white divide-y divide-[#f3f4f6] overflow-hidden mb-5">
             {sections.map((section: any) => {
-              const hasGroups = (section.groups?.length ?? 0) > 0
-              const required = !hasGroups && section.requiredQuestionsCount != null
-                ? section.requiredQuestionsCount
-                : section.totalQuestionCount
+              const required = section.requiredCount
               const done = Math.min(section.answeredCount, required)
               const complete = done >= required
               return (
@@ -531,36 +542,36 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
-  // selectedQIds: per-section map of chosen question IDs (only for quota sections)
-  // null means "no quota" — all questions are open
-  // Set means "confirmed selection" — only those IDs are answerable
-  // undefined means "not yet selected" — show selection screen
-  const [sectionSelections, setSectionSelections] = useState<Map<number, Set<number> | undefined>>(() => {
-    const map = new Map<number, Set<number> | undefined>()
+  // Per-section unit selection for "answer N of M" quota sections.
+  // A "unit" is one page: a standalone question OR a whole group. We store the
+  // chosen page keys ("q123" / "g45").
+  //   absent key  → no quota (everything open)
+  //   undefined   → quota, not yet selected (show selection screen)
+  //   Set<string> → confirmed selection of unit keys
+  const [sectionSelections, setSectionSelections] = useState<Map<number, Set<string> | undefined>>(() => {
+    const map = new Map<number, Set<string> | undefined>()
     for (const s of sections) {
+      const pages = buildSectionPages(s)
       const required = s.requiredQuestionsCount
-      const hasGroups = (s.groups?.length ?? 0) > 0
-      // Quota selection doesn't apply to sections that contain groups.
-      if (!hasGroups && required !== null && required < s.questions.length) {
-        // Check if student already has answers in this section (resuming attempt)
-        const answeredInSection = s.questions.filter((q: any) => {
-          const a = attempt.answers.find((a: any) => a.questionId === q.id)
-          return a && (a.answerText !== null || a.selectedOption !== null || a.fileUrl !== null)
-        })
-        if (answeredInSection.length > 0) {
-          // Pre-populate selection from existing answers
-          map.set(s.id, new Set(answeredInSection.map((q: any) => q.id)))
-        } else {
-          map.set(s.id, undefined) // needs selection
-        }
+      if (required !== null && required < pages.length) {
+        // Resuming: pre-select any unit the student already started answering.
+        const startedKeys = pages
+          .filter((p) =>
+            pageIdsOf(p).some((id) => {
+              const a = attempt.answers.find((ans: any) => ans.questionId === id)
+              return a && (a.answerText !== null || a.selectedOption !== null || a.fileUrl !== null)
+            }),
+          )
+          .map((p) => p.key)
+        map.set(s.id, startedKeys.length > 0 ? new Set(startedKeys) : undefined)
       }
       // No entry = no quota = all open
     }
     return map
   })
 
-  // Pending selection state (before confirming)
-  const [pendingSelection, setPendingSelection] = useState<Set<number>>(new Set())
+  // Pending selection state (before confirming) — page keys.
+  const [pendingSelection, setPendingSelection] = useState<Set<string>>(new Set())
 
   const [answers, setAnswers] = useState<AnswerMap>(() => {
     const map: AnswerMap = new Map()
@@ -578,42 +589,52 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     return a && (a.answerText !== null || a.selectedOption !== null || a.fileUrl !== null)
   }
 
+  // A unit (page) is "complete" when every question on it has an answer. For a
+  // group that means all its sub-questions; blanks are allowed, they just leave
+  // the unit incomplete (the submit review nudges but never blocks).
+  const pageComplete = (p: ExamPage) => {
+    const ids = pageIdsOf(p)
+    return ids.length > 0 && ids.every((id) => hasAnswerValue(answers.get(id)))
+  }
+
   // For a quota section: returns the confirmed Set, or undefined if not yet selected
-  function getSectionSelectedIds(sectionId: number): Set<number> | null | undefined {
+  function getSectionSelection(sectionId: number): Set<string> | null | undefined {
     if (!sectionSelections.has(sectionId)) return null // no quota
     return sectionSelections.get(sectionId) // undefined = needs selection, Set = confirmed
   }
 
   const sectionsWithProgress: SectionWithProgress[] = sections.map((s: any) => {
-    const all = allSectionQuestions(s)
+    const pages = buildSectionPages(s)
+    const sel = getSectionSelection(s.id)
+    const visible = sel instanceof Set ? pages.filter((p) => sel.has(p.key)) : pages
+    // requiredCount is in units: the configured quota for quota sections, else all units.
+    const requiredCount = sectionSelections.has(s.id) ? (s.requiredQuestionsCount as number) : pages.length
     return {
       ...s,
-      totalQuestionCount: all.length,
-      answeredCount: all.filter((q: any) => hasAnswerValue(answers.get(q.id))).length,
+      totalQuestionCount: pages.length,
+      requiredCount,
+      answeredCount: visible.filter(pageComplete).length,
     }
   })
 
   const activeSection = sections.find((s: any) => s.id === activeSectionId) ?? firstSection
-  const activeSectionHasGroups = (activeSection?.groups?.length ?? 0) > 0
   const activeSectionRequired = activeSection?.requiredQuestionsCount ?? null
-  // "Choose N of M" quota selection only applies to plain sections without groups.
-  const activeSectionHasQuota =
-    !activeSectionHasGroups &&
-    activeSectionRequired !== null &&
-    activeSectionRequired < (activeSection?.questions.length ?? 0)
-
-  // Is the active section in "needs selection" mode?
-  const activeSectionSelection = activeSection ? getSectionSelectedIds(activeSection.id) : null
-  const needsSelection = activeSectionHasQuota && activeSectionSelection === undefined
 
   // Pages for the active section — standalone questions (one each) + group pages.
   const activePages: ExamPage[] = activeSection ? buildSectionPages(activeSection) : []
-  // For quota sections, restrict to the confirmed selection (those pages are all single).
+  // "Choose N of M" quota applies whenever fewer units are required than exist —
+  // a group counts as one selectable unit, same as a standalone question.
+  const activeSectionHasQuota =
+    activeSectionRequired !== null && activeSectionRequired < activePages.length
+
+  // Is the active section in "needs selection" mode?
+  const activeSectionSelection = activeSection ? getSectionSelection(activeSection.id) : null
+  const needsSelection = activeSectionHasQuota && activeSectionSelection === undefined
+
+  // For quota sections, restrict to the confirmed selection of units.
   const visiblePages: ExamPage[] =
     activeSectionSelection instanceof Set
-      ? activePages.filter(
-          (p) => p.kind === "single" && (activeSectionSelection as Set<number>).has(p.question.id),
-        )
+      ? activePages.filter((p) => (activeSectionSelection as Set<string>).has(p.key))
       : activePages
 
   // Navigation now moves page-by-page. activeQuestionIndex holds the page index.
@@ -621,26 +642,15 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
   const safeActiveIndex = Math.min(activeQuestionIndex, Math.max(0, totalQuestionsInSection - 1))
   const activePage: ExamPage | null = visiblePages[safeActiveIndex] ?? null
 
-  // Required + answered totals count individual questions (standalone + grouped).
-  const totalRequired = sections.reduce((sum, s: any) => {
-    const hasGroups = (s.groups?.length ?? 0) > 0
-    const req = !hasGroups && s.requiredQuestionsCount != null
-      ? s.requiredQuestionsCount
-      : allSectionQuestions(s).length
-    return sum + req
-  }, 0)
-  const totalAnsweredAll = sectionsWithProgress.reduce((sum, s) => {
-    const hasGroups = (s.groups?.length ?? 0) > 0
-    const req = !hasGroups && s.requiredQuestionsCount != null ? s.requiredQuestionsCount : s.totalQuestionCount
-    return sum + Math.min(s.answeredCount, req)
-  }, 0)
+  // Required + answered totals are counted in units (standalone questions + groups).
+  const totalRequired = sectionsWithProgress.reduce((sum, s) => sum + s.requiredCount, 0)
+  const totalAnsweredAll = sectionsWithProgress.reduce(
+    (sum, s) => sum + Math.min(s.answeredCount, s.requiredCount),
+    0,
+  )
 
-  // Per-page answered state for the palette / footer dots: a group page counts as
-  // answered only when every one of its sub-questions has an answer.
-  const paletteItems = visiblePages.map((p) => {
-    const ids = p.kind === "single" ? [p.question.id] : p.questions.map((q) => q.id)
-    return { key: p.key, answered: ids.length > 0 && ids.every((id) => hasAnswerValue(answers.get(id))) }
-  })
+  // Per-page answered state for the palette / footer dots.
+  const paletteItems = visiblePages.map((p) => ({ key: p.key, answered: pageComplete(p) }))
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -650,11 +660,11 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     setPendingSelection(new Set())
   }
 
-  function handleTogglePending(qId: number) {
+  function handleTogglePending(key: string) {
     setPendingSelection((prev) => {
       const next = new Set(prev)
-      if (next.has(qId)) next.delete(qId)
-      else next.add(qId)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -671,7 +681,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   function handleChangeSelection() {
     if (!activeSection) return
-    const current = getSectionSelectedIds(activeSection.id)
+    const current = getSectionSelection(activeSection.id)
     setPendingSelection(current instanceof Set ? new Set(current) : new Set())
     setSectionSelections((prev) => new Map(prev).set(activeSection.id, undefined))
     setActiveQuestionIndex(0)
@@ -772,12 +782,9 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
           <div className="flex flex-col gap-0.5">
             {sectionsWithProgress.map((section: any) => {
               const isActive = section.id === activeSectionId
-              const hasGroups = (section.groups?.length ?? 0) > 0
-              const required = !hasGroups && section.requiredQuestionsCount != null
-                ? section.requiredQuestionsCount
-                : section.totalQuestionCount
+              const required = section.requiredCount
               const complete = section.answeredCount >= required
-              const sel = getSectionSelectedIds(section.id)
+              const sel = getSectionSelection(section.id)
               const pending = sel === undefined
               return (
                 <button key={section.id} type="button"
@@ -974,9 +981,10 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
           {/* ── Selection screen OR question area ── */}
           {needsSelection && activeSection ? (
             <QuestionSelectionScreen
-              section={{ ...activeSection, totalQuestionCount: activeSection.questions.length, answeredCount: 0 }}
+              sectionName={activeSection.name}
+              pages={activePages}
               required={activeSectionRequired!}
-              selectedIds={pendingSelection}
+              selectedKeys={pendingSelection}
               isReselecting={activeSection ? everConfirmedSections.has(activeSection.id) : false}
               onToggle={handleTogglePending}
               onConfirm={handleConfirmSelection}

@@ -11,6 +11,7 @@ import QuestionBuilderA from "./QuestionBuilderA"
 import QuestionBuilderB from "./QuestionBuilderB"
 import ImportFromBankModal from "./ImportFromBankModal"
 import { CollapsedGroupRow } from "./QuestionRow"
+import { sectionUnitMarks } from "@/lib/assessment-marks"
 import { cn } from "@/lib/utils"
 
 interface Step3QuestionsProps {
@@ -63,18 +64,10 @@ function groupQuestionMarks(group: GroupFormState): number {
   return group.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0)
 }
 
+// Marks for the section header — each question and each group is one unit;
+// when fewer units are required than exist, only the top-marked units count.
 function sectionTotalMarks(section: SectionFormState): number {
-  let base: number
-  if (section.requiredQuestionsCount && section.pointsPerQuestion) {
-    const req = parseInt(section.requiredQuestionsCount) || 0
-    const pts = parseInt(section.pointsPerQuestion) || 0
-    base = req * pts
-  } else {
-    base = section.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0)
-  }
-  // Each group contributes its declared total marks.
-  const groupMarks = (section.groups ?? []).reduce((sum, g) => sum + (parseInt(g.totalMarks) || 0), 0)
-  return base + groupMarks
+  return sectionUnitMarks(section)
 }
 
 // A group is invalid if it has no sub-questions, any sub-question is incomplete,
@@ -663,6 +656,9 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                             placeholder="Leave blank for all"
                             className="h-9 border-slate-200 bg-white text-sm focus-visible:ring-[#002388]/30"
                           />
+                          {(section.groups?.length ?? 0) > 0 && (
+                            <p className="text-[10px] text-slate-400">A whole group counts as one.</p>
+                          )}
                         </div>
 
                         {/* Points per question — only when required count is set */}

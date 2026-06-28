@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import type { Step4State, SectionFormState } from "@/lib/assessment-types"
+import { sectionUnitMarks } from "@/lib/assessment-marks"
 import { ArrowLeft, FileText, Send, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
@@ -26,15 +27,7 @@ export default function Step4Grading({
   onBack,
   isSubmitting,
 }: Step4GradingProps) {
-  const totalMarks = sections.reduce((total: number, sec) => {
-    const required = Number(sec.requiredQuestionsCount) || sec.questions.length
-    const sortedMarks = sec.questions
-      .map((q: any) => Number(q.marks) || 0)
-      .sort((a: number, b: number) => b - a)
-    const standalone = sortedMarks.slice(0, required).reduce((sum: number, m: number) => sum + m, 0)
-    const groupMarks = (sec.groups ?? []).reduce((sum: number, g: any) => sum + (Number(g.totalMarks) || 0), 0)
-    return total + standalone + groupMarks
-  }, 0)
+  const totalMarks = sections.reduce((total: number, sec) => total + sectionUnitMarks(sec), 0)
 
   const totalQuestions = sections.reduce(
     (acc, sec) => acc + sec.questions.length + (sec.groups ?? []).reduce((s: number, g: any) => s + g.questions.length, 0),
@@ -97,11 +90,10 @@ export default function Step4Grading({
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
                 {sections.map((sec: any) => {
-                  const required = Number(sec.requiredQuestionsCount) || sec.questions.length
-                  const sortedMarks = sec.questions.map((q: any) => Number(q.marks) || 0).sort((a: number, b: number) => b - a)
-                  const groupMarks = (sec.groups ?? []).reduce((acc: number, g: any) => acc + (Number(g.totalMarks) || 0), 0)
-                  const secMarks = sortedMarks.slice(0, required).reduce((acc: number, m: number) => acc + m, 0) + groupMarks
+                  const secMarks = sectionUnitMarks(sec)
+                  const groupCount = (sec.groups ?? []).length
                   const groupedCount = (sec.groups ?? []).reduce((acc: number, g: any) => acc + g.questions.length, 0)
+                  const totalUnits = sec.questions.length + groupCount
                   const totalSecQuestions = sec.questions.length + groupedCount
                   const pct = totalMarks > 0 ? Math.round((secMarks / totalMarks) * 100) : 0
 
@@ -119,8 +111,8 @@ export default function Step4Grading({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-[12px] text-muted-foreground">
-                        {sec.requiredQuestionsCount && groupedCount === 0
-                          ? `${sec.requiredQuestionsCount} of ${sec.questions.length}`
+                        {sec.requiredQuestionsCount && Number(sec.requiredQuestionsCount) < totalUnits
+                          ? `Answer ${sec.requiredQuestionsCount} of ${totalUnits}${groupCount > 0 ? " (groups count as one)" : ""}`
                           : `All ${totalSecQuestions}`}
                       </td>
                       <td className="px-4 py-3 text-right">
