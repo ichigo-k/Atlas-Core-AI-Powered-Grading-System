@@ -692,27 +692,31 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   function handleConfirmSelection() {
     if (!activeSection) return
-    const pages = buildSectionPages(activeSection)
-    // Questions that belong to units the student did NOT pick — their saved
-    // answers must be discarded so dropped work is never graded.
-    const droppedIds = pages
-      .filter((p) => !pendingSelection.has(p.key))
-      .flatMap((p) => pageIdsOf(p))
-
-    if (droppedIds.length > 0) {
-      setAnswers((prev) => {
-        const next = new Map(prev)
-        for (const id of droppedIds) next.delete(id)
-        return next
-      })
-      if (!simulation) {
-        void deleteAnswers(attempt.id, droppedIds)
-      }
-    }
-
+    // Note: answers for unpicked units are kept here (saved in the DB and local
+    // state) so a student can change their mind and reselect without losing
+    // work. Dropped answers are only discarded at submit time.
     setSectionSelections((prev) => new Map(prev).set(activeSection.id, new Set(pendingSelection)))
     setEverConfirmedSections((prev) => new Set(prev).add(activeSection.id))
     setActiveQuestionIndex(0)
+  }
+
+  // Keep the latest selection in a ref so the (memoised) timeout handler can
+  // read it without being recreated on every selection change.
+  const sectionSelectionsRef = useRef(sectionSelections)
+  sectionSelectionsRef.current = sectionSelections
+
+  // Question ids belonging to units the student did NOT select in any quota
+  // section. These are discarded at submission so dropped work is never graded.
+  function getDeselectedQuestionIds(): number[] {
+    const dropped: number[] = []
+    for (const s of sections) {
+      const sel = sectionSelectionsRef.current.get(s.id)
+      if (!(sel instanceof Set)) continue // no quota, or never selected
+      for (const p of buildSectionPages(s)) {
+        if (!sel.has(p.key)) dropped.push(...pageIdsOf(p))
+      }
+    }
+    return dropped
   }
 
   function handleChangeSelection() {
@@ -741,6 +745,8 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
     // Disable the beforeunload prompt so the browser doesn't ask "leave site?"
     // when we redirect after the timer hits zero.
     lockdownRef.current?.allowUnload()
+    const dropped = getDeselectedQuestionIds()
+    if (dropped.length > 0) await deleteAnswers(attempt.id, dropped)
     await submitAttempt(attempt.id, "TIMED_OUT")
     window.location.href = `/student/assessments/${assessmentId}`
   }, [simulation, simulationReturnUrl, assessmentId, attempt.id])
@@ -757,6 +763,9 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
       const dbReason = reason === "FULLSCREEN_EXIT" ? "FULLSCREEN_VIOLATION"
         : reason === "TAB_SWITCH" ? "TAB_SWITCH"
         : reason
+      // Discard answers for units the student ended up not selecting, then submit.
+      const dropped = getDeselectedQuestionIds()
+      if (dropped.length > 0) await deleteAnswers(attempt.id, dropped)
       await submitAttempt(attempt.id, dbReason as "TIMED_OUT" | "FULLSCREEN_VIOLATION" | "TAB_SWITCH" | undefined)
       window.location.href = `/student/assessments/${assessmentId}`
     })
