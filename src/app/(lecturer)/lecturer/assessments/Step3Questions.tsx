@@ -11,7 +11,7 @@ import QuestionBuilderA from "./QuestionBuilderA"
 import QuestionBuilderB from "./QuestionBuilderB"
 import ImportFromBankModal from "./ImportFromBankModal"
 import { CollapsedGroupRow } from "./QuestionRow"
-import { sectionUnitMarks } from "@/lib/assessment-marks"
+import { sectionUnitMarks, sectionUnitCount } from "@/lib/assessment-marks"
 import { cn } from "@/lib/utils"
 
 interface Step3QuestionsProps {
@@ -102,7 +102,7 @@ function SectionHeader({ section, index, isOpen, onToggle, onRemove }: SectionHe
   const isSubjective = section.type === "SUBJECTIVE"
   const TypeIcon = isObjective ? Target : isSubjective ? PenLine : null
   const required = parseInt(section.requiredQuestionsCount) || null
-  const qCount = section.questions.length + (section.groups ?? []).reduce((s, g) => s + g.questions.length, 0)
+  const qCount = sectionUnitCount(section)
 
   return (
     <div
@@ -686,7 +686,7 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                         {/* Toolbar */}
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-slate-500">
-                            {section.questions.length} {section.questions.length === 1 ? "question" : "questions"}
+                            {sectionUnitCount(section)} {sectionUnitCount(section) === 1 ? "question" : "questions"}
                             {section.requiredQuestionsCount && (
                               <span className="text-slate-400"> · {section.requiredQuestionsCount} required to answer</span>
                             )}
