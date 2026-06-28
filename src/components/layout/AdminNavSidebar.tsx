@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { signOut } from "next-auth/react";
 import { usePersistedBool } from "@/hooks/usePersistedBool";
 import {
   LayoutDashboard,
@@ -12,13 +14,13 @@ import {
   School,
   Settings,
   KeyRound,
+  Loader2,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   History,
   type LucideIcon,
 } from "lucide-react";
-import { signOutAction } from "@/app/actions/signout";
 
 interface AdminNavSidebarProps {
   onClose?: () => void;
@@ -67,6 +69,12 @@ const NAV_GROUPS: NavGroup[] = [
 export default function AdminNavSidebar({ onClose }: AdminNavSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed, hydrated] = usePersistedBool("nav.admin.collapsed", false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await signOut({ callbackUrl: "/" });
+  }
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href;
@@ -144,24 +152,26 @@ export default function AdminNavSidebar({ onClose }: AdminNavSidebarProps) {
             </div>
           )}
         </button>
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            title={collapsed ? "Sign Out" : undefined}
-            className={[
-              "flex items-center gap-2.5 w-full transition-colors text-slate-500 hover:bg-slate-100 hover:text-red-600 relative group",
-              collapsed ? "px-0 py-[10px] justify-center" : "px-3 py-[9px]",
-            ].join(" ")}
-          >
-            <LogOut size={15} className="flex-shrink-0" />
-            {!collapsed && <span className="text-[13px]">Sign Out</span>}
-            {collapsed && (
-              <div className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-[#323130] text-white text-[11px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                Sign Out
-              </div>
-            )}
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          title={collapsed ? "Sign Out" : undefined}
+          className={[
+            "flex items-center gap-2.5 w-full transition-colors text-slate-500 hover:bg-slate-100 hover:text-red-600 relative group disabled:opacity-50",
+            collapsed ? "px-0 py-[10px] justify-center" : "px-3 py-[9px]",
+          ].join(" ")}
+        >
+          {signingOut
+            ? <Loader2 size={15} className="flex-shrink-0 animate-spin" />
+            : <LogOut size={15} className="flex-shrink-0" />}
+          {!collapsed && <span className="text-[13px]">{signingOut ? "Signing out…" : "Sign Out"}</span>}
+          {collapsed && !signingOut && (
+            <div className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-[#323130] text-white text-[11px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+              Sign Out
+            </div>
+          )}
+        </button>
       </div>
     </nav>
   );
