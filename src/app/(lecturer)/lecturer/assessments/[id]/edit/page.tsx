@@ -82,8 +82,19 @@ async function EditAssessmentData({ id }: { id: string }) {
         classes: { include: { class: { select: { name: true, level: true } } } },
         sections: {
           include: {
+            // Standalone questions only — grouped ones load via `groups`.
             questions: {
+              where: { groupId: null },
               include: { rubricCriteria: { orderBy: { order: "asc" } } },
+              orderBy: { order: "asc" },
+            },
+            groups: {
+              include: {
+                questions: {
+                  include: { rubricCriteria: { orderBy: { order: "asc" } } },
+                  orderBy: { groupOrder: "asc" },
+                },
+              },
               orderBy: { order: "asc" },
             },
           },
@@ -141,6 +152,22 @@ async function EditAssessmentData({ id }: { id: string }) {
     location: raw.location ?? "",
   }
 
+  const mapQuestionToForm = (q: any) => ({
+    id: crypto.randomUUID(),
+    order: q.order,
+    body: q.body,
+    marks: String(q.marks),
+    answerType: (q.answerType as AnswerTypeEnum | "") ?? "",
+    options: Array.isArray(q.options) ? (q.options as string[]) : ["", ""],
+    correctOption: q.correctOption,
+    rubricCriteria: q.rubricCriteria.map((r: any) => ({
+      id: crypto.randomUUID(),
+      description: r.description,
+      maxMarks: String(r.maxMarks),
+      order: r.order,
+    })),
+  })
+
   const initialStep3: Step3State = {
     sections: (raw as any).sections.map((s: any) => ({
       id: crypto.randomUUID(),
@@ -148,20 +175,13 @@ async function EditAssessmentData({ id }: { id: string }) {
       type: s.type,
       requiredQuestionsCount: s.requiredQuestionsCount ? String(s.requiredQuestionsCount) : "",
       pointsPerQuestion: s.questions[0] ? String(s.questions[0].marks) : "",
-      questions: s.questions.map((q: any) => ({
+      questions: s.questions.map(mapQuestionToForm),
+      groups: (s.groups ?? []).map((g: any) => ({
         id: crypto.randomUUID(),
-        order: q.order,
-        body: q.body,
-        marks: String(q.marks),
-        answerType: (q.answerType as AnswerTypeEnum | "") ?? "",
-        options: Array.isArray(q.options) ? (q.options as string[]) : ["", ""],
-        correctOption: q.correctOption,
-        rubricCriteria: q.rubricCriteria.map((r: any) => ({
-          id: crypto.randomUUID(),
-          description: r.description,
-          maxMarks: String(r.maxMarks),
-          order: r.order,
-        })),
+        order: g.order,
+        context: g.context ?? "",
+        totalMarks: String(g.totalMarks),
+        questions: g.questions.map(mapQuestionToForm),
       })),
     })),
   }

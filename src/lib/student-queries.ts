@@ -82,15 +82,24 @@ export type AssessmentDetail = {
     name: string
     type: string
     requiredQuestionsCount: number | null
-    questions: {
+    questions: QuestionDetail[]
+    groups: {
       id: number
       order: number
-      body: string
-      marks: number
-      answerType: string | null
-      options: unknown
+      context: string | null
+      totalMarks: number
+      questions: QuestionDetail[]
     }[]
   }[]
+}
+
+export type QuestionDetail = {
+  id: number
+  order: number
+  body: string
+  marks: number
+  answerType: string | null
+  options: unknown
 }
 
 export type AttemptRow = {
@@ -376,9 +385,24 @@ export async function getAssessmentWithQuestions(assessmentId: number, studentId
           name: true,
           type: true,
           requiredQuestionsCount: true,
+          // Standalone questions only — grouped ones come back under `groups`.
           questions: {
+            where: { groupId: null },
             orderBy: { order: 'asc' },
             select: { id: true, order: true, body: true, marks: true, answerType: true, options: true },
+          },
+          groups: {
+            orderBy: { order: 'asc' },
+            select: {
+              id: true,
+              order: true,
+              context: true,
+              totalMarks: true,
+              questions: {
+                orderBy: { groupOrder: 'asc' },
+                select: { id: true, order: true, body: true, marks: true, answerType: true, options: true },
+              },
+            },
           },
         },
       },

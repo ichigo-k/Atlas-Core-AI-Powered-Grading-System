@@ -28,6 +28,8 @@ interface QuestionRendererProps {
   question: QuestionWithAnswer;
   attemptId: number;
   displayNumber: number;
+  // When set (e.g. "1a"), shown instead of the numeric displayNumber — used for grouped sub-questions.
+  displayLabel?: string;
   shuffledOptions?: number[];
   locked?: boolean;
   simulation?: boolean;
@@ -59,6 +61,7 @@ export default function QuestionRenderer({
   question,
   attemptId,
   displayNumber,
+  displayLabel,
   shuffledOptions,
   locked = false,
   simulation = false,
@@ -277,7 +280,7 @@ export default function QuestionRenderer({
       <div className="flex items-start justify-between gap-6">
         <div className="flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#9ca3af] mb-2.5">
-            Question {displayNumber}
+            Question {displayLabel ?? displayNumber}
           </p>
           <p className="text-[16px] font-normal text-[#111827] leading-[1.75]">
             {question.body}

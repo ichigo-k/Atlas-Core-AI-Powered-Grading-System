@@ -118,11 +118,8 @@ function buildPayload(
     totalMarks: Number(s4.totalMarks),
     status,
     classes: s2.selectedClasses.map((c: any) => ({ classId: c.classId })),
-    sections: s3.sections.map((sec: any) => ({
-      name: sec.name,
-      type: sec.type as any,
-      requiredQuestionsCount: sec.requiredQuestionsCount ? parseInt(sec.requiredQuestionsCount) : null,
-      questions: sec.questions.map((q: any) => ({
+    sections: s3.sections.map((sec: any) => {
+      const mapQuestion = (q: any) => ({
         order: q.order,
         body: q.body,
         marks: Number(q.marks),
@@ -137,8 +134,20 @@ function buildPayload(
               order: r.order,
             }))
             : [],
-      })),
-    })),
+      })
+      return {
+        name: sec.name,
+        type: sec.type as any,
+        requiredQuestionsCount: sec.requiredQuestionsCount ? parseInt(sec.requiredQuestionsCount) : null,
+        questions: sec.questions.map(mapQuestion),
+        groups: (sec.groups ?? []).map((g: any, gi: number) => ({
+          order: gi + 1,
+          context: g.context?.trim() ? g.context.trim() : null,
+          totalMarks: Number(g.totalMarks) || 0,
+          questions: g.questions.map(mapQuestion),
+        })),
+      }
+    }),
   }
 }
 
@@ -194,7 +203,10 @@ export default function AssessmentForm({
         const sortedMarks = sec.questions
           .map((q: any) => Number(q.marks) || 0)
           .sort((a, b) => b - a)
-        return total + sortedMarks.slice(0, required).reduce((sum, m) => sum + m, 0)
+        const standalone = sortedMarks.slice(0, required).reduce((sum, m) => sum + m, 0)
+        // Each group contributes its declared total marks.
+        const groupMarks = (sec.groups ?? []).reduce((sum: number, g: any) => sum + (Number(g.totalMarks) || 0), 0)
+        return total + standalone + groupMarks
       }, 0)
       setStep4({ totalMarks: String(calculated) })
     }
@@ -214,7 +226,10 @@ export default function AssessmentForm({
 
     if (status === "PUBLISHED") {
       const publishErr = validatePublishConditions({
-        questionCount: step3.sections.reduce((acc, sec) => acc + sec.questions.length, 0),
+        questionCount: step3.sections.reduce(
+          (acc, sec) => acc + sec.questions.length + (sec.groups ?? []).reduce((s: number, g: any) => s + g.questions.length, 0),
+          0,
+        ),
         startsAt: step1.startsAt,
         endsAt: step1.endsAt,
         classCount: step2.selectedClasses.length,

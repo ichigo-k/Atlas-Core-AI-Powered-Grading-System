@@ -31,10 +31,15 @@ export default function Step4Grading({
     const sortedMarks = sec.questions
       .map((q: any) => Number(q.marks) || 0)
       .sort((a: number, b: number) => b - a)
-    return total + sortedMarks.slice(0, required).reduce((sum: number, m: number) => sum + m, 0)
+    const standalone = sortedMarks.slice(0, required).reduce((sum: number, m: number) => sum + m, 0)
+    const groupMarks = (sec.groups ?? []).reduce((sum: number, g: any) => sum + (Number(g.totalMarks) || 0), 0)
+    return total + standalone + groupMarks
   }, 0)
 
-  const totalQuestions = sections.reduce((acc, sec) => acc + sec.questions.length, 0)
+  const totalQuestions = sections.reduce(
+    (acc, sec) => acc + sec.questions.length + (sec.groups ?? []).reduce((s: number, g: any) => s + g.questions.length, 0),
+    0,
+  )
   const hasQuestions = totalQuestions > 0
   const hasSections = sections.length > 0
 
@@ -94,7 +99,10 @@ export default function Step4Grading({
                 {sections.map((sec: any) => {
                   const required = Number(sec.requiredQuestionsCount) || sec.questions.length
                   const sortedMarks = sec.questions.map((q: any) => Number(q.marks) || 0).sort((a: number, b: number) => b - a)
-                  const secMarks = sortedMarks.slice(0, required).reduce((acc: number, m: number) => acc + m, 0)
+                  const groupMarks = (sec.groups ?? []).reduce((acc: number, g: any) => acc + (Number(g.totalMarks) || 0), 0)
+                  const secMarks = sortedMarks.slice(0, required).reduce((acc: number, m: number) => acc + m, 0) + groupMarks
+                  const groupedCount = (sec.groups ?? []).reduce((acc: number, g: any) => acc + g.questions.length, 0)
+                  const totalSecQuestions = sec.questions.length + groupedCount
                   const pct = totalMarks > 0 ? Math.round((secMarks / totalMarks) * 100) : 0
 
                   return (
@@ -111,9 +119,9 @@ export default function Step4Grading({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-[12px] text-muted-foreground">
-                        {sec.requiredQuestionsCount
+                        {sec.requiredQuestionsCount && groupedCount === 0
                           ? `${sec.requiredQuestionsCount} of ${sec.questions.length}`
-                          : `All ${sec.questions.length}`}
+                          : `All ${totalSecQuestions}`}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="text-[13px] font-semibold text-[#1e293b]">{secMarks}</span>

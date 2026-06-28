@@ -20,7 +20,7 @@ export default async function SimulatePage({
   }
 
   const session = await getSession();
-  if (!session || session.role !== "LECTURER") {
+  if (!session || session.user.role !== "LECTURER") {
     redirect("/lecturer/assessments");
   }
 

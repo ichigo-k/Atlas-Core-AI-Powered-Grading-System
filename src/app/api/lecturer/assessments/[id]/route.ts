@@ -36,8 +36,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       classes: { include: { class: { select: { name: true, level: true } } } },
       sections: {
         include: {
+          // Standalone questions only — grouped ones are returned under `groups`.
           questions: {
+            where: { groupId: null },
             include: { rubricCriteria: { orderBy: { order: "asc" } } },
+            orderBy: { order: "asc" },
+          },
+          groups: {
+            include: {
+              questions: {
+                include: { rubricCriteria: { orderBy: { order: "asc" } } },
+                orderBy: { groupOrder: "asc" },
+              },
+            },
             orderBy: { order: "asc" },
           },
         },
@@ -170,6 +181,47 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                     order: r.order,
                   })),
                 })
+              }
+            }
+          }
+
+          // Grouped questions: create the group, then its sub-questions with groupId.
+          if (s.groups?.length) {
+            for (const g of s.groups) {
+              const group = await tx.questionGroup.create({
+                data: {
+                  sectionId: section.id,
+                  order: g.order,
+                  context: g.context ?? null,
+                  totalMarks: g.totalMarks,
+                },
+              })
+              let groupOrder = 1
+              for (const q of g.questions) {
+                const question = await tx.question.create({
+                  data: {
+                    assessmentId,
+                    sectionId: section.id,
+                    groupId: group.id,
+                    groupOrder: groupOrder++,
+                    order: q.order,
+                    body: q.body,
+                    marks: q.marks,
+                    answerType: q.answerType ?? null,
+                    options: q.options != null ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
+                    correctOption: q.correctOption ?? null,
+                  },
+                })
+                if (q.rubricCriteria?.length) {
+                  await tx.rubricCriterion.createMany({
+                    data: q.rubricCriteria.map((r: any) => ({
+                      questionId: question.id,
+                      description: r.description,
+                      maxMarks: r.maxMarks,
+                      order: r.order,
+                    })),
+                  })
+                }
               }
             }
           }

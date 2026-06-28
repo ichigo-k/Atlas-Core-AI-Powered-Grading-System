@@ -254,8 +254,27 @@ model AssessmentSection {
   requiredQuestionsCount Int?
 
   questions Question[]
+  groups    QuestionGroup[]
 
   @@map("assessment_sections")
+}
+
+// A question group is an optional container within a section. It holds a shared
+// (optional) context/stem and a set of sub-questions, each with their own marks.
+// Questions can also live directly in a section (groupId = null) — that's the
+// backwards-compatible standalone case.
+model QuestionGroup {
+  id         Int               @id @default(autoincrement())
+  sectionId  Int
+  section    AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  order      Int
+  context    String?
+  totalMarks Int
+  createdAt  DateTime          @default(now())
+
+  questions Question[]
+
+  @@map("question_groups")
 }
 
 model AssessmentClass {
@@ -275,6 +294,9 @@ model Question {
   assessment    Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   sectionId     Int
   section       AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  groupId       Int?
+  group         QuestionGroup?    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupOrder    Int?
   order         Int
   body          String
   marks         Int

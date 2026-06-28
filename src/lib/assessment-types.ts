@@ -25,11 +25,22 @@ export interface ClassAssignmentPayload {
   classId: number
 }
 
+// A group bundles a shared (optional) context with several sub-questions.
+// `questions` here are the group's sub-parts; the group's totalMarks caps their sum.
+export interface QuestionGroupPayload {
+  order: number
+  context?: string | null
+  totalMarks: number
+  questions: QuestionPayload[]
+}
+
 export interface AssessmentSectionPayload {
   name: string
   type: SectionTypeEnum
   requiredQuestionsCount?: number | null
+  // Standalone questions (no group). Grouped questions live under `groups`.
   questions: QuestionPayload[]
+  groups?: QuestionGroupPayload[]
 }
 
 export interface CreateAssessmentPayload {
@@ -95,26 +106,35 @@ export interface AssessmentWithDetails {
     classId: number
     className: string
   }>
-  sections: Array<{
+    sections: Array<{
     id: number
     name: string
     type: SectionTypeEnum
     requiredQuestionsCount: number | null
-    questions: Array<{
+    questions: Array<QuestionWithDetails>
+    groups?: Array<{
       id: number
       order: number
-      body: string
-      marks: number
-      answerType: AnswerTypeEnum | null
-      options: string[] | null
-      correctOption: number | null
-      rubricCriteria: Array<{
-        id: number
-        description: string
-        maxMarks: number
-        order: number
-      }>
+      context: string | null
+      totalMarks: number
+      questions: Array<QuestionWithDetails>
     }>
+  }>
+}
+
+export interface QuestionWithDetails {
+  id: number
+  order: number
+  body: string
+  marks: number
+  answerType: AnswerTypeEnum | null
+  options: string[] | null
+  correctOption: number | null
+  rubricCriteria: Array<{
+    id: number
+    description: string
+    maxMarks: number
+    order: number
   }>
 }
 
@@ -162,13 +182,22 @@ export interface QuestionFormState {
   }>
 }
 
+export interface GroupFormState {
+  id: string // local uuid for React key
+  order: number
+  context: string // shared stem; may be left blank
+  totalMarks: string
+  questions: QuestionFormState[]
+}
+
 export interface SectionFormState {
   id: string // local uuid
   name: string
   type: SectionTypeEnum | ""
   requiredQuestionsCount: string
   pointsPerQuestion: string // Used when criteria is set
-  questions: QuestionFormState[]
+  questions: QuestionFormState[] // standalone questions
+  groups: GroupFormState[]
 }
 
 export interface Step3State {

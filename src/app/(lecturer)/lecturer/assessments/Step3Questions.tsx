@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Step3State, QuestionFormState, SectionFormState, SectionTypeEnum } from "@/lib/assessment-types"
-import { Plus, Library, Trash2, ChevronDown, Target, PenLine, AlertCircle } from "lucide-react"
+import type { Step3State, QuestionFormState, SectionFormState, GroupFormState, SectionTypeEnum } from "@/lib/assessment-types"
+import { Plus, Library, Trash2, ChevronDown, Target, PenLine, AlertCircle, Layers } from "lucide-react"
 import QuestionBuilderA from "./QuestionBuilderA"
 import QuestionBuilderB from "./QuestionBuilderB"
 import ImportFromBankModal from "./ImportFromBankModal"
@@ -41,23 +41,54 @@ function newSection(): SectionFormState {
     requiredQuestionsCount: "",
     pointsPerQuestion: "",
     questions: [],
+    groups: [],
+  }
+}
+
+function newGroup(order: number): GroupFormState {
+  return {
+    id: crypto.randomUUID(),
+    order,
+    context: "",
+    totalMarks: "",
+    questions: [newQuestion(1)],
   }
 }
 
 // ─── Section summary helpers ──────────────────────────────────────────────────
 
+// Sum of a group's sub-question marks (what the sub-parts currently add up to).
+function groupQuestionMarks(group: GroupFormState): number {
+  return group.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0)
+}
+
 function sectionTotalMarks(section: SectionFormState): number {
+  let base: number
   if (section.requiredQuestionsCount && section.pointsPerQuestion) {
     const req = parseInt(section.requiredQuestionsCount) || 0
     const pts = parseInt(section.pointsPerQuestion) || 0
-    return req * pts
+    base = req * pts
+  } else {
+    base = section.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0)
   }
-  return section.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0)
+  // Each group contributes its declared total marks.
+  const groupMarks = (section.groups ?? []).reduce((sum, g) => sum + (parseInt(g.totalMarks) || 0), 0)
+  return base + groupMarks
+}
+
+// A group is invalid if it has no sub-questions, any sub-question is incomplete,
+// or the sub-questions' marks exceed the group's declared total.
+function groupHasError(group: GroupFormState): boolean {
+  if (group.questions.length === 0) return true
+  if (!(parseInt(group.totalMarks) > 0)) return true
+  if (groupQuestionMarks(group) > (parseInt(group.totalMarks) || 0)) return true
+  return group.questions.some((q) => !q.body.trim() || !(parseInt(q.marks) > 0))
 }
 
 function sectionHasError(section: SectionFormState): boolean {
   if (!section.type) return false
-  return section.questions.some((q: any) => !q.body.trim() || !(parseInt(q.marks) > 0))
+  if (section.questions.some((q: any) => !q.body.trim() || !(parseInt(q.marks) > 0))) return true
+  return (section.groups ?? []).some(groupHasError)
 }
 
 // ─── Section accordion header ─────────────────────────────────────────────────
@@ -77,7 +108,7 @@ function SectionHeader({ section, index, isOpen, onToggle, onRemove }: SectionHe
   const isSubjective = section.type === "SUBJECTIVE"
   const TypeIcon = isObjective ? Target : isSubjective ? PenLine : null
   const required = parseInt(section.requiredQuestionsCount) || null
-  const qCount = section.questions.length
+  const qCount = section.questions.length + (section.groups ?? []).reduce((s, g) => s + g.questions.length, 0)
 
   return (
     <div
@@ -166,6 +197,142 @@ function SectionHeader({ section, index, isOpen, onToggle, onRemove }: SectionHe
           isOpen && "rotate-180"
         )}
       />
+    </div>
+  )
+}
+
+// ─── Group card ───────────────────────────────────────────────────────────────
+
+interface GroupCardProps {
+  group: GroupFormState
+  index: number
+  isObjective: boolean
+  assessmentType?: string
+  onChange: (updates: Partial<GroupFormState>) => void
+  onRemove: () => void
+  onAddQuestion: () => void
+  onUpdateQuestion: (qId: string, updated: QuestionFormState) => void
+  onRemoveQuestion: (qId: string) => void
+}
+
+function GroupCard({
+  group,
+  index,
+  isObjective,
+  assessmentType,
+  onChange,
+  onRemove,
+  onAddQuestion,
+  onUpdateQuestion,
+  onRemoveQuestion,
+}: GroupCardProps) {
+  const subMarks = groupQuestionMarks(group)
+  const cap = parseInt(group.totalMarks) || 0
+  const over = cap > 0 && subMarks > cap
+
+  return (
+    <div className="rounded-lg border border-indigo-200 bg-indigo-50/30 overflow-hidden">
+      {/* Group header */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50/60 border-b border-indigo-100">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white">
+          <Layers size={13} />
+        </div>
+        <span className="text-sm font-semibold text-indigo-900">Question Group {index + 1}</span>
+        <span className="text-[11px] text-indigo-400">
+          {group.questions.length} {group.questions.length === 1 ? "part" : "parts"}
+        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Label className="text-[11px] text-slate-500">Total marks</Label>
+            <Input
+              type="number"
+              min={1}
+              value={group.totalMarks}
+              onChange={(e) => onChange({ totalMarks: e.target.value })}
+              placeholder="—"
+              className="h-8 w-20 border-slate-200 bg-white text-sm focus-visible:ring-indigo-300"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-all"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Shared context */}
+        <div className="space-y-1">
+          <Label className="text-[11px] text-slate-500 uppercase tracking-wider">
+            Shared context <span className="text-slate-300 normal-case">(optional)</span>
+          </Label>
+          <textarea
+            value={group.context}
+            onChange={(e) => onChange({ context: e.target.value })}
+            placeholder="Shared passage / scenario shown above all sub-questions. Leave blank to just group them."
+            rows={3}
+            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-y"
+          />
+        </div>
+
+        {/* Marks tally / cap warning */}
+        <div className={cn(
+          "flex items-center gap-2 text-[12px]",
+          over ? "text-rose-600" : "text-slate-500",
+        )}>
+          {over && <AlertCircle size={13} />}
+          <span>
+            Sub-questions total <strong>{subMarks}</strong>
+            {cap > 0 && <> / {cap} marks{over && " — exceeds the group total"}</>}
+          </span>
+        </div>
+
+        {/* Sub-questions */}
+        <div className="space-y-3">
+          {group.questions.map((q, idx) =>
+            isObjective ? (
+              <QuestionBuilderA
+                key={q.id}
+                question={q}
+                onChange={(updated) => onUpdateQuestion(q.id, updated)}
+                onRemove={() => onRemoveQuestion(q.id)}
+                onMoveUp={() => {}}
+                onMoveDown={() => {}}
+                isFirst={idx === 0}
+                isLast={idx === group.questions.length - 1}
+                readonlyMarks={false}
+              />
+            ) : (
+              <QuestionBuilderB
+                key={q.id}
+                question={q}
+                onChange={(updated) => onUpdateQuestion(q.id, updated)}
+                onRemove={() => onRemoveQuestion(q.id)}
+                onMoveUp={() => {}}
+                onMoveDown={() => {}}
+                isFirst={idx === 0}
+                isLast={idx === group.questions.length - 1}
+                readonlyMarks={false}
+                assessmentType={assessmentType}
+              />
+            ),
+          )}
+        </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onAddQuestion}
+          className="h-8 px-3 text-xs text-indigo-700 hover:bg-indigo-100"
+        >
+          <Plus size={13} className="mr-1.5" />
+          Add sub-question
+        </Button>
+      </div>
     </div>
   )
 }
@@ -268,6 +435,82 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
       }),
     })
     setBankModal({ open: false, sectionId: null, type: "" })
+  }
+
+  // ── Group handlers ───────────────────────────────────────────────────────────
+
+  const addGroup = (sectionId: string) => {
+    onChange({
+      sections: state.sections.map((s: any) => {
+        if (s.id !== sectionId) return s
+        const groups = s.groups ?? []
+        return { ...s, groups: [...groups, newGroup(groups.length + 1)] }
+      }),
+    })
+  }
+
+  const updateGroup = (sectionId: string, groupId: string, updates: Partial<GroupFormState>) => {
+    onChange({
+      sections: state.sections.map((s: any) => {
+        if (s.id !== sectionId) return s
+        return { ...s, groups: (s.groups ?? []).map((g: any) => (g.id === groupId ? { ...g, ...updates } : g)) }
+      }),
+    })
+  }
+
+  const removeGroup = (sectionId: string, groupId: string) => {
+    onChange({
+      sections: state.sections.map((s: any) => {
+        if (s.id !== sectionId) return s
+        return { ...s, groups: (s.groups ?? []).filter((g: any) => g.id !== groupId) }
+      }),
+    })
+  }
+
+  const addGroupQuestion = (sectionId: string, groupId: string) => {
+    onChange({
+      sections: state.sections.map((s: any) => {
+        if (s.id !== sectionId) return s
+        return {
+          ...s,
+          groups: (s.groups ?? []).map((g: any) =>
+            g.id === groupId ? { ...g, questions: [...g.questions, newQuestion(g.questions.length + 1)] } : g,
+          ),
+        }
+      }),
+    })
+  }
+
+  const updateGroupQuestion = (sectionId: string, groupId: string, qId: string, updated: QuestionFormState) => {
+    onChange({
+      sections: state.sections.map((s: any) => {
+        if (s.id !== sectionId) return s
+        return {
+          ...s,
+          groups: (s.groups ?? []).map((g: any) =>
+            g.id === groupId
+              ? { ...g, questions: g.questions.map((q: any) => (q.id === qId ? updated : q)) }
+              : g,
+          ),
+        }
+      }),
+    })
+  }
+
+  const removeGroupQuestion = (sectionId: string, groupId: string, qId: string) => {
+    onChange({
+      sections: state.sections.map((s: any) => {
+        if (s.id !== sectionId) return s
+        return {
+          ...s,
+          groups: (s.groups ?? []).map((g: any) => {
+            if (g.id !== groupId) return g
+            let order = 1
+            return { ...g, questions: g.questions.filter((q: any) => q.id !== qId).map((q: any) => ({ ...q, order: order++ })) }
+          }),
+        }
+      }),
+    })
   }
 
   return (
@@ -383,6 +626,16 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                             </Button>
                             <Button
                               type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => addGroup(section.id)}
+                              className="h-8 px-3 text-xs text-indigo-700 hover:bg-indigo-50"
+                            >
+                              <Layers size={13} className="mr-1.5" />
+                              Add Group
+                            </Button>
+                            <Button
+                              type="button"
                               size="sm"
                               onClick={() => addQuestion(section.id)}
                               className="h-8 px-3 text-xs bg-[#002388] hover:bg-[#0B4DBB] text-white"
@@ -393,9 +646,9 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                           </div>
                         </div>
 
-                        {section.questions.length === 0 ? (
+                        {section.questions.length === 0 && (section.groups ?? []).length === 0 ? (
                           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center">
-                            <p className="text-sm text-slate-400">No questions yet. Add one above.</p>
+                            <p className="text-sm text-slate-400">No questions yet. Add a question or a group above.</p>
                           </div>
                         ) : (
                           <div className="space-y-3">
@@ -427,6 +680,22 @@ export default function Step3Questions({ state, onChange, errors, courseId, asse
                                 />
                               )
                             )}
+
+                            {/* Question groups */}
+                            {(section.groups ?? []).map((g, gIdx) => (
+                              <GroupCard
+                                key={g.id}
+                                group={g}
+                                index={gIdx}
+                                isObjective={isObjective}
+                                assessmentType={assessmentType}
+                                onChange={(updates) => updateGroup(section.id, g.id, updates)}
+                                onRemove={() => removeGroup(section.id, g.id)}
+                                onAddQuestion={() => addGroupQuestion(section.id, g.id)}
+                                onUpdateQuestion={(qId, updated) => updateGroupQuestion(section.id, g.id, qId, updated)}
+                                onRemoveQuestion={(qId) => removeGroupQuestion(section.id, g.id, qId)}
+                              />
+                            ))}
                           </div>
                         )}
                       </div>
