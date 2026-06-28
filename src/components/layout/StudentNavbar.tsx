@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
+import { useFormStatus } from "react-dom";
 import { usePathname } from "next/navigation";
 import { usePersistedBool } from "@/hooks/usePersistedBool";
 import {
@@ -9,8 +10,8 @@ import {
   Calendar,
   BarChart2,
   User,
+  Loader2,
   LogOut,
-  ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -31,6 +32,37 @@ const NAV_ITEMS = [
 const ACCOUNT_ITEMS = [
   { label: "My Profile", href: "/student/profile", Icon: User },
 ];
+function SignOutButton({ collapsed }: { collapsed: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      title={collapsed ? "Sign Out" : undefined}
+      className={[
+        "flex items-center gap-2.5 w-full transition-colors text-slate-500 hover:bg-slate-100 hover:text-red-600 relative group disabled:opacity-50",
+        collapsed ? "px-0 py-[10px] justify-center" : "px-3 py-[9px]",
+      ].join(" ")}
+    >
+      {pending ? (
+        <Loader2 size={16} className="flex-shrink-0 animate-spin" />
+      ) : (
+        <LogOut size={16} className="flex-shrink-0" />
+      )}
+      {!collapsed && (
+        <span className="text-[13px] font-medium">
+          {pending ? "Signing out..." : "Sign Out"}
+        </span>
+      )}
+      {collapsed && !pending && (
+        <div className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-[#323130] text-white text-[11px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+          Sign Out
+        </div>
+      )}
+    </button>
+  );
+}
 
 export default function StudentNavbar({ ongoingCount, onClose }: StudentNavbarProps) {
   const pathname = usePathname();
@@ -151,7 +183,7 @@ export default function StudentNavbar({ ongoingCount, onClose }: StudentNavbarPr
 
       {/* Sign out */}
       <div className="border-t border-border py-1 flex-shrink-0">
-        {/* Collapse toggle — desktop only */}
+        {/* Collapse toggle � desktop only */}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
@@ -170,22 +202,7 @@ export default function StudentNavbar({ ongoingCount, onClose }: StudentNavbarPr
           )}
         </button>
         <form action={signOutAction}>
-          <button
-            type="submit"
-            title={collapsed ? "Sign Out" : undefined}
-            className={[
-              "flex items-center gap-2.5 w-full transition-colors text-slate-500 hover:bg-slate-100 hover:text-red-600 relative group",
-              collapsed ? "px-0 py-[10px] justify-center" : "px-3 py-[9px]",
-            ].join(" ")}
-          >
-            <LogOut size={16} className="flex-shrink-0" />
-            {!collapsed && <span className="text-[13px] font-medium">Sign Out</span>}
-            {collapsed && (
-              <div className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-[#323130] text-white text-[11px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                Sign Out
-              </div>
-            )}
-          </button>
+          <SignOutButton collapsed={collapsed} />
         </form>
       </div>
     </nav>

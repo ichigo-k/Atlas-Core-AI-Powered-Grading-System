@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useFormStatus } from "react-dom";
 import { usePathname } from "next/navigation";
 import { usePersistedBool } from "@/hooks/usePersistedBool";
 import {
@@ -9,6 +10,7 @@ import {
   Library,
   FileCheck,
   User,
+  Loader2,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -25,6 +27,33 @@ const NAV_ITEMS = [
   { label: "Question Bank", href: "/lecturer/question-bank", Icon: Library, exact: false },
   { label: "Grade Book", href: "/lecturer/grades", Icon: FileCheck, exact: false },
 ];
+function SignOutButton({ collapsed }: { collapsed: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      title={collapsed ? "Sign Out" : undefined}
+      className={[
+        "flex items-center gap-2.5 w-full transition-colors text-slate-500 hover:bg-slate-100 hover:text-red-600 relative group disabled:opacity-50",
+        collapsed ? "px-0 py-[10px] justify-center" : "px-3 py-[9px]",
+      ].join(" ")}
+    >
+      {pending ? (
+        <Loader2 size={15} className="flex-shrink-0 animate-spin" />
+      ) : (
+        <LogOut size={15} className="flex-shrink-0" />
+      )}
+      {!collapsed && <span className="text-[13px]">{pending ? "Signing out..." : "Sign Out"}</span>}
+      {collapsed && !pending && (
+        <div className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-[#323130] text-white text-[11px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+          Sign Out
+        </div>
+      )}
+    </button>
+  );
+}
 
 export default function LecturerNavSidebar({ onClose }: LecturerNavSidebarProps) {
   const pathname = usePathname();
@@ -142,22 +171,7 @@ export default function LecturerNavSidebar({ onClose }: LecturerNavSidebarProps)
           )}
         </button>
         <form action={signOutAction}>
-          <button
-            type="submit"
-            title={collapsed ? "Sign Out" : undefined}
-            className={[
-              "flex items-center gap-2.5 w-full transition-colors text-slate-500 hover:bg-slate-100 hover:text-red-600 relative group",
-              collapsed ? "px-0 py-[10px] justify-center" : "px-3 py-[9px]",
-            ].join(" ")}
-          >
-            <LogOut size={15} className="flex-shrink-0" />
-            {!collapsed && <span className="text-[13px]">Sign Out</span>}
-            {collapsed && (
-              <div className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-[#323130] text-white text-[11px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                Sign Out
-              </div>
-            )}
-          </button>
+          <SignOutButton collapsed={collapsed} />
         </form>
       </div>
     </nav>

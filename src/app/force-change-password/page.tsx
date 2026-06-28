@@ -48,8 +48,8 @@ export default function ForceChangePasswordPage() {
             }
 
             toast.success("Password changed successfully")
-            // Redirect to home — the login action will now send them to their dashboard
-            window.location.href = "/"
+            // The API expires the session cookie. Reload the login page with a clean session.
+            window.location.replace("/")
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong")
         } finally {

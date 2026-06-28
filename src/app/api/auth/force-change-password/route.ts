@@ -3,6 +3,12 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcrypt"
 import { logAction } from "@/lib/audit"
+const SESSION_COOKIE_NAMES = [
+    "authjs.session-token",
+    "__Secure-authjs.session-token",
+    "next-auth.session-token",
+    "__Secure-next-auth.session-token",
+]
 
 export async function POST(req: Request) {
     try {
@@ -50,7 +56,16 @@ export async function POST(req: Request) {
             "USER"
         )
 
-        return NextResponse.json({ success: true })
+        const response = NextResponse.json({ success: true, signedOut: true })
+        for (const cookieName of SESSION_COOKIE_NAMES) {
+            response.cookies.set(cookieName, "", {
+                path: "/",
+                maxAge: 0,
+                expires: new Date(0),
+            })
+        }
+
+        return response
     } catch (err) {
         console.error("[POST /api/auth/force-change-password]", {
             error: err instanceof Error ? err.message : String(err),
