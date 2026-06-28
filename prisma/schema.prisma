@@ -379,6 +379,10 @@ model AssessmentAttempt {
   attemptNumber Int
   questionOrder Json          @default("[]")
   tabSwitchLog  Json          @default("[]")
+  // For quota ("answer N of M") sections: the question ids the student selected
+  // to answer (plus all questions in non-quota sections). null = everything counts.
+  // Enforced at submission so deselected answers are never graded.
+  activeQuestionIds Json?
 
   answers StudentAnswer[]
 

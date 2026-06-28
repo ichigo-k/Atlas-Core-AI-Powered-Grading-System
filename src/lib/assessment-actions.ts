@@ -180,6 +180,34 @@ export async function deleteAnswers(attemptId: number, questionIds: number[]): P
   }
 }
 
+// Persist which questions the student has selected to answer in quota sections
+// (plus all questions in non-quota sections). This is the source of truth at
+// grading time, so over-answering can't sneak extra answers in even if the
+// student never reaches "Submit".
+export async function saveActiveSelection(attemptId: number, questionIds: number[]): Promise<void> {
+  try {
+    const session = await getSession()
+    if (!session?.user || session.user.role !== 'STUDENT') return
+
+    const studentId = await getStudentId(session.user.email!)
+    if (!studentId) return
+
+    const attempt = await prisma.assessmentAttempt.findUnique({ where: { id: attemptId }, select: { studentId: true } })
+    if (!attempt || attempt.studentId !== studentId) return
+
+    await prisma.assessmentAttempt.update({
+      where: { id: attemptId },
+      data: { activeQuestionIds: questionIds },
+    })
+  } catch (err) {
+    console.error('[saveActiveSelection] Failed to save selection', {
+      attemptId,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
+  }
+}
+
 export async function logTabSwitch(attemptId: number, timestamp: string): Promise<void> {
   try {
     const session = await getSession()
@@ -260,7 +288,7 @@ export async function submitAttemptInternal(
       }),
       prisma.assessmentAttempt.findUnique({
         where: { id: attemptId },
-        select: { tabSwitchLog: true },
+        select: { tabSwitchLog: true, activeQuestionIds: true },
       }),
     ])
 
@@ -270,11 +298,26 @@ export async function submitAttemptInternal(
       return { error: 'NOT_FOUND' }
     }
 
+    // Enforce quota selection: if the student recorded which units they chose to
+    // answer, permanently discard answers for everything else BEFORE scoring, so
+    // over-answered/deselected work is never graded — regardless of how this
+    // submission was triggered (manual, violation, timeout, or server auto-expire).
+    let scoredAnswers = answers
+    const activeIds = currentAttempt.activeQuestionIds
+    if (Array.isArray(activeIds) && activeIds.length > 0) {
+      const activeSet = new Set(activeIds as number[])
+      const droppedIds = answers.filter((a: any) => !activeSet.has(a.questionId)).map((a: any) => a.questionId)
+      if (droppedIds.length > 0) {
+        await prisma.studentAnswer.deleteMany({ where: { attemptId, questionId: { in: droppedIds } } })
+      }
+      scoredAnswers = answers.filter((a: any) => activeSet.has(a.questionId))
+    }
+
     // Auto-score MCQ questions
     const questionMap = new Map(questions.map((q: any) => [q.id, q]))
     let mcqScore = 0
 
-    for (const answer of answers) {
+    for (const answer of scoredAnswers) {
       const question = questionMap.get(answer.questionId)
       if (!question) continue
 
@@ -303,9 +346,9 @@ export async function submitAttemptInternal(
     const dbStatus = reason ? 'TIMED_OUT' : 'SUBMITTED'
     const submittedAt = new Date()
 
-    // Atomically hash all answers + mark attempt submitted in one transaction
+    // Atomically hash all (kept) answers + mark attempt submitted in one transaction
     await prisma.$transaction([
-      ...answers.map((a: any) =>
+      ...scoredAnswers.map((a: any) =>
         prisma.studentAnswer.update({
           where: { id: a.id },
           data: { answerHash: computeHash(a.answerText ?? null) },

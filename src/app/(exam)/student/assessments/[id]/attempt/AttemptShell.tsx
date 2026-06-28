@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { submitAttempt, deleteAnswers } from "@/lib/assessment-actions"
+import { submitAttempt, deleteAnswers, saveActiveSelection } from "@/lib/assessment-actions"
 import type { SerializedActiveAttempt, SerializedAssessmentDetail, ProctorSession } from "./page"
 import LockdownOverlay from "@/components/student/LockdownOverlay"
 import type { LockdownOverlayHandle } from "@/components/student/LockdownOverlay"
@@ -692,12 +692,30 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
 
   function handleConfirmSelection() {
     if (!activeSection) return
-    // Note: answers for unpicked units are kept here (saved in the DB and local
-    // state) so a student can change their mind and reselect without losing
-    // work. Dropped answers are only discarded at submit time.
-    setSectionSelections((prev) => new Map(prev).set(activeSection.id, new Set(pendingSelection)))
+    // Answers for unpicked units are KEPT (in the DB and local state) so a
+    // student can change their mind and reselect without losing work. The
+    // chosen set is persisted server-side so grading honours it even if the
+    // student never reaches Submit; dropped answers are discarded at submission.
+    const next = new Map(sectionSelections).set(activeSection.id, new Set(pendingSelection))
+    setSectionSelections(next)
     setEverConfirmedSections((prev) => new Set(prev).add(activeSection.id))
     setActiveQuestionIndex(0)
+    if (!simulation) {
+      void saveActiveSelection(attempt.id, getActiveQuestionIds(next))
+    }
+  }
+
+  // All question ids that should count: every question in non-quota sections,
+  // plus the questions of the units selected in quota sections.
+  function getActiveQuestionIds(selections: Map<number, Set<string> | undefined>): number[] {
+    const ids: number[] = []
+    for (const s of sections) {
+      const sel = selections.get(s.id)
+      for (const p of buildSectionPages(s)) {
+        if (!(sel instanceof Set) || sel.has(p.key)) ids.push(...pageIdsOf(p))
+      }
+    }
+    return ids
   }
 
   // Keep the latest selection in a ref so the (memoised) timeout handler can
