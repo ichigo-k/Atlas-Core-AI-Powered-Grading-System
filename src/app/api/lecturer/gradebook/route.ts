@@ -1,160 +1,186 @@
-import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 async function getLecturerId(email: string) {
-  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
-  return user?.id ?? null
+	const user = await prisma.user.findUnique({
+		where: { email },
+		select: { id: true },
+	});
+	return user?.id ?? null;
 }
 
 export async function GET() {
-  const session = await auth()
-  if (!session || session.user.role !== "LECTURER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+	try {
+		const session = await auth();
+		if (!session || session.user.role !== "LECTURER") {
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+		}
 
-  const lecturerId = await getLecturerId(session.user.email!)
-  if (!lecturerId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+		const email = session.user.email;
+		if (!email)
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // All assessments by this lecturer with enrolled classes + students
-  const assessments = await prisma.assessment.findMany({
-    where: { lecturerId, status: { not: "DRAFT" } },
-    select: {
-      id: true,
-      totalMarks: true,
-      course: { select: { id: true, code: true, title: true } },
-      classes: {
-        select: {
-          class: {
-            select: {
-              id: true,
-              name: true,
-              level: true,
-              students: {
-                select: {
-                  user: { select: { id: true, name: true, email: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+		const lecturerId = await getLecturerId(email);
+		if (!lecturerId)
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // Collect all student IDs and assessment IDs
-  const allStudentIds = new Set<number>()
-  const allAssessmentIds = assessments.map((a: any) => a.id)
+		const assessments = await prisma.assessment.findMany({
+			where: { lecturerId, status: { not: "DRAFT" } },
+			select: {
+				id: true,
+				totalMarks: true,
+				course: { select: { id: true, code: true, title: true } },
+				classes: {
+					select: {
+						class: {
+							select: {
+								id: true,
+								name: true,
+								level: true,
+								students: {
+									select: {
+										indexNumber: true,
+										user: { select: { id: true, name: true, email: true } },
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		});
 
-  for (const a of assessments) {
-    for (const ac of a.classes) {
-      for (const sp of ac.class.students) {
-        allStudentIds.add(sp.user.id)
-      }
-    }
-  }
+		const allStudentIds = new Set<number>();
+		const allAssessmentIds = assessments.map((assessment) => assessment.id);
 
-  // Fetch best attempt per student per assessment (highest score, SUBMITTED/TIMED_OUT)
-  const attempts = await prisma.assessmentAttempt.findMany({
-    where: {
-      assessmentId: { in: allAssessmentIds },
-      studentId: { in: Array.from(allStudentIds) },
-      status: { in: ["SUBMITTED", "TIMED_OUT"] },
-    },
-    select: { assessmentId: true, studentId: true, score: true },
-    orderBy: { score: "desc" },
-  })
+		for (const assessment of assessments) {
+			for (const assessmentClass of assessment.classes) {
+				for (const studentProfile of assessmentClass.class.students) {
+					allStudentIds.add(studentProfile.user.id);
+				}
+			}
+		}
 
-  // Best score per (studentId, assessmentId)
-  const bestScore = new Map<string, number | null>()
-  for (const a of attempts) {
-    const key = `${a.studentId}:${a.assessmentId}`
-    if (!bestScore.has(key)) bestScore.set(key, a.score)
-  }
+		const attempts = await prisma.assessmentAttempt.findMany({
+			where: {
+				assessmentId: { in: allAssessmentIds },
+				studentId: { in: Array.from(allStudentIds) },
+				status: { in: ["SUBMITTED", "TIMED_OUT"] },
+			},
+			select: { assessmentId: true, studentId: true, score: true },
+			orderBy: { score: "desc" },
+		});
 
-  // Build student map
-  const studentMap = new Map<number, {
-    id: number
-    name: string
-    email: string
-    classId: number
-    className: string
-    classLevel: number
-    assessmentIds: Set<number>
-    courseIds: Set<number>
-    totalEarned: number
-    totalPossible: number
-  }>()
+		const bestScore = new Map<string, number | null>();
+		for (const attempt of attempts) {
+			const key = `${attempt.studentId}:${attempt.assessmentId}`;
+			if (!bestScore.has(key)) bestScore.set(key, attempt.score);
+		}
 
-  for (const assessment of assessments) {
-    for (const ac of assessment.classes) {
-      for (const sp of ac.class.students) {
-        const sid = sp.user.id
-        if (!studentMap.has(sid)) {
-          studentMap.set(sid, {
-            id: sid,
-            name: sp.user.name ?? "Unknown",
-            email: sp.user.email,
-            classId: ac.class.id,
-            className: ac.class.name,
-            classLevel: ac.class.level,
-            assessmentIds: new Set(),
-            courseIds: new Set(),
-            totalEarned: 0,
-            totalPossible: 0,
-          })
-        }
-        const entry = studentMap.get(sid)!
-        if (!entry.assessmentIds.has(assessment.id)) {
-          entry.assessmentIds.add(assessment.id)
-          entry.courseIds.add(assessment.course.id)
-          // Add to totals — unsubmitted counts as 0
-          const score = bestScore.get(`${sid}:${assessment.id}`) ?? 0
-          entry.totalEarned += score
-          entry.totalPossible += assessment.totalMarks
-        }
-      }
-    }
-  }
+		const studentMap = new Map<
+			number,
+			{
+				id: number;
+				name: string;
+				email: string;
+				indexNumber: string | null;
+				classId: number;
+				className: string;
+				classLevel: number;
+				assessmentIds: Set<number>;
+				courseIds: Set<number>;
+				totalEarned: number;
+				totalPossible: number;
+			}
+		>();
 
-  // Collect unique courses and classes for filter options
-  const coursesMap = new Map<number, { id: number; code: string; title: string }>()
-  const classesMap = new Map<number, { id: number; name: string; level: number }>()
+		for (const assessment of assessments) {
+			for (const assessmentClass of assessment.classes) {
+				for (const studentProfile of assessmentClass.class.students) {
+					const studentId = studentProfile.user.id;
+					if (!studentMap.has(studentId)) {
+						studentMap.set(studentId, {
+							id: studentId,
+							name: studentProfile.user.name ?? "Unknown",
+							email: studentProfile.user.email,
+							indexNumber: studentProfile.indexNumber ?? null,
+							classId: assessmentClass.class.id,
+							className: assessmentClass.class.name,
+							classLevel: assessmentClass.class.level,
+							assessmentIds: new Set(),
+							courseIds: new Set(),
+							totalEarned: 0,
+							totalPossible: 0,
+						});
+					}
+					const entry = studentMap.get(studentId);
+					if (!entry) continue;
 
-  for (const assessment of assessments) {
-    coursesMap.set(assessment.course.id, assessment.course)
-    for (const ac of assessment.classes) {
-      classesMap.set(ac.class.id, {
-        id: ac.class.id,
-        name: ac.class.name,
-        level: ac.class.level,
-      })
-    }
-  }
+					if (!entry.assessmentIds.has(assessment.id)) {
+						entry.assessmentIds.add(assessment.id);
+						entry.courseIds.add(assessment.course.id);
+						const score = bestScore.get(`${studentId}:${assessment.id}`) ?? 0;
+						entry.totalEarned += score;
+						entry.totalPossible += assessment.totalMarks;
+					}
+				}
+			}
+		}
 
-  const students = Array.from(studentMap.values()).map((s: any) => ({
-    id: s.id,
-    name: s.name,
-    email: s.email,
-    classId: s.classId,
-    className: s.className,
-    classLevel: s.classLevel,
-    assessmentCount: s.assessmentIds.size,
-    courseIds: Array.from(s.courseIds),
-    totalEarned: s.totalEarned,
-    totalPossible: s.totalPossible,
-    overallPct: s.totalPossible > 0
-      ? Math.round((s.totalEarned / s.totalPossible) * 100)
-      : null,
-  }))
+		const coursesMap = new Map<
+			number,
+			{ id: number; code: string; title: string }
+		>();
+		const classesMap = new Map<
+			number,
+			{ id: number; name: string; level: number }
+		>();
 
-  // Unique levels for filter
-  const levels = Array.from(new Set(students.map((s: any) => s.classLevel))).sort((a, b) => a - b)
+		for (const assessment of assessments) {
+			coursesMap.set(assessment.course.id, assessment.course);
+			for (const assessmentClass of assessment.classes) {
+				classesMap.set(assessmentClass.class.id, {
+					id: assessmentClass.class.id,
+					name: assessmentClass.class.name,
+					level: assessmentClass.class.level,
+				});
+			}
+		}
 
-  return NextResponse.json({
-    students,
-    courses: Array.from(coursesMap.values()),
-    classes: Array.from(classesMap.values()),
-    levels,
-  })
+		const students = Array.from(studentMap.values()).map((student) => ({
+			id: student.id,
+			name: student.name,
+			email: student.email,
+			indexNumber: student.indexNumber,
+			classId: student.classId,
+			className: student.className,
+			classLevel: student.classLevel,
+			assessmentCount: student.assessmentIds.size,
+			courseIds: Array.from(student.courseIds),
+			totalEarned: student.totalEarned,
+			totalPossible: student.totalPossible,
+			overallPct:
+				student.totalPossible > 0
+					? Math.round((student.totalEarned / student.totalPossible) * 100)
+					: null,
+		}));
+
+		const levels = Array.from(
+			new Set(students.map((student) => student.classLevel)),
+		).sort((a, b) => a - b);
+
+		return NextResponse.json({
+			students,
+			courses: Array.from(coursesMap.values()),
+			classes: Array.from(classesMap.values()),
+			levels,
+		});
+	} catch (err) {
+		console.error("[GET /api/lecturer/gradebook] Failed to load gradebook", {
+			error: err instanceof Error ? err.message : String(err),
+			stack: err instanceof Error ? err.stack : undefined,
+		});
+		return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
+	}
 }

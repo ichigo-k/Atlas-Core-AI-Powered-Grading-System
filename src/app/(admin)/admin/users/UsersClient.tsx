@@ -51,6 +51,14 @@ const tabs = [
 ];
 
 type UserRole = (typeof tabs)[number]["key"];
+type StatusFilter = "ALL" | UserWithProfile["status"];
+
+const statusFilters: Array<{ key: StatusFilter; label: string }> = [
+	{ key: "ALL", label: "All" },
+	{ key: "ACTIVE", label: "Active" },
+	{ key: "SUSPENDED", label: "Suspended" },
+	{ key: "PENDING", label: "Pending" },
+];
 type AdminSelectOption = {
 	id: number;
 	name: string;
@@ -123,10 +131,11 @@ function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
 								type="button"
 								disabled={loading}
 								onClick={handleToggleStatus}
-								className={`p-2 rounded-sm transition-all ${user.status === "SUSPENDED"
-									? "text-emerald-500 hover:bg-emerald-50"
-									: "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-									}`}
+								className={`p-2 rounded-sm transition-all ${
+									user.status === "SUSPENDED"
+										? "text-emerald-500 hover:bg-emerald-50"
+										: "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+								}`}
 							>
 								{user.status === "SUSPENDED" ? (
 									<UserCheck size={16} />
@@ -190,6 +199,7 @@ export default function UsersClient({
 	programs?: AdminSelectOption[];
 }) {
 	const [activeTab, setActiveTab] = useState<UserRole>("STUDENT");
+	const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 	const [addUserOpen, setAddUserOpen] = useState(false);
 	const [bulkImportOpen, setBulkImportOpen] = useState(false);
 	const [editUser, setEditUser] = useState<UserWithProfile | null>(null);
@@ -211,16 +221,38 @@ export default function UsersClient({
 
 	const counts = useMemo(
 		() => ({
-			STUDENT: users.filter((u: any) => u.role === "STUDENT").length,
-			LECTURER: users.filter((u: any) => u.role === "LECTURER").length,
-			ADMIN: users.filter((u: any) => u.role === "ADMIN").length,
+			STUDENT: users.filter((user) => user.role === "STUDENT").length,
+			LECTURER: users.filter((user) => user.role === "LECTURER").length,
+			ADMIN: users.filter((user) => user.role === "ADMIN").length,
 		}),
 		[users],
 	);
 
-	const filteredData = useMemo(
-		() => users.filter((u: any) => u.role === activeTab),
+	const usersForActiveRole = useMemo(
+		() => users.filter((user) => user.role === activeTab),
 		[users, activeTab],
+	);
+
+	const statusCounts = useMemo(
+		() => ({
+			ALL: usersForActiveRole.length,
+			ACTIVE: usersForActiveRole.filter((user) => user.status === "ACTIVE")
+				.length,
+			SUSPENDED: usersForActiveRole.filter(
+				(user) => user.status === "SUSPENDED",
+			).length,
+			PENDING: usersForActiveRole.filter((user) => user.status === "PENDING")
+				.length,
+		}),
+		[usersForActiveRole],
+	);
+
+	const filteredData = useMemo(
+		() =>
+			usersForActiveRole.filter(
+				(user) => statusFilter === "ALL" || user.status === statusFilter,
+			),
+		[usersForActiveRole, statusFilter],
 	);
 
 	const columns = useMemo(() => {
@@ -240,13 +272,33 @@ export default function UsersClient({
 				cell: ({ row }) => (
 					<div className="min-w-0 group">
 						<p className="truncate font-semibold text-slate-900 group-hover:text-[#002388] transition-colors">
-							{row.original.name ?? "—"}
+							{row.original.name ?? "-"}
 						</p>
 						<p className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">
 							{emailLocalPart(row.original.email)}
 						</p>
+						{row.original.studentProfile?.indexNumber ? (
+							<p className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">
+								{row.original.studentProfile.indexNumber}
+							</p>
+						) : null}
 					</div>
 				),
+				filterFn: (row, _columnId, value) => {
+					const query = String(value).toLowerCase();
+					const user = row.original;
+					return [
+						user.name,
+						user.email,
+						emailLocalPart(user.email),
+						user.studentProfile?.indexNumber,
+						user.studentProfile?.program,
+						user.lecturerProfile?.department,
+						user.lecturerProfile?.title,
+					]
+						.filter(Boolean)
+						.some((field) => String(field).toLowerCase().includes(query));
+				},
 			},
 		];
 
@@ -381,19 +433,24 @@ export default function UsersClient({
 						<button
 							type="button"
 							key={key}
-							onClick={() => setActiveTab(key)}
-							className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-colors ${active
-								? "text-[#002388] font-semibold"
-								: "text-slate-500 font-medium hover:text-slate-700"
-								}`}
+							onClick={() => {
+								setActiveTab(key);
+								setStatusFilter("ALL");
+							}}
+							className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-colors ${
+								active
+									? "text-[#002388] font-semibold"
+									: "text-slate-500 font-medium hover:text-slate-700"
+							}`}
 						>
 							<Icon size={16} strokeWidth={active ? 2.5 : 2} />
 							{label}
 							<span
-								className={`flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold transition-colors ${active
-									? "bg-[#002388] text-white"
-									: "border border-border text-slate-500 bg-slate-50 group-hover:border-slate-300"
-									}`}
+								className={`flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold transition-colors ${
+									active
+										? "bg-[#002388] text-white"
+										: "border border-border text-slate-500 bg-slate-50 group-hover:border-slate-300"
+								}`}
 							>
 								{counts[key]}
 							</span>
@@ -405,11 +462,40 @@ export default function UsersClient({
 				})}
 			</div>
 
+			<div className="flex flex-wrap items-center gap-2">
+				{statusFilters.map((filter) => {
+					const active = statusFilter === filter.key;
+					return (
+						<button
+							type="button"
+							key={filter.key}
+							onClick={() => setStatusFilter(filter.key)}
+							className={`inline-flex items-center gap-2 rounded-sm border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+								active
+									? "border-[#002388] bg-[#002388] text-white"
+									: "border-border bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+							}`}
+						>
+							{filter.label}
+							<span
+								className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+									active
+										? "bg-white/15 text-white"
+										: "bg-slate-100 text-slate-500"
+								}`}
+							>
+								{statusCounts[filter.key]}
+							</span>
+						</button>
+					);
+				})}
+			</div>
+
 			<DataTable
 				columns={columns}
 				data={filteredData}
 				searchKey="name"
-				placeholder={`Search ${activeTab.toLowerCase()}s...`}
+				placeholder={`Search ${activeTab.toLowerCase()}s by name, email, or index number...`}
 			/>
 		</div>
 	);
