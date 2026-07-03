@@ -29,9 +29,10 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createOrResumeAttempt } from "@/lib/assessment-actions";
 import { createProctorSession } from "@/lib/proctor-session-actions";
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
+import { findVirtualDevice } from "@/lib/device-integrity";
 
-type CameraState = "idle" | "requesting" | "granted" | "denied";
-type MicState = "idle" | "requesting" | "granted" | "denied";
+type CameraState = "idle" | "requesting" | "granted" | "denied" | "virtual";
+type MicState = "idle" | "requesting" | "granted" | "denied" | "virtual";
 type LightingStatus = "checking" | "ok" | "poor" | "unknown";
 type FaceStatus = "checking" | "ok" | "absent" | "unknown";
 
@@ -425,10 +426,20 @@ function StepMicCheck({
   const [micState, setMicState] = useState<MicState>("idle");
   const streamRef = useRef<MediaStream | null>(null);
 
+  const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
+
   const requestMic = useCallback(async () => {
     setMicState("requesting");
+    setVirtualLabel(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const virtual = findVirtualDevice(stream);
+      if (virtual) {
+        stream.getTracks().forEach((t) => t.stop());
+        setVirtualLabel(virtual);
+        setMicState("virtual");
+        return;
+      }
       streamRef.current = stream;
       setMicState("granted");
     } catch {
@@ -467,27 +478,36 @@ function StepMicCheck({
         {/* Mic status */}
         <div className={`flex items-center gap-3 rounded-sm border p-4 transition-colors ${micState === "granted"
           ? "border-emerald-200 bg-emerald-50"
-          : micState === "denied"
+          : micState === "denied" || micState === "virtual"
             ? "border-red-200 bg-red-50"
             : "border-slate-200 bg-slate-50"
           }`}>
           {micState === "granted" ? (
             <Mic size={18} className="shrink-0 text-emerald-600" />
-          ) : micState === "denied" ? (
+          ) : micState === "denied" || micState === "virtual" ? (
             <MicOff size={18} className="shrink-0 text-red-600" />
           ) : (
             <Loader2 size={18} className="shrink-0 text-slate-400 animate-spin" />
           )}
           <div>
             <p className={`text-[12px] font-bold ${micState === "granted" ? "text-emerald-700"
-              : micState === "denied" ? "text-red-700"
+              : micState === "denied" || micState === "virtual" ? "text-red-700"
                 : "text-slate-500"
               }`}>
               {micState === "granted" ? "Microphone access granted"
-                : micState === "denied" ? "Microphone access denied"
-                  : micState === "requesting" ? "Requesting microphone access…"
-                    : "Waiting for microphone…"}
+                : micState === "virtual" ? "Virtual microphone detected"
+                  : micState === "denied" ? "Microphone access denied"
+                    : micState === "requesting" ? "Requesting microphone access…"
+                      : "Waiting for microphone…"}
             </p>
+            {micState === "virtual" && (
+              <p className="text-[11px] text-red-700/80 mt-0.5 leading-relaxed">
+                “{virtualLabel}” is a virtual audio device and can't be used for a
+                proctored exam. Disable it in your system's sound settings and use
+                your computer's built-in or a physical microphone, then{" "}
+                <button type="button" onClick={requestMic} className="underline font-semibold">try again</button>.
+              </p>
+            )}
             {micState === "denied" && (
               <p className="text-[11px] text-red-700/80 mt-0.5 leading-relaxed">
                 Allow microphone access in your browser settings then{" "}
@@ -519,7 +539,9 @@ function StepMicCheck({
         </button>
         {!canContinue && micState !== "requesting" && (
           <p className="text-[11px] text-muted-foreground ml-1">
-            {micState === "denied" ? "Microphone access is required to proceed." : "Waiting for microphone…"}
+            {micState === "virtual" ? "A physical microphone is required to proceed."
+              : micState === "denied" ? "Microphone access is required to proceed."
+                : "Waiting for microphone…"}
           </p>
         )}
       </div>
@@ -550,6 +572,7 @@ function StepCameraCheck({
   const [agreed, setAgreed] = useState(false);
   const [isProceeding, setIsProceeding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -557,8 +580,16 @@ function StepCameraCheck({
 
   const requestCamera = useCallback(async () => {
     setCameraState("requesting");
+    setVirtualLabel(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const virtual = findVirtualDevice(stream);
+      if (virtual) {
+        stream.getTracks().forEach((t) => t.stop());
+        setVirtualLabel(virtual);
+        setCameraState("virtual");
+        return;
+      }
       streamRef.current = stream;
       setCameraState("granted");
     } catch {
@@ -605,16 +636,31 @@ function StepCameraCheck({
     }
   }, []);
 
-  // BlazeFace face-presence check
+  // BlazeFace face-presence check. The model is loaded once and cached —
+  // bf.load() downloads model weights and builds the inference graph, which
+  // is far too expensive to redo on every poll tick (was previously reloaded
+  // from scratch every 3s, making the whole step feel permanently stuck on
+  // "Detecting face…").
+  const blazeModelRef = useRef<Awaited<ReturnType<typeof import("@tensorflow-models/blazeface").load>> | null>(null);
+  const blazeLoadingRef = useRef<Promise<void> | null>(null);
+
   const checkFace = useCallback(async (): Promise<"ok" | "absent" | "unknown"> => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return "unknown";
     try {
-      const tf = await import("@tensorflow/tfjs");
-      await tf.ready();
-      const bf = await import("@tensorflow-models/blazeface");
-      const model = await bf.load();
-      const predictions = await model.estimateFaces(video, false);
+      if (!blazeModelRef.current) {
+        if (!blazeLoadingRef.current) {
+          blazeLoadingRef.current = (async () => {
+            const tf = await import("@tensorflow/tfjs");
+            await tf.ready();
+            const bf = await import("@tensorflow-models/blazeface");
+            blazeModelRef.current = await bf.load();
+          })();
+        }
+        await blazeLoadingRef.current;
+        if (!blazeModelRef.current) return "unknown";
+      }
+      const predictions = await blazeModelRef.current.estimateFaces(video, false);
       return predictions.length > 0 ? "ok" : "absent";
     } catch {
       return "unknown";
@@ -723,6 +769,11 @@ function StepCameraCheck({
               </div>
             </div>
           </>
+        ) : cameraState === "virtual" ? (
+          <div className="flex flex-col items-center gap-2 text-slate-400">
+            <CameraOff size={28} />
+            <span className="text-[12px] font-semibold">Virtual camera detected</span>
+          </div>
         ) : cameraState === "denied" ? (
           <div className="flex flex-col items-center gap-2 text-slate-400">
             <CameraOff size={28} />
@@ -737,6 +788,20 @@ function StepCameraCheck({
       </div>
 
       <div className="mb-4 space-y-2.5">
+        {cameraState === "virtual" && (
+          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Virtual camera not allowed</p>
+              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
+                “{virtualLabel}” is a virtual camera and can't be used for a proctored
+                exam. Close it and use your device's built-in or a physical webcam,
+                then{" "}
+                <button type="button" onClick={requestCamera} className="underline">try again</button>.
+              </p>
+            </div>
+          </div>
+        )}
         {cameraState === "denied" && (
           <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
@@ -825,7 +890,8 @@ function StepCameraCheck({
 
         {!canProceed && !isProceeding && (
           <p className="text-[11px] text-muted-foreground">
-            {cameraState === "denied" ? "Camera access is required to proceed."
+            {cameraState === "virtual" ? "A physical camera is required to proceed."
+              : cameraState === "denied" ? "Camera access is required to proceed."
               : lightingStatus === "poor" ? "Improve your lighting to continue."
                 : faceStatus === "absent" ? "Position your face in front of the camera."
                   : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"

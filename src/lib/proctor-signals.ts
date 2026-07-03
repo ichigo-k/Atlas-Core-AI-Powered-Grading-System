@@ -12,4 +12,8 @@ export const proctorSignals = {
   get audioSilent() {
     return this.audioRms < 0.02
   },
+  /** Live camera stream owned by ProctorCamera (null until started / after cleanup). */
+  cameraStream: null as MediaStream | null,
+  /** Live mic stream owned by ProctorAudio (null until started / after cleanup). */
+  micStream: null as MediaStream | null,
 }

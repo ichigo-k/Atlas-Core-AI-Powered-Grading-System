@@ -15,6 +15,7 @@ import QuestionRenderer from "@/components/student/QuestionRenderer"
 import CountdownTimer from "@/components/student/CountdownTimer"
 import ProctorCamera from "@/components/student/ProctorCamera"
 import ProctorAudio from "@/components/student/ProctorAudio"
+import LiveProctorBridge from "@/components/student/LiveProctorBridge"
 import {
   CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight,
   Send, X, BookOpen, Clock, Layers, ListChecks, Video,
@@ -929,6 +930,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
       {!simulation && <ViolationOverlay assessmentId={assessmentId} />}
       {!simulation && assessment.proctoringEnabled && <ProctorCamera attemptId={attempt.id} />}
       {!simulation && <ProctorAudio attemptId={attempt.id} />}
+      {!simulation && assessment.proctoringEnabled && <LiveProctorBridge attemptId={attempt.id} />}
 
       {showSubmitDialog && (
         <SubmitReviewScreen

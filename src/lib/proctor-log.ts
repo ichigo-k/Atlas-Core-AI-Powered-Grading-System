@@ -17,14 +17,20 @@ export interface ProctoringLogEntry {
    *   CONNECTION_LOST
    */
   violationType: string
-  /** Event origin — always 'CLIENT' (legacy entries may contain 'ORACLE') */
-  source: 'CLIENT' | 'ORACLE'
-  /** Anomaly confidence score; null for client-side events */
+  /**
+   * Event origin — 'CLIENT' for automatic client-side detections,
+   * 'LECTURER' for lecturer-issued Live View flags
+   * (legacy entries may contain 'ORACLE').
+   */
+  source: 'CLIENT' | 'ORACLE' | 'LECTURER'
+  /** Anomaly confidence score; null for client-side and lecturer events */
   confidence: number | null
   /** ISO 8601 timestamp of when the event was detected */
   detectedAt: string
   /** Value of ProctorRecord.flagCount after this event was appended */
   flagCountAfter: number
+  /** Free-text reason — only present on LECTURER-sourced entries */
+  reason?: string
 }
 
 /**
@@ -76,9 +82,9 @@ export function deserializeProctoringLog(json: string): ProctoringLogEntry[] {
       )
     }
 
-    if (entry.source !== 'CLIENT' && entry.source !== 'ORACLE') {
+    if (entry.source !== 'CLIENT' && entry.source !== 'ORACLE' && entry.source !== 'LECTURER') {
       throw new Error(
-        `ProctoringLogEntry at index ${index} has invalid 'source': must be 'CLIENT' or 'ORACLE'`,
+        `ProctoringLogEntry at index ${index} has invalid 'source': must be 'CLIENT', 'ORACLE' or 'LECTURER'`,
       )
     }
 
@@ -109,10 +115,11 @@ export function deserializeProctoringLog(json: string): ProctoringLogEntry[] {
 
     return {
       violationType: entry.violationType as string,
-      source: entry.source as 'CLIENT' | 'ORACLE',
+      source: entry.source as 'CLIENT' | 'ORACLE' | 'LECTURER',
       confidence,
       detectedAt: entry.detectedAt as string,
       flagCountAfter: entry.flagCountAfter as number,
+      ...(typeof entry.reason === 'string' ? { reason: entry.reason } : {}),
     }
   })
 }

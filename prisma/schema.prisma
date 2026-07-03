@@ -385,7 +385,9 @@ model AssessmentAttempt {
 
   answers StudentAnswer[]
 
-  proctorRecord ProctorRecord?
+  proctorRecord   ProctorRecord?
+  proctorSignals  ProctorSignal[]
+  proctorMessages ProctorMessage[]
 
   @@unique([assessmentId, studentId, attemptNumber])
   @@map("assessment_attempts")
@@ -426,10 +428,42 @@ model ProctorRecord {
   flagThreshold  Int               @default(5)
   proctoringLog  Json              @default("[]")
   status         ProctorStatus     @default(ACTIVE)
+  lastSeenAt     DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   @@map("proctor_records")
+}
+
+// WebRTC signaling messages for Live View proctoring (Postgres-backed polling).
+// Rows are consumed (consumedAt set) by the opposite party and opportunistically
+// deleted once older than 5 minutes.
+model ProctorSignal {
+  id         Int               @id @default(autoincrement())
+  attemptId  Int
+  attempt    AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  sender     String // "LECTURER" | "STUDENT"
+  type       String // "offer" | "answer" | "ice" | "bye"
+  payload    Json
+  createdAt  DateTime          @default(now())
+  consumedAt DateTime?
+
+  @@index([attemptId, sender, consumedAt])
+  @@map("proctor_signals")
+}
+
+// Lecturer <-> student chat messages during a proctored attempt.
+model ProctorMessage {
+  id          Int               @id @default(autoincrement())
+  attemptId   Int
+  attempt     AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  senderId    Int
+  senderRole  String // "LECTURER" | "STUDENT"
+  body        String
+  createdAt   DateTime          @default(now())
+  deliveredAt DateTime?
+
+  @@map("proctor_messages")
 }
 
 // ---------------------------------------------------------------------------

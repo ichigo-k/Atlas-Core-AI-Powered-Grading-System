@@ -58,6 +58,7 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import type { AssessmentWithDetails } from "@/lib/assessment-types";
+import LiveViewTab from "./LiveViewTab";
 import type { AssessmentResultsData } from "./results/AssessmentResultsView";
 
 ChartJS.register(
@@ -71,7 +72,7 @@ ChartJS.register(
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "results" | "proctoring";
+type Tab = "overview" | "results" | "proctoring" | "live";
 type SortKey = "name" | "class" | "status" | "score" | "submittedAt";
 type SortDir = "asc" | "desc";
 type ResultsFilter =
@@ -831,7 +832,10 @@ export default function AssessmentView({
 			? [{ id: "results" as Tab, label: "Results" }]
 			: []),
 		...(assessment.proctoringEnabled
-			? [{ id: "proctoring" as Tab, label: "Proctoring" }]
+			? [
+					{ id: "proctoring" as Tab, label: "Proctoring" },
+					{ id: "live" as Tab, label: "Live View" },
+				]
 			: []),
 	];
 
@@ -1802,6 +1806,12 @@ export default function AssessmentView({
 				{activeTab === "proctoring" &&
 					assessment.proctoringEnabled &&
 					proctoringContent}
+				{activeTab === "live" && assessment.proctoringEnabled && (
+					<LiveViewTab
+						assessmentId={assessment.id}
+						isRunning={assessment.status === "PUBLISHED"}
+					/>
+				)}
 			</div>
 		</div>
 	);

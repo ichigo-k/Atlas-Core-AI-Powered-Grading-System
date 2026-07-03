@@ -27,19 +27,28 @@ import { toast } from "sonner"
 import { useViolationStore } from "@/lib/violation-store"
 import { addViolation, type ViolationReason } from "@/lib/violation-tracker"
 import { proctorSignals } from "@/lib/proctor-signals"
+import { findVirtualDevice } from "@/lib/device-integrity"
 import type { FlagType } from "@/components/student/FlagOverlay"
-import { Video, VideoOff } from "lucide-react"
+import { Video, VideoOff, ShieldAlert } from "lucide-react"
+
+// Virtual devices are re-flagged on this cadence for as long as they remain
+// in use — the onboarding check only catches a spoofed device at setup time;
+// this keeps re-punishing it if the student swapped afterward.
+const VIRTUAL_DEVICE_REFLAG_MS = 15000
 
 const OBJECT_INTERVAL_MS = 800
 
 // ── Head-pose tiers (degrees) ──────────────────────────────────────────────
 // FLAG = clearly turned away → hard flag (reachable, not "staring into lap").
-// WARN = sharp — catches even slight glances → soft toast only (no flag).
-const YAW_FLAG = 18, PITCH_DOWN_FLAG = -20, PITCH_UP_FLAG = 16
-const YAW_WARN = 9, PITCH_DOWN_WARN = -10, PITCH_UP_WARN = 9
+// WARN = soft toast only (no flag).
+// Downward pitch is deliberately much more lenient: looking down at the
+// keyboard or scratch paper is normal exam behaviour, so only a deep,
+// sustained look into the lap should ever escalate.
+const YAW_FLAG = 18, PITCH_DOWN_FLAG = -35, PITCH_UP_FLAG = 16
+const YAW_WARN = 12, PITCH_DOWN_WARN = -22, PITCH_UP_WARN = 9
 
 // ── Escalation timing ──────────────────────────────────────────────────────
-const WARN_SUSTAIN_MS = 600       // continuous before a soft toast — snappy
+const WARN_SUSTAIN_MS = 600       // default continuous time before a soft toast
 const REFLAG_COOLDOWN_MS = 15000  // after flagging, wait before re-flagging same type
 const WARN_COOLDOWN_MS = 6000     // don't repeat the same toast within this window
 
@@ -64,15 +73,30 @@ const HARD_FLAG_TYPES = new Set<WarnKey>([
 ])
 
 // Per-signal behaviour:
-//   warns  — clear-cut violations (caught red-handed) flag with NO toast tier.
-//            ambiguous ones (gaze, objects) toast first.
-//   flagMs — how long it must persist before a hard flag (just long enough to
-//            ignore single-frame detector hiccups, not a grace period).
-const SIGNAL: Record<WarnKey, { warns: boolean; flagMs: number }> = {
-  PERSON_ABSENT: { warns: false, flagMs: 700 },   // left frame → flag, no warning
-  MULTIPLE_PERSONS: { warns: false, flagMs: 800 },   // 2nd person → flag
-  PHONE_DETECTED: { warns: false, flagMs: 900 },   // phone in view → flag
-  GAZE_AWAY: { warns: true, flagMs: 2500 },   // ambiguous (typing/thinking) → toast then flag
+//   warns   — clear-cut violations (caught red-handed) flag with NO toast tier.
+//             ambiguous ones (gaze, objects) toast first.
+//   flagMs  — how long it must persist before a hard flag (just long enough to
+//             ignore single-frame detector hiccups, not a grace period).
+//   warnMs  — optional per-signal sustain before a soft toast (defaults to
+//             WARN_SUSTAIN_MS). GAZE_AWAY uses a longer one so brief glances
+//             (checking the keyboard, a moment of thought) never toast.
+//   clearMs — how long the signal must read fully clear before its progress
+//             resets (debounce). Face-count detection flickers frame-to-frame
+//             under normal conditions (low light, a face angled toward the
+//             edge, a second person partially occluded) — without this, a
+//             single bad frame in the middle of a real absence/multi-person
+//             run would wipe the streak and restart the count, so a student
+//             who's genuinely gone (or a genuine second person) could dodge
+//             detection indefinitely. Defaults to 0 (reset immediately).
+const SIGNAL: Record<WarnKey, { warns: boolean; flagMs: number; warnMs?: number; clearMs?: number }> = {
+  PERSON_ABSENT: { warns: false, flagMs: 700, clearMs: 500 },   // left frame → flag, no warning
+  MULTIPLE_PERSONS: { warns: false, flagMs: 800, clearMs: 600 },   // 2nd person → flag
+  // COCO-SSD only samples every 800ms (OBJECT_INTERVAL_MS) and its per-tick
+  // detection is noisier than face landmarks — a phone at an angle or
+  // partially in a hand can easily drop out of a single tick. clearMs spans
+  // roughly one missed tick so that doesn't wipe real progress.
+  PHONE_DETECTED: { warns: false, flagMs: 900, clearMs: 900 },   // phone in view → flag
+  GAZE_AWAY: { warns: true, flagMs: 5000, warnMs: 1500 },   // ambiguous (typing/thinking) → lenient
   SUSPICIOUS_OBJECT: { warns: true, flagMs: Infinity }, // toast only
   MOUTH_MOVING: { warns: true, flagMs: Infinity }, // toast only
 }
@@ -98,6 +122,7 @@ export default function ProctorCamera({ attemptId }: Props) {
   const streamRef = useRef<MediaStream | null>(null)
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
+  const [virtualDevice, setVirtualDevice] = useState<string | null>(null)
 
   // Per-signal escalation state: how long it's been continuously present, and
   // when we last warned / flagged it (for cooldowns).
@@ -105,6 +130,7 @@ export default function ProctorCamera({ attemptId }: Props) {
     presentSince: number | null
     lastWarnAt: number
     lastFlagAt: number
+    clearSince: number | null   // when the signal first went clear (for clearMs debounce)
   }>>(new Map())
 
   // Mouth-movement tracking (jawOpen oscillation over a rolling window).
@@ -141,15 +167,29 @@ export default function ProctorCamera({ attemptId }: Props) {
   // Ambiguous signals (warns:true) toast first, then flag if they persist.
   function escalate(type: WarnKey, severity: Severity) {
     const cfg = SIGNAL[type]
-    const st = escalation.current.get(type) ?? { presentSince: null, lastWarnAt: -Infinity, lastFlagAt: -Infinity }
+    const st = escalation.current.get(type) ??
+      { presentSince: null, lastWarnAt: -Infinity, lastFlagAt: -Infinity, clearSince: null }
     const now = performance.now()
 
     if (severity === 0) {
+      const clearMs = cfg.clearMs ?? 0
+      // Mid-run blip: don't reset yet — hold the streak until "clear" has
+      // itself been sustained for clearMs, so a single bad frame doesn't
+      // wipe out real progress toward a flag.
+      if (clearMs > 0 && st.presentSince !== null) {
+        if (st.clearSince === null) st.clearSince = now
+        if (now - st.clearSince < clearMs) {
+          escalation.current.set(type, st)
+          return
+        }
+      }
       st.presentSince = null
+      st.clearSince = null
       escalation.current.set(type, st)
       return
     }
 
+    st.clearSince = null  // back to positive — cancel any pending clear
     if (st.presentSince === null) st.presentSince = now
     const elapsed = now - st.presentSince
 
@@ -167,7 +207,7 @@ export default function ProctorCamera({ attemptId }: Props) {
     }
 
     // Soft warn — only for ambiguous signals, and only before they'd flag.
-    if (cfg.warns && elapsed >= WARN_SUSTAIN_MS && now - st.lastWarnAt >= WARN_COOLDOWN_MS) {
+    if (cfg.warns && elapsed >= (cfg.warnMs ?? WARN_SUSTAIN_MS) && now - st.lastWarnAt >= WARN_COOLDOWN_MS) {
       st.lastWarnAt = now
       softWarn(type)
     }
@@ -190,15 +230,49 @@ export default function ProctorCamera({ attemptId }: Props) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
       .then((stream) => {
         if (cancelled) { stream.getTracks().forEach((t: any) => t.stop()); return }
+        const virtual = findVirtualDevice(stream)
+        if (virtual) {
+          // Onboarding already screens for this, but a student can swap their
+          // OS default device after passing it and before this stream is
+          // acquired — so the exam camera itself has to check again.
+          stream.getTracks().forEach((t: any) => t.stop())
+          setVirtualDevice(virtual)
+          return
+        }
         streamRef.current = stream
+        proctorSignals.cameraStream = stream
         setCameraReady(true)
       })
       .catch(() => { if (!cancelled) setCameraError(true) })
     return () => {
       cancelled = true
       streamRef.current?.getTracks().forEach((t: any) => t.stop())
+      proctorSignals.cameraStream = null
     }
   }, [])
+
+  // ── Virtual camera re-flagging ─────────────────────────────────────────────
+  // A hard, unambiguous signal — flag immediately, then keep re-flagging on a
+  // cadence for as long as the virtual device stays in use (there's no "clear"
+  // state to escalate() the way per-frame face signals have).
+  useEffect(() => {
+    if (!virtualDevice) return
+    let cancelled = false
+    async function flagVirtual() {
+      const s = useViolationStore.getState()
+      if (s.submitting || s.activeEvent) return
+      const optimistic = useViolationStore.getState().count + 1
+      recordViolation({ type: "VIRTUAL_DEVICE_DETECTED", flagCountAfter: optimistic, source: "CAMERA" })
+      const { count: serverCount, willAutoSubmit } = await addViolation(attemptId, "VIRTUAL_DEVICE_DETECTED" as ViolationReason)
+      if (cancelled) return
+      syncCount(serverCount)
+      if (willAutoSubmit) showFinalWarning()
+    }
+    void flagVirtual()
+    const id = setInterval(() => { void flagVirtual() }, VIRTUAL_DEVICE_REFLAG_MS)
+    return () => { cancelled = true; clearInterval(id) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [virtualDevice, attemptId])
 
   // ── Attach stream after video element renders ─────────────────────────────
   useEffect(() => {
@@ -437,6 +511,11 @@ export default function ProctorCamera({ attemptId }: Props) {
             className="h-full w-full object-cover"
             style={{ transform: "scaleX(-1)" }}
           />
+        ) : virtualDevice ? (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-3 text-center text-red-400">
+            <ShieldAlert size={18} />
+            <span className="text-[10px] font-semibold">Virtual camera blocked</span>
+          </div>
         ) : cameraError ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-white/40">
             <VideoOff size={18} />

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { submitAttemptInternal } from '@/lib/assessment-actions'
 import { getSession } from '@/lib/session'
+import { applyProctorFlag } from '@/lib/proctor-flag'
 
 interface ClientEventBody {
   attemptId: number
@@ -34,62 +33,24 @@ export async function POST(request: NextRequest) {
 
     const { attemptId, violationType, detectedAt } = body
 
-    // Find the existing record first
-    const record = await prisma.proctorRecord.findUnique({
-      where: { attemptId },
-      select: { id: true, flagCount: true, flagThreshold: true, proctoringLog: true },
+    const result = await applyProctorFlag({
+      attemptId,
+      violationType,
+      source: 'CLIENT',
+      detectedAt,
     })
 
-    if (!record) {
+    if (!result.found) {
       // Non-proctored exam — graceful no-op
       return NextResponse.json({ success: true, flagCount: 0 })
     }
 
-    const newFlagCount = record.flagCount + 1
-    const existingLog = Array.isArray(record.proctoringLog) ? record.proctoringLog : []
-    const newEntry = {
-      violationType,
-      source: 'CLIENT',
-      confidence: null,
-      detectedAt,
-      flagCountAfter: newFlagCount,
-    }
-
-    // Use atomic increment to avoid transaction contention under rapid firing
-    await prisma.proctorRecord.update({
-      where: { id: record.id },
-      data: {
-        flagCount: { increment: 1 },
-        proctoringLog: [...existingLog, newEntry],
-      },
-    })
-
-    const isTerminating = newFlagCount >= record.flagThreshold
-
-    if (isTerminating) {
-      // Fetch assessmentId for submitAttemptInternal
-      const attempt = await prisma.assessmentAttempt.findUnique({
-        where: { id: attemptId },
-        select: { assessmentId: true },
-      })
-      if (attempt) {
-        try {
-          await submitAttemptInternal(attemptId, attempt.assessmentId, 'PROCTOR_VIOLATION')
-        } catch (err) {
-          console.error('[proctor/flag] submitAttemptInternal error:', {
-            attemptId,
-            error: err instanceof Error ? err.message : String(err),
-          })
-        }
-      }
-    }
-
     return NextResponse.json({
       success: true,
-      flagCount: newFlagCount,
+      flagCount: result.flagCount,
       violationType,
       source: 'CLIENT',
-      willAutoSubmit: isTerminating,
+      willAutoSubmit: result.willAutoSubmit,
     })
   } catch (err) {
     console.error('[POST /api/internal/proctor/flag]', {

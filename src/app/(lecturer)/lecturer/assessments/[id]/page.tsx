@@ -306,7 +306,7 @@ async function AssessmentData({
 		}
 	}
 
-	const validTabs = ["overview", "results", "proctoring"];
+	const validTabs = ["overview", "results", "proctoring", "live"];
 	const tab = validTabs.includes(initialTab) ? initialTab : "overview";
 	const safeTab =
 		resolvedStatus === "DRAFT" && tab === "results" ? "overview" : tab;

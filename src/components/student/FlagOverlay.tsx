@@ -30,11 +30,15 @@ export type FlagType =
   | "POOR_LIGHTING"
   | "TALKING_DETECTED"
   | "BLURRY_CAMERA"
+  | "LECTURER_FLAG"
+  | "VIRTUAL_DEVICE_DETECTED"
 
 export interface FlagEvent {
   type: FlagType
   flagCountAfter: number
-  source: "CLIENT" | "CAMERA"
+  source: "CLIENT" | "CAMERA" | "LECTURER"
+  /** Optional human reason (e.g. the lecturer's note for a LECTURER_FLAG). */
+  reason?: string | null
 }
 
 interface FlagOverlayProps {
@@ -131,6 +135,20 @@ const FLAG_CONFIG: Record<FlagType, {
     description: "Your camera feed is too blurry. Please clean the lens or adjust focus.",
     accentColor: "#f97316",
     bgColor: "rgba(249,115,22,0.12)",
+  },
+  LECTURER_FLAG: {
+    icon: ShieldAlert,
+    title: "Flagged by your lecturer",
+    description: "Your lecturer has issued an integrity flag on your attempt.",
+    accentColor: "#ef4444",
+    bgColor: "rgba(239,68,68,0.12)",
+  },
+  VIRTUAL_DEVICE_DETECTED: {
+    icon: ShieldAlert,
+    title: "Virtual device detected",
+    description: "A virtual camera or microphone was detected. Disable it and use a physical device — this will keep being flagged until you do.",
+    accentColor: "#ef4444",
+    bgColor: "rgba(239,68,68,0.12)",
   },
 }
 
@@ -376,6 +394,11 @@ export default function FlagOverlay({
         <div>
           <p className="text-white text-[20px] font-bold mb-1.5 tracking-tight">{cfg.title}</p>
           <p className="text-white/60 text-[13px] leading-relaxed">{cfg.description}</p>
+          {event.reason && (
+            <p className="mt-2 text-white/80 text-[13px] leading-relaxed font-medium">
+              “{event.reason}”
+            </p>
+          )}
         </div>
 
         {/* Flag count */}
