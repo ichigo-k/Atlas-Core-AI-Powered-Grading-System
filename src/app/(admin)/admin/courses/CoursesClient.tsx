@@ -58,19 +58,21 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
     if (!deleteTargets || deleteTargets.length === 0) return;
     setIsDeleting(true);
 
-    let failures = 0;
+    const failureMessages: string[] = [];
     for (const target of deleteTargets) {
       const result = await deleteCourseAction(target.id);
-      if (!result.success) failures++;
+      if (!result.success) failureMessages.push(result.error || `Failed to delete ${target.title}`);
     }
-    if (failures === 0) {
+    if (failureMessages.length === 0) {
       toast.success(
         deleteTargets.length === 1
           ? "Course deleted successfully"
           : `${deleteTargets.length} courses deleted successfully`,
       );
+    } else if (failureMessages.length === 1) {
+      toast.error(failureMessages[0]);
     } else {
-      toast.error(`${failures} of ${deleteTargets.length} deletions failed`);
+      toast.error(`${failureMessages.length} of ${deleteTargets.length} deletions failed: ${failureMessages.join(" ")}`);
     }
     setDeleteTargets(null);
     setSelected([]);

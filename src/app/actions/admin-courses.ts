@@ -72,6 +72,33 @@ export async function updateCourseAction(courseId: number, formData: FormData) {
 export async function deleteCourseAction(courseId: number) {
   try {
     await requireAdmin();
+
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        title: true,
+        code: true,
+        classes: { select: { name: true, level: true } },
+        _count: { select: { assessments: true } },
+      },
+    });
+    if (!course) {
+      return { success: false, error: "Course not found" };
+    }
+    if (course.classes.length > 0) {
+      const names = course.classes.map((c) => `${c.name} (L${c.level})`).join(", ");
+      return {
+        success: false,
+        error: `"${course.title}" is assigned to ${course.classes.length} class${course.classes.length === 1 ? "" : "es"} (${names}). Unassign it from those classes before deleting.`,
+      };
+    }
+    if (course._count.assessments > 0) {
+      return {
+        success: false,
+        error: `"${course.title}" has ${course._count.assessments} assessment${course._count.assessments === 1 ? "" : "s"} created under it and cannot be deleted.`,
+      };
+    }
+
     const deleted = await prisma.course.delete({
       where: { id: courseId },
     });
@@ -85,7 +112,7 @@ export async function deleteCourseAction(courseId: number) {
     return { success: true };
   } catch (error) {
     console.error("Failed to delete course:", error);
-    return { success: false, error: "Failed to delete course. It might be linked to classes or lecturers." };
+    return { success: false, error: "Failed to delete course. It might be linked to other records." };
   }
 }
 

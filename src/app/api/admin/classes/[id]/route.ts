@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +17,34 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "Invalid class ID" }, { status: 400 });
     }
 
+    const cls = await prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        name: true,
+        level: true,
+        _count: { select: { students: true, assessmentClasses: true } },
+      },
+    });
+    if (!cls) {
+      return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    }
+    if (cls._count.students > 0) {
+      return NextResponse.json(
+        {
+          error: `"${cls.name}" still has ${cls._count.students} student${cls._count.students === 1 ? "" : "s"} assigned. Reassign or remove them before deleting this class.`,
+        },
+        { status: 409 },
+      );
+    }
+    if (cls._count.assessmentClasses > 0) {
+      return NextResponse.json(
+        {
+          error: `"${cls.name}" is linked to ${cls._count.assessmentClasses} assessment${cls._count.assessmentClasses === 1 ? "" : "s"} and cannot be deleted.`,
+        },
+        { status: 409 },
+      );
+    }
+
     await prisma.class.delete({
       where: { id: classId },
     });
@@ -28,6 +57,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      return NextResponse.json(
+        { error: "This class still has related records and cannot be deleted." },
+        { status: 409 },
+      );
+    }
     console.error("Error deleting class:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
