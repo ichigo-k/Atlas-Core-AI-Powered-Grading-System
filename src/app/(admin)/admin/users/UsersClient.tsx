@@ -5,6 +5,7 @@ import {
 	ArrowUpDown,
 	BookOpen,
 	Edit2,
+	Filter,
 	FolderKanban,
 	GraduationCap,
 	History,
@@ -31,6 +32,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DataTable } from "@/components/ui/data-table";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { UserWithProfile } from "@/lib/admin-users";
 import AddUserSheet from "./AddUserSheet";
 import BulkAssignDialog from "./BulkAssignDialog";
@@ -436,37 +443,6 @@ export default function UsersClient({
 				})}
 			</div>
 
-			{/* Status facet filter — plain pills, not a hidden dropdown. */}
-			<div className="flex items-center gap-2">
-				{statusFilters.map((filter) => {
-					const active = statusFilter === filter.key;
-					return (
-						<button
-							type="button"
-							key={filter.key}
-							onClick={() => {
-								setStatusFilter(filter.key);
-								setSelected([]);
-							}}
-							className={`flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-								active
-									? "border-[#002388] bg-[#eef3ff] text-[#002388]"
-									: "border-border bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
-							}`}
-						>
-							{filter.label}
-							<span
-								className={`rounded-sm px-1.5 py-0.5 text-[10px] font-bold ${
-									active ? "bg-[#002388] text-white" : "bg-slate-100 text-slate-500"
-								}`}
-							>
-								{statusCounts[filter.key]}
-							</span>
-						</button>
-					);
-				})}
-			</div>
-
 			{/*
 				Azure/AWS-style command bar: actions live as dedicated buttons that
 				enable based on selection instead of a per-row kebab menu. Click a
@@ -483,8 +459,40 @@ export default function UsersClient({
 				onSelectionChange={setSelected}
 				onRowClick={(user) => setEditUser(user)}
 				toolbarActions={
-					selected.length > 0 ? (
-						<>
+					<>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+								>
+									<Filter className="h-3.5 w-3.5" />
+									{statusFilter === "ALL" ? "Filter" : statusFilters.find((f) => f.key === statusFilter)?.label}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="w-44 rounded-sm">
+								{statusFilters.map((filter) => (
+									<DropdownMenuItem
+										key={filter.key}
+										onClick={() => {
+											setStatusFilter(filter.key);
+											setSelected([]);
+										}}
+										className={`flex items-center justify-between text-xs font-medium ${
+											statusFilter === filter.key ? "bg-[#eef3ff] text-[#002388] font-semibold" : ""
+										}`}
+									>
+										<span>{filter.label}</span>
+										<span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+											{statusCounts[filter.key]}
+										</span>
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+						{selected.length > 0 && (
+							<>
 							<Button
 								variant="outline"
 								size="sm"
@@ -565,8 +573,9 @@ export default function UsersClient({
 								<Trash2 className="h-3.5 w-3.5" />
 								Delete
 							</Button>
-						</>
-					) : null
+							</>
+						)}
+					</>
 				}
 			/>
 
