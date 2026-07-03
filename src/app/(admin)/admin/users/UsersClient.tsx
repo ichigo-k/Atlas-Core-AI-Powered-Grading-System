@@ -392,7 +392,7 @@ export default function UsersClient({
 								setStatusFilter(filter.key);
 								setSelected([]);
 							}}
-							className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+							className={`flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
 								active
 									? "border-[#002388] bg-[#eef3ff] text-[#002388]"
 									: "border-border bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
@@ -400,7 +400,7 @@ export default function UsersClient({
 						>
 							{filter.label}
 							<span
-								className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+								className={`rounded-sm px-1.5 py-0.5 text-[10px] font-bold ${
 									active ? "bg-[#002388] text-white" : "bg-slate-100 text-slate-500"
 								}`}
 							>
@@ -427,56 +427,57 @@ export default function UsersClient({
 				onSelectionChange={setSelected}
 				onRowClick={(user) => setEditUser(user)}
 				toolbarActions={
-					<>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={!singleSelected}
-							onClick={() => singleSelected && setEditUser(singleSelected)}
-							className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-						>
-							<Edit2 className="h-3.5 w-3.5" />
-							Edit
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={!singleSelected || isTogglingStatus}
-							onClick={handleToggleStatus}
-							className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
-						>
-							{singleSelected?.status === "SUSPENDED" ? (
-								<UserCheck className="h-3.5 w-3.5 text-emerald-600" />
-							) : (
-								<UserX className="h-3.5 w-3.5 text-rose-600" />
-							)}
-							{singleSelected?.status === "SUSPENDED" ? "Unsuspend" : "Suspend"}
-						</Button>
-						{singleSelected?.role === "STUDENT" && (
+					selected.length > 0 ? (
+						<>
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() =>
-									singleSelected &&
-									router.push(`/admin/student-history/${singleSelected.id}`)
-								}
-								className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+								disabled={!singleSelected}
+								onClick={() => singleSelected && setEditUser(singleSelected)}
+								className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
 							>
-								<History className="h-3.5 w-3.5" />
-								Records
+								<Edit2 className="h-3.5 w-3.5" />
+								Edit
 							</Button>
-						)}
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={selected.length === 0}
-							onClick={() => setDeleteTargets(selected)}
-							className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50 disabled:opacity-40 disabled:border-border disabled:text-slate-400"
-						>
-							<Trash2 className="h-3.5 w-3.5" />
-							Delete
-						</Button>
-					</>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={!singleSelected || isTogglingStatus}
+								onClick={handleToggleStatus}
+								className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
+							>
+								{singleSelected?.status === "SUSPENDED" ? (
+									<UserCheck className="h-3.5 w-3.5 text-emerald-600" />
+								) : (
+									<UserX className="h-3.5 w-3.5 text-rose-600" />
+								)}
+								{singleSelected?.status === "SUSPENDED" ? "Unsuspend" : "Suspend"}
+							</Button>
+							{singleSelected?.role === "STUDENT" && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() =>
+										singleSelected &&
+										router.push(`/admin/student-history/${singleSelected.id}`)
+									}
+									className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+								>
+									<History className="h-3.5 w-3.5" />
+									Records
+								</Button>
+							)}
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setDeleteTargets(selected)}
+								className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
+							>
+								<Trash2 className="h-3.5 w-3.5" />
+								Delete
+							</Button>
+						</>
+					) : null
 				}
 			/>
 		</div>

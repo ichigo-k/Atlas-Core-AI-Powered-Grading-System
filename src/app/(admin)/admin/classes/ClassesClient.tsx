@@ -189,48 +189,49 @@ export default function ClassesClient({
 				onSelectionChange={setSelected}
 				onRowClick={(cls) => handleEdit(cls)}
 				toolbarActions={
-					<>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={!singleSelected}
-							onClick={() => singleSelected && handleEdit(singleSelected)}
-							className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-						>
-							<Edit2 className="h-3.5 w-3.5" />
-							Edit
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={!singleSelected}
-							onClick={() => setMembersOpen(true)}
-							className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-						>
-							<UserPlus className="h-3.5 w-3.5" />
-							Members
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={!singleSelected}
-							onClick={() => setCoursesOpen(true)}
-							className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-						>
-							<Settings2 className="h-3.5 w-3.5" />
-							Courses
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={selected.length === 0}
-							onClick={() => setDeleteTargets(selected)}
-							className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50 disabled:opacity-40 disabled:border-border disabled:text-slate-400"
-						>
-							<Trash2 className="h-3.5 w-3.5" />
-							Delete
-						</Button>
-					</>
+					selected.length > 0 ? (
+						<>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={!singleSelected}
+								onClick={() => singleSelected && handleEdit(singleSelected)}
+								className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
+							>
+								<Edit2 className="h-3.5 w-3.5" />
+								Edit
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={!singleSelected}
+								onClick={() => setMembersOpen(true)}
+								className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
+							>
+								<UserPlus className="h-3.5 w-3.5" />
+								Members
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={!singleSelected}
+								onClick={() => setCoursesOpen(true)}
+								className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
+							>
+								<Settings2 className="h-3.5 w-3.5" />
+								Courses
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setDeleteTargets(selected)}
+								className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
+							>
+								<Trash2 className="h-3.5 w-3.5" />
+								Delete
+							</Button>
+						</>
+					) : null
 				}
 			/>
 
