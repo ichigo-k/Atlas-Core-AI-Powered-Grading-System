@@ -434,7 +434,7 @@ export default function UsersClient({
 								size="sm"
 								disabled={!singleSelected}
 								onClick={() => singleSelected && setEditUser(singleSelected)}
-								className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+								className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
 							>
 								<Edit2 className="h-3.5 w-3.5" />
 								Edit
@@ -444,7 +444,7 @@ export default function UsersClient({
 								size="sm"
 								disabled={!singleSelected || isTogglingStatus}
 								onClick={handleToggleStatus}
-								className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
+								className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
 							>
 								{singleSelected?.status === "SUSPENDED" ? (
 									<UserCheck className="h-3.5 w-3.5 text-emerald-600" />
@@ -461,7 +461,7 @@ export default function UsersClient({
 										singleSelected &&
 										router.push(`/admin/student-history/${singleSelected.id}`)
 									}
-									className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+									className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
 								>
 									<History className="h-3.5 w-3.5" />
 									Records
@@ -471,7 +471,7 @@ export default function UsersClient({
 								variant="outline"
 								size="sm"
 								onClick={() => setDeleteTargets(selected)}
-								className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
+								className="h-9 gap-1.5 px-3.5 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
 							>
 								<Trash2 className="h-3.5 w-3.5" />
 								Delete

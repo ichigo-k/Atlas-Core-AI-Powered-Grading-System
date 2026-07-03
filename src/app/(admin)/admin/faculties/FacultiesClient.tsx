@@ -92,7 +92,7 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
                 size="sm"
                 disabled={!singleSelected}
                 onClick={() => singleSelected && handleEdit(singleSelected)}
-                className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+                className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
               >
                 <Edit2 className="h-3.5 w-3.5" />
                 Edit
@@ -101,7 +101,7 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
                 variant="outline"
                 size="sm"
                 onClick={() => setDeleteTargets(selected)}
-                className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
+                className="h-9 gap-1.5 px-3.5 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete

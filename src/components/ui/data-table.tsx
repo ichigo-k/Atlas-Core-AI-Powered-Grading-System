@@ -170,7 +170,7 @@ export function DataTable<TData, TValue>({
             ) : null}
           </div>
           {enableSelection && selectedRows.length > 0 && (
-            <div className="flex items-center gap-2 rounded-sm bg-[#eef3ff] border border-[#002388]/15 px-3 h-10 text-[12px] font-semibold text-[#002388] shrink-0">
+            <div className="flex items-center gap-2 rounded-sm bg-[#eef3ff] border border-[#002388]/15 px-3.5 h-9 text-[12px] font-semibold text-[#002388] shrink-0">
               {selectedRows.length} selected
               <button
                 type="button"
@@ -183,11 +183,11 @@ export function DataTable<TData, TValue>({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {toolbarActions}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-auto h-10 gap-2 rounded-sm border-border text-[#323130] font-semibold text-[11px] uppercase tracking-wider hover:bg-slate-50">
+              <Button variant="outline" size="sm" className="ml-auto h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] font-semibold text-[11px] uppercase tracking-wider hover:bg-slate-50">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 Columns
               </Button>
