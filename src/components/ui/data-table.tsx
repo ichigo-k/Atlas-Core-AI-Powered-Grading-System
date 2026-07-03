@@ -4,6 +4,8 @@ import * as React from "react"
 import {
   ColumnDef,
   ColumnFiltersState,
+  Row,
+  RowSelectionState,
   SortingState,
   VisibilityState,
   flexRender,
@@ -14,16 +16,15 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { 
-  ChevronDown, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronsLeft, 
-  ChevronsRight, 
-  Settings2,
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Search,
   SlidersHorizontal,
-  Monitor
+  Monitor,
+  X
 } from "lucide-react"
 
 import {
@@ -35,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
@@ -52,6 +54,13 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string
   placeholder?: string
   onRowClick?: (row: TData) => void
+  toolbarActions?: React.ReactNode
+  /** Adds a checkbox column and drives an Azure/AWS-style command bar — selection
+   *  is reported to the parent so it can enable/disable toolbarActions buttons
+   *  instead of falling back to a per-row dropdown menu. */
+  enableSelection?: boolean
+  getRowId?: (row: TData) => string | number
+  onSelectionChange?: (rows: TData[]) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -60,6 +69,10 @@ export function DataTable<TData, TValue>({
   searchKey,
   placeholder = "Search...",
   onRowClick,
+  toolbarActions,
+  enableSelection = false,
+  getRowId,
+  onSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -67,11 +80,44 @@ export function DataTable<TData, TValue>({
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
+
+  const tableColumns = React.useMemo(() => {
+    if (!enableSelection) return columns
+    const selectColumn: ColumnDef<TData, TValue> = {
+      id: "select",
+      size: 40,
+      enableHiding: false,
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected()
+              ? true
+              : table.getIsSomePageRowsSelected()
+                ? "indeterminate"
+                : false
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        </div>
+      ),
+    }
+    return [selectColumn, ...columns]
+  }, [columns, enableSelection])
 
   const table = useReactTable({
     data,
-    columns,
+    columns: tableColumns,
+    getRowId: getRowId ? (row) => String(getRowId(row)) : undefined,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -89,27 +135,61 @@ export function DataTable<TData, TValue>({
   })
 
   const isMobile = useIsMobile()
+  const searchValue = (table.getColumn(searchKey || "")?.getFilterValue() as string) ?? ""
+  const selectedRows = table.getSelectedRowModel().rows as Row<TData>[]
+
+  React.useEffect(() => {
+    if (!enableSelection) return
+    onSelectionChange?.(selectedRows.map((r) => r.original))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowSelection])
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 transition-colors group-focus-within:text-[#002388]" />
-          <Input
-            placeholder={placeholder}
-            value={(table.getColumn(searchKey || "")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn(searchKey || "")?.setFilterValue(event.target.value)
-            }
-            className="pl-9 h-10 rounded-sm border-border focus-visible:ring-primary focus-visible:border-primary text-[12px]"
-          />
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-sm group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 transition-colors group-focus-within:text-[#002388]" />
+            <Input
+              placeholder={placeholder}
+              value={searchValue}
+              onChange={(event) =>
+                table.getColumn(searchKey || "")?.setFilterValue(event.target.value)
+              }
+              className="pl-9 pr-9 h-10 rounded-sm border-border focus-visible:ring-primary focus-visible:border-primary text-[12px]"
+            />
+            {searchValue ? (
+              <button
+                type="button"
+                onClick={() => table.getColumn(searchKey || "")?.setFilterValue("")}
+                className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Clear search"
+              >
+                <X size={13} />
+              </button>
+            ) : null}
+          </div>
+          {enableSelection && selectedRows.length > 0 && (
+            <div className="flex items-center gap-2 rounded-sm bg-[#eef3ff] border border-[#002388]/15 px-3 h-10 text-[12px] font-semibold text-[#002388] shrink-0">
+              {selectedRows.length} selected
+              <button
+                type="button"
+                onClick={() => table.resetRowSelection()}
+                className="text-[#002388]/60 hover:text-[#002388] transition-colors"
+                aria-label="Clear selection"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {toolbarActions}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="ml-auto h-10 gap-2 rounded-sm border-border text-[#323130] font-semibold text-[11px] uppercase tracking-wider hover:bg-slate-50">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
-                View
+                Columns
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[180px] rounded-sm">

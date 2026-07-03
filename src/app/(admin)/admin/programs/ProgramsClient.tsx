@@ -1,17 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, MoreVertical, Trash2 } from "lucide-react";
+import { Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DataTable } from "@/components/ui/data-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import AddProgramSheet from "./AddProgramSheet";
 import type { FacultySimple, ProgramSimple } from "@/lib/admin-entities";
 import { toast } from "sonner";
@@ -22,7 +15,8 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
   const [programs, setPrograms] = useState<ProgramWithFaculty[]>(initialPrograms);
   const [open, setOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<ProgramSimple | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ProgramWithFaculty | null>(null);
+  const [selected, setSelected] = useState<ProgramWithFaculty[]>([]);
+  const [deleteTargets, setDeleteTargets] = useState<ProgramWithFaculty[] | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   function handleSaved(program: ProgramWithFaculty, isNew: boolean) {
@@ -33,57 +27,43 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
     }
   }
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/programs/${deleteTarget.id}`, { method: "DELETE" });
-      if (res.ok) {
-        setPrograms(prev => prev.filter(p => p.id !== deleteTarget.id));
-        toast.success("Program deleted");
-        setDeleteTarget(null);
-      } else {
-        const data = await res.json().catch(() => null);
-        toast.error(data?.error || "Failed to delete program");
-      }
-    } catch {
-      toast.error("An error occurred");
-    } finally {
-      setIsDeleting(false);
-    }
+  const handleEdit = (program: ProgramWithFaculty) => {
+    setEditingProgram(program);
+    setOpen(true);
   };
+
+  const handleDelete = async () => {
+    if (!deleteTargets || deleteTargets.length === 0) return;
+    setIsDeleting(true);
+    let failures = 0;
+    for (const target of deleteTargets) {
+      try {
+        const res = await fetch(`/api/admin/programs/${target.id}`, { method: "DELETE" });
+        if (res.ok) {
+          setPrograms(prev => prev.filter(p => p.id !== target.id));
+        } else {
+          failures++;
+        }
+      } catch {
+        failures++;
+      }
+    }
+    if (failures === 0) {
+      toast.success(deleteTargets.length === 1 ? "Program deleted" : `${deleteTargets.length} programs deleted`);
+    } else {
+      toast.error(`${failures} of ${deleteTargets.length} deletions failed`);
+    }
+    setDeleteTargets(null);
+    setSelected([]);
+    setIsDeleting(false);
+  };
+
+  const singleSelected = selected.length === 1 ? selected[0] : null;
 
   const columns = [
     { accessorKey: "name", header: "Name" },
     { accessorKey: "code", header: "Code", cell: ({ row }: any) => row.original.code || "-" },
     { accessorKey: "faculty", header: "Faculty", cell: ({ row }: any) => row.original.faculty?.name || "-" },
-    {
-      id: "actions",
-      header: "",
-      cell: ({ row }: any) => {
-        const program = row.original as ProgramWithFaculty;
-        return (
-          <div className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all">
-                  <MoreVertical size={16} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => { setEditingProgram(program); setOpen(true); }}>
-                  <Edit2 className="mr-2 h-4 w-4" /> Edit
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setDeleteTarget(program)} className="text-red-600">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        );
-      },
-    },
   ];
 
   return (
@@ -94,7 +74,44 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
         </Button>
       </div>
 
-      <DataTable columns={columns} data={programs} searchKey="name" placeholder="Search programs..." />
+      {/*
+        Azure/AWS-style command bar: Edit/Delete live as dedicated buttons that
+        enable based on selection instead of a per-row kebab menu.
+      */}
+      <DataTable
+        columns={columns}
+        data={programs}
+        searchKey="name"
+        placeholder="Search programs..."
+        enableSelection
+        getRowId={(program) => program.id}
+        onSelectionChange={setSelected}
+        onRowClick={(program) => handleEdit(program)}
+        toolbarActions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!singleSelected}
+              onClick={() => singleSelected && handleEdit(singleSelected)}
+              className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selected.length === 0}
+              onClick={() => setDeleteTargets(selected)}
+              className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50 disabled:opacity-40 disabled:border-border disabled:text-slate-400"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Button>
+          </>
+        }
+      />
 
       <AddProgramSheet
         open={open}
@@ -105,14 +122,18 @@ export default function ProgramsClient({ initialPrograms, faculties }: { initial
       />
 
       <ConfirmModal
-        open={deleteTarget !== null}
-        title="Delete Program?"
-        description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        open={!!deleteTargets}
+        title={deleteTargets && deleteTargets.length > 1 ? `Delete ${deleteTargets.length} programs?` : "Delete Program?"}
+        description={
+          deleteTargets && deleteTargets.length > 1
+            ? `Are you sure you want to delete these ${deleteTargets.length} programs? This action cannot be undone.`
+            : `Are you sure you want to delete "${deleteTargets?.[0]?.name}"? This action cannot be undone.`
+        }
         confirmText="Delete program"
         isDestructive
         isLoading={isDeleting}
         onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => setDeleteTargets(null)}
       />
     </div>
   );

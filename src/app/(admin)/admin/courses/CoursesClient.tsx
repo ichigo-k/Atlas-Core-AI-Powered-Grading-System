@@ -1,33 +1,11 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import AddEditCourseSheet from "./AddEditCourseSheet";
 import { ColumnDef } from "@tanstack/react-table";
-import {
-  BookPlus,
-  MoreVertical,
-  UserPlus,
-  BookOpen,
-  ArrowUpDown,
-  Edit2,
-  Trash2
-} from "lucide-react";
+import { ArrowUpDown, Edit2, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { deleteCourseAction } from "@/app/actions/admin-courses";
@@ -48,7 +26,8 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
 
   const [addEditOpen, setAddEditOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<CourseWithDetails | null>(null);
-  const [deleteCourse, setDeleteCourse] = useState<CourseWithDetails | null>(null);
+  const [selected, setSelected] = useState<CourseWithDetails[]>([]);
+  const [deleteTargets, setDeleteTargets] = useState<CourseWithDetails[] | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -76,18 +55,29 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
   };
 
   const executeDelete = async () => {
-    if (!deleteCourse) return;
+    if (!deleteTargets || deleteTargets.length === 0) return;
     setIsDeleting(true);
 
-    const result = await deleteCourseAction(deleteCourse.id);
-    if (result.success) {
-      toast.success("Course deleted successfully");
-      setDeleteCourse(null);
-    } else {
-      toast.error(result.error || "Failed to delete course");
+    let failures = 0;
+    for (const target of deleteTargets) {
+      const result = await deleteCourseAction(target.id);
+      if (!result.success) failures++;
     }
+    if (failures === 0) {
+      toast.success(
+        deleteTargets.length === 1
+          ? "Course deleted successfully"
+          : `${deleteTargets.length} courses deleted successfully`,
+      );
+    } else {
+      toast.error(`${failures} of ${deleteTargets.length} deletions failed`);
+    }
+    setDeleteTargets(null);
+    setSelected([]);
     setIsDeleting(false);
   };
+
+  const singleSelected = selected.length === 1 ? selected[0] : null;
 
   const columns: ColumnDef<CourseWithDetails>[] = [
     {
@@ -120,6 +110,13 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
           </div>
         </div>
       ),
+      filterFn: (row, _columnId, value) => {
+        const query = String(value).toLowerCase();
+        return (
+          row.original.title.toLowerCase().includes(query) ||
+          row.original.code.toLowerCase().includes(query)
+        );
+      },
     },
     {
       id: "lecturers",
@@ -139,52 +136,6 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
         </div>
       ),
     },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        return (
-          <div className="text-right">
-            <TooltipProvider>
-              <div className="flex items-center justify-end gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => handleEdit(row.original)}
-                      className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-sm transition-all"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Edit Details</TooltipContent>
-                </Tooltip>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all">
-                      <MoreVertical size={16} />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => handleEdit(row.original)}>
-                      <Edit2 className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-rose-600 focus:text-rose-600 focus:bg-rose-50"
-                      onClick={() => setDeleteCourse(row.original)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Course
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </TooltipProvider>
-          </div>
-        );
-      },
-    },
   ];
 
   return (
@@ -198,21 +149,62 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
       />
 
       <ConfirmModal
-        open={!!deleteCourse}
-        title="Delete Course?"
-        description={`Are you sure you want to delete ${deleteCourse?.code}: ${deleteCourse?.title}? This action will remove the course and all its associations. It cannot be undone.`}
+        open={!!deleteTargets}
+        title={
+          deleteTargets && deleteTargets.length > 1
+            ? `Delete ${deleteTargets.length} courses?`
+            : "Delete Course?"
+        }
+        description={
+          deleteTargets && deleteTargets.length > 1
+            ? `Are you sure you want to delete these ${deleteTargets.length} courses? This action will remove them and all their associations. It cannot be undone.`
+            : `Are you sure you want to delete ${deleteTargets?.[0]?.code}: ${deleteTargets?.[0]?.title}? This action will remove the course and all its associations. It cannot be undone.`
+        }
         confirmText="Delete Course"
         isDestructive={true}
         isLoading={isDeleting}
         onConfirm={executeDelete}
-        onCancel={() => setDeleteCourse(null)}
+        onCancel={() => setDeleteTargets(null)}
       />
 
+      {/*
+        Azure/AWS-style command bar: Edit/Delete live as dedicated buttons that
+        enable based on selection instead of a per-row kebab menu. Click a row
+        to open it directly.
+      */}
       <DataTable
         columns={columns}
         data={courses}
         searchKey="title"
-        placeholder="Search courses by title..."
+        placeholder="Search courses by title or code..."
+        enableSelection
+        getRowId={(course) => course.id}
+        onSelectionChange={setSelected}
+        onRowClick={(course) => handleEdit(course)}
+        toolbarActions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!singleSelected}
+              onClick={() => singleSelected && handleEdit(singleSelected)}
+              className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selected.length === 0}
+              onClick={() => setDeleteTargets(selected)}
+              className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50 disabled:opacity-40 disabled:border-border disabled:text-slate-400"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Button>
+          </>
+        }
       />
     </div>
   );

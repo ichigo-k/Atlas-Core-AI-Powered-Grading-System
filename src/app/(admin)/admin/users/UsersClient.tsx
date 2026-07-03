@@ -6,7 +6,6 @@ import {
 	Edit2,
 	GraduationCap,
 	History,
-	MoreVertical,
 	ShieldCheck,
 	Trash2,
 	Upload,
@@ -15,7 +14,7 @@ import {
 	Users as UsersIcon,
 	UserX,
 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -26,19 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DataTable } from "@/components/ui/data-table";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { UserWithProfile } from "@/lib/admin-users";
 import AddUserSheet from "./AddUserSheet";
 import BulkImportSheet from "./BulkImportSheet";
@@ -70,6 +56,10 @@ function emailLocalPart(email: string): string {
 	return email.split("@")[0];
 }
 
+function userIdentifier(user: UserWithProfile): string {
+	return user.studentProfile?.indexNumber || emailLocalPart(user.email);
+}
+
 function StatusBadge({ status }: { status: UserWithProfile["status"] }) {
 	const variant =
 		status === "ACTIVE"
@@ -86,107 +76,6 @@ function StatusBadge({ status }: { status: UserWithProfile["status"] }) {
 	return <Badge variant={variant}>{label}</Badge>;
 }
 
-interface ActionButtonsProps {
-	user: UserWithProfile;
-	onEdit: (user: UserWithProfile) => void;
-	onDelete: (user: UserWithProfile) => void;
-}
-
-function ActionButtons({ user, onEdit, onDelete }: ActionButtonsProps) {
-	const [loading, setLoading] = useState(false);
-
-	async function handleToggleStatus() {
-		setLoading(true);
-		const result = await toggleUserStatusAction(user.id, user.status);
-		if (result.success) {
-			toast.success(
-				`User ${user.status === "ACTIVE" ? "suspended" : "activated"} successfully`,
-			);
-		} else {
-			toast.error(result.error || "Failed to update status");
-		}
-		setLoading(false);
-	}
-
-	return (
-		<div className="text-right">
-			<TooltipProvider>
-				<div className="flex items-center justify-end gap-2">
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={() => onEdit(user)}
-								className="p-2 text-slate-400 hover:text-[#002388] hover:bg-[#002388]/5 rounded-sm transition-all"
-							>
-								<Edit2 size={16} />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent>Edit Profile & Class</TooltipContent>
-					</Tooltip>
-
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								disabled={loading}
-								onClick={handleToggleStatus}
-								className={`p-2 rounded-sm transition-all ${
-									user.status === "SUSPENDED"
-										? "text-emerald-500 hover:bg-emerald-50"
-										: "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-								}`}
-							>
-								{user.status === "SUSPENDED" ? (
-									<UserCheck size={16} />
-								) : (
-									<UserX size={16} />
-								)}
-							</button>
-						</TooltipTrigger>
-						<TooltipContent>
-							{user.status === "SUSPENDED" ? "Unsuspend User" : "Suspend User"}
-						</TooltipContent>
-					</Tooltip>
-
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<button
-								type="button"
-								className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-sm transition-all"
-							>
-								<MoreVertical size={16} />
-							</button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end" className="w-48">
-							<DropdownMenuItem onClick={() => onEdit(user)}>
-								<Edit2 className="mr-2 h-4 w-4" />
-								Edit Details
-							</DropdownMenuItem>
-							{user.role === "STUDENT" && (
-								<DropdownMenuItem asChild>
-									<Link href={`/admin/student-history/${user.id}`}>
-										<History className="mr-2 h-4 w-4" />
-										View Records
-									</Link>
-								</DropdownMenuItem>
-							)}
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								className="text-rose-600 focus:text-rose-600 focus:bg-rose-50"
-								onClick={() => onDelete(user)}
-							>
-								<Trash2 className="mr-2 h-4 w-4" />
-								Delete Account
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
-			</TooltipProvider>
-		</div>
-	);
-}
-
 export default function UsersClient({
 	users,
 	classes = [],
@@ -198,25 +87,62 @@ export default function UsersClient({
 	faculties?: AdminSelectOption[];
 	programs?: AdminSelectOption[];
 }) {
+	const router = useRouter();
 	const [activeTab, setActiveTab] = useState<UserRole>("STUDENT");
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 	const [addUserOpen, setAddUserOpen] = useState(false);
 	const [bulkImportOpen, setBulkImportOpen] = useState(false);
 	const [editUser, setEditUser] = useState<UserWithProfile | null>(null);
-	const [deleteUser, setDeleteUser] = useState<UserWithProfile | null>(null);
+	const [selected, setSelected] = useState<UserWithProfile[]>([]);
+	const [deleteTargets, setDeleteTargets] = useState<UserWithProfile[] | null>(
+		null,
+	);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
+	// Selection resets whenever the visible rows change (tab/status switch).
+	const resetKey = `${activeTab}-${statusFilter}`;
+
+	const singleSelected = selected.length === 1 ? selected[0] : null;
 
 	const executeDelete = async () => {
-		if (!deleteUser) return;
+		if (!deleteTargets || deleteTargets.length === 0) return;
 		setIsDeleting(true);
-		const result = await deleteUserAction(deleteUser.id);
-		if (result.success) {
-			toast.success("User deleted successfully");
-			setDeleteUser(null);
-		} else {
-			toast.error(result.error || "Failed to delete user");
+		let failures = 0;
+		for (const target of deleteTargets) {
+			const result = await deleteUserAction(target.id);
+			if (!result.success) failures++;
 		}
+		if (failures === 0) {
+			toast.success(
+				deleteTargets.length === 1
+					? "User deleted successfully"
+					: `${deleteTargets.length} users deleted successfully`,
+			);
+		} else {
+			toast.error(`${failures} of ${deleteTargets.length} deletions failed`);
+		}
+		setDeleteTargets(null);
+		setSelected([]);
 		setIsDeleting(false);
+	};
+
+	const handleToggleStatus = async () => {
+		if (!singleSelected) return;
+		setIsTogglingStatus(true);
+		const result = await toggleUserStatusAction(
+			singleSelected.id,
+			singleSelected.status,
+		);
+		if (result.success) {
+			toast.success(
+				`User ${singleSelected.status === "ACTIVE" ? "suspended" : "activated"} successfully`,
+			);
+			setSelected([]);
+		} else {
+			toast.error(result.error || "Failed to update status");
+		}
+		setIsTogglingStatus(false);
 	};
 
 	const counts = useMemo(
@@ -275,13 +201,8 @@ export default function UsersClient({
 							{row.original.name ?? "-"}
 						</p>
 						<p className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">
-							{emailLocalPart(row.original.email)}
+							{userIdentifier(row.original)}
 						</p>
-						{row.original.studentProfile?.indexNumber ? (
-							<p className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">
-								{row.original.studentProfile.indexNumber}
-							</p>
-						) : null}
 					</div>
 				),
 				filterFn: (row, _columnId, value) => {
@@ -351,30 +272,18 @@ export default function UsersClient({
 			});
 		}
 
-		baseColumns.push(
-			{
-				accessorKey: "status",
-				header: "Status",
-				cell: ({ row }) => <StatusBadge status={row.original.status} />,
-			},
-			{
-				id: "actions",
-				cell: ({ row }) => (
-					<ActionButtons
-						user={row.original}
-						onEdit={setEditUser}
-						onDelete={setDeleteUser}
-					/>
-				),
-			},
-		);
+		baseColumns.push({
+			accessorKey: "status",
+			header: "Status",
+			cell: ({ row }) => <StatusBadge status={row.original.status} />,
+		});
 
 		return baseColumns;
 	}, [activeTab]);
 
 	return (
 		<div className="flex flex-col gap-6">
-			{/* Action buttons */}
+			{/* Page-level primary actions */}
 			<div className="flex items-center justify-end gap-3">
 				<button
 					type="button"
@@ -415,14 +324,22 @@ export default function UsersClient({
 			/>
 
 			<ConfirmModal
-				open={!!deleteUser}
-				title="Delete Account?"
-				description={`Are you sure you want to delete ${deleteUser?.name || deleteUser?.email}? This will permanently remove their profile and all associated data. This action cannot be undone.`}
+				open={!!deleteTargets}
+				title={
+					deleteTargets && deleteTargets.length > 1
+						? `Delete ${deleteTargets.length} accounts?`
+						: "Delete Account?"
+				}
+				description={
+					deleteTargets && deleteTargets.length > 1
+						? `Are you sure you want to delete these ${deleteTargets.length} accounts? This will permanently remove their profiles and all associated data. This action cannot be undone.`
+						: `Are you sure you want to delete ${deleteTargets?.[0]?.name || deleteTargets?.[0]?.email}? This will permanently remove their profile and all associated data. This action cannot be undone.`
+				}
 				confirmText="Delete Account"
 				isDestructive={true}
 				isLoading={isDeleting}
 				onConfirm={executeDelete}
-				onCancel={() => setDeleteUser(null)}
+				onCancel={() => setDeleteTargets(null)}
 			/>
 
 			{/* Tabs */}
@@ -436,6 +353,7 @@ export default function UsersClient({
 							onClick={() => {
 								setActiveTab(key);
 								setStatusFilter("ALL");
+								setSelected([]);
 							}}
 							className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-colors ${
 								active
@@ -462,26 +380,28 @@ export default function UsersClient({
 				})}
 			</div>
 
-			<div className="flex flex-wrap items-center gap-2">
+			{/* Status facet filter — plain pills, not a hidden dropdown. */}
+			<div className="flex items-center gap-2">
 				{statusFilters.map((filter) => {
 					const active = statusFilter === filter.key;
 					return (
 						<button
 							type="button"
 							key={filter.key}
-							onClick={() => setStatusFilter(filter.key)}
-							className={`inline-flex items-center gap-2 rounded-sm border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+							onClick={() => {
+								setStatusFilter(filter.key);
+								setSelected([]);
+							}}
+							className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
 								active
-									? "border-[#002388] bg-[#002388] text-white"
-									: "border-border bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+									? "border-[#002388] bg-[#eef3ff] text-[#002388]"
+									: "border-border bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
 							}`}
 						>
 							{filter.label}
 							<span
-								className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-									active
-										? "bg-white/15 text-white"
-										: "bg-slate-100 text-slate-500"
+								className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+									active ? "bg-[#002388] text-white" : "bg-slate-100 text-slate-500"
 								}`}
 							>
 								{statusCounts[filter.key]}
@@ -491,11 +411,73 @@ export default function UsersClient({
 				})}
 			</div>
 
+			{/*
+				Azure/AWS-style command bar: actions live as dedicated buttons that
+				enable based on selection instead of a per-row kebab menu. Click a
+				row to open it (Edit), tick checkboxes to act on one or many.
+			*/}
 			<DataTable
+				key={resetKey}
 				columns={columns}
 				data={filteredData}
 				searchKey="name"
 				placeholder={`Search ${activeTab.toLowerCase()}s by name, email, or index number...`}
+				enableSelection
+				getRowId={(user) => user.id}
+				onSelectionChange={setSelected}
+				onRowClick={(user) => setEditUser(user)}
+				toolbarActions={
+					<>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={!singleSelected}
+							onClick={() => singleSelected && setEditUser(singleSelected)}
+							className="h-10 gap-2 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+						>
+							<Edit2 className="h-3.5 w-3.5" />
+							Edit
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={!singleSelected || isTogglingStatus}
+							onClick={handleToggleStatus}
+							className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
+						>
+							{singleSelected?.status === "SUSPENDED" ? (
+								<UserCheck className="h-3.5 w-3.5 text-emerald-600" />
+							) : (
+								<UserX className="h-3.5 w-3.5 text-rose-600" />
+							)}
+							{singleSelected?.status === "SUSPENDED" ? "Unsuspend" : "Suspend"}
+						</Button>
+						{singleSelected?.role === "STUDENT" && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() =>
+									singleSelected &&
+									router.push(`/admin/student-history/${singleSelected.id}`)
+								}
+								className="h-10 gap-2 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+							>
+								<History className="h-3.5 w-3.5" />
+								Records
+							</Button>
+						)}
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={selected.length === 0}
+							onClick={() => setDeleteTargets(selected)}
+							className="h-10 gap-2 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50 disabled:opacity-40 disabled:border-border disabled:text-slate-400"
+						>
+							<Trash2 className="h-3.5 w-3.5" />
+							Delete
+						</Button>
+					</>
+				}
 			/>
 		</div>
 	);
