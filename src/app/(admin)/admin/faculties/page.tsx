@@ -1,14 +1,16 @@
 import { Building2 } from "lucide-react";
 import { Suspense } from "react";
 import AdminPageShell from "@/components/layout/AdminPageShell";
-import LoadingLogo from "@/components/ui/LoadingLogo";
-import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { AdminFacultiesSkeleton } from "@/components/ui/page-loaders";
 import { getFaculties } from "@/lib/admin-entities";
 import FacultiesClient from "./FacultiesClient";
 
-export default async function AdminFacultiesPage() {
+async function FacultiesDataWrapper() {
 	const faculties = await getFaculties();
+	return <FacultiesClient initialFaculties={faculties} />;
+}
 
+export default function AdminFacultiesPage() {
 	return (
 		<AdminPageShell
 			title="Faculties"
@@ -16,19 +18,8 @@ export default async function AdminFacultiesPage() {
 			icon={Building2}
 		>
 			<div className="hidden md:block">
-				<Suspense
-					fallback={
-						<div className="relative rounded-sm border border-border bg-white p-4">
-							<TableSkeleton />
-							<div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-								<div className="scale-75 opacity-80">
-									<LoadingLogo />
-								</div>
-							</div>
-						</div>
-					}
-				>
-					<FacultiesClient initialFaculties={faculties} />
+				<Suspense fallback={<AdminFacultiesSkeleton />}>
+					<FacultiesDataWrapper />
 				</Suspense>
 			</div>
 

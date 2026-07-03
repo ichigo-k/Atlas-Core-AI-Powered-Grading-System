@@ -1,8 +1,7 @@
 import { BookOpen } from "lucide-react";
 import { Suspense } from "react";
 import AdminPageShell from "@/components/layout/AdminPageShell";
-import LoadingLogo from "@/components/ui/LoadingLogo";
-import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { AdminCoursesSkeleton } from "@/components/ui/page-loaders";
 import { getClasses, getCoursesWithDetails } from "@/lib/admin-classes";
 import { getLecturers } from "@/lib/admin-users";
 import AddCourseButton from "./AddCourseButton";
@@ -29,18 +28,7 @@ export default function AdminCoursesPage() {
 			actions={<AddCourseButton />}
 		>
 			<div className="hidden md:block">
-				<Suspense
-					fallback={
-						<div className="relative rounded-sm border border-border bg-white p-4">
-							<TableSkeleton />
-							<div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-								<div className="scale-75 opacity-80">
-									<LoadingLogo />
-								</div>
-							</div>
-						</div>
-					}
-				>
+				<Suspense fallback={<AdminCoursesSkeleton />}>
 					<CoursesDataWrapper />
 				</Suspense>
 			</div>

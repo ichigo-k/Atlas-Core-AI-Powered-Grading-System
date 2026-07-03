@@ -622,6 +622,24 @@ h6 {
   animation: float 3s ease-in-out infinite;
 }
 
+@keyframes loading-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  50% {
+    transform: translateX(150%);
+  }
+
+  100% {
+    transform: translateX(150%);
+  }
+}
+
+.animate-loading-sweep {
+  animation: loading-sweep 1.2s ease-in-out infinite;
+}
+
 .dark {
   --background: #0f1b2d;
   --foreground: #e8eaed;

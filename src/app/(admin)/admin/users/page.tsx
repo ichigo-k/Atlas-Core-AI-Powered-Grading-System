@@ -1,8 +1,7 @@
 import { Users as UsersIcon } from "lucide-react";
 import { Suspense } from "react";
 import AdminPageShell from "@/components/layout/AdminPageShell";
-import LoadingLogo from "@/components/ui/LoadingLogo";
-import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { AdminUsersSkeleton } from "@/components/ui/page-loaders";
 import UsersTable from "./UsersTable";
 
 export default function AdminUsersPage() {
@@ -13,18 +12,7 @@ export default function AdminUsersPage() {
 			icon={UsersIcon}
 		>
 			<div className="hidden md:block">
-				<Suspense
-					fallback={
-						<div className="relative rounded-sm border border-border bg-white p-4">
-							<TableSkeleton />
-							<div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-								<div className="scale-75 opacity-80">
-									<LoadingLogo />
-								</div>
-							</div>
-						</div>
-					}
-				>
+				<Suspense fallback={<AdminUsersSkeleton />}>
 					<UsersTable />
 				</Suspense>
 			</div>
