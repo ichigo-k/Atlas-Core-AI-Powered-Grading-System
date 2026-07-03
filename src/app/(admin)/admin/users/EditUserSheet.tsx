@@ -18,7 +18,14 @@ import {
 	updateUserAction,
 } from "@/app/actions/admin-users-server";
 import { Button } from "@/components/ui/button";
-import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -58,6 +65,7 @@ export default function EditUserSheet({
 	const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
 	const [resettingPassword, setResettingPassword] = useState(false);
 	const submittingRef = useRef(false);
+	const resettingPasswordRef = useRef(false);
 
 	if (!user) return null;
 
@@ -107,8 +115,8 @@ export default function EditUserSheet({
 	}
 
 	async function handleResetPassword() {
-		if (submittingRef.current) return;
-		submittingRef.current = true;
+		if (resettingPasswordRef.current) return;
+		resettingPasswordRef.current = true;
 		setResettingPassword(true);
 		try {
 			const result = await resetUserPasswordAction(editingUser.id);
@@ -124,14 +132,22 @@ export default function EditUserSheet({
 			toast.error("An unexpected error occurred");
 		} finally {
 			setResettingPassword(false);
-			submittingRef.current = false;
+			resettingPasswordRef.current = false;
 		}
 	}
 
 	return (
 		<>
 			<Sheet open={open} onOpenChange={onOpenChange}>
-				<SheetContent className="sm:max-w-120 p-0 border-l border-border">
+				<SheetContent
+					className="sm:max-w-120 p-0 border-l border-border"
+					onPointerDownOutside={(event) => {
+						if (resetPasswordOpen) event.preventDefault();
+					}}
+					onInteractOutside={(event) => {
+						if (resetPasswordOpen) event.preventDefault();
+					}}
+				>
 					<div className="h-full flex flex-col">
 						<SheetHeader className="p-8 bg-slate-50/50 border-b border-slate-100">
 							<div className="flex items-center gap-4">
@@ -154,7 +170,6 @@ export default function EditUserSheet({
 						</SheetHeader>
 
 						<div className="flex-1 overflow-y-auto p-8 space-y-10">
-							{/* Basic Info */}
 							<form
 								id="edit-user-form"
 								action={handleSubmit}
@@ -207,7 +222,6 @@ export default function EditUserSheet({
 									</div>
 								</div>
 
-								{/* Role Specific Info */}
 								<div className="space-y-4">
 									<div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
 										<Building2 size={14} />
@@ -297,7 +311,6 @@ export default function EditUserSheet({
 										</div>
 									)}
 
-									{/* Class Assignment Integrated for Students */}
 									{user.role === "STUDENT" && (
 										<div className="space-y-2">
 											<Label className="text-xs font-bold text-slate-700 ml-1">
@@ -360,15 +373,46 @@ export default function EditUserSheet({
 					</div>
 				</SheetContent>
 			</Sheet>
-			<ConfirmModal
-				open={resetPasswordOpen}
-				title="Reset Password?"
-				description={`Reset ${user.name || user.email}'s password to the email ID (${user.email.split("@")[0]}) and require a password change at next login.`}
-				confirmText="Reset Password"
-				isLoading={resettingPassword}
-				onConfirm={handleResetPassword}
-				onCancel={() => setResetPasswordOpen(false)}
-			/>
+
+			{/* Reset password confirmation — uses Dialog (not ConfirmModal) so it
+			    portals independently of the Sheet and receives pointer events. */}
+			<Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Reset Password?</DialogTitle>
+						<DialogDescription>
+							Reset <strong>{user.name || user.email}</strong>&apos;s password to
+							their email ID (<strong>{user.email.split("@")[0]}</strong>) and
+							require a password change at next login.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className="gap-2 sm:gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							disabled={resettingPassword}
+							onClick={() => setResetPasswordOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							disabled={resettingPassword}
+							className="bg-[#002388] hover:bg-[#001570] text-white"
+							onClick={handleResetPassword}
+						>
+							{resettingPassword ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Resetting…
+								</>
+							) : (
+								"Reset Password"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 }
