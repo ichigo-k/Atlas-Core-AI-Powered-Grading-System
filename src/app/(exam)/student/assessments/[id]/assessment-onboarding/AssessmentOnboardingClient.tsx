@@ -18,6 +18,7 @@ import {
   MicOff,
   Monitor,
   PlayCircle,
+  ScanFace,
   ShieldCheck,
   Sun,
   SunDim,
@@ -30,6 +31,8 @@ import { createOrResumeAttempt } from "@/lib/assessment-actions";
 import { createProctorSession } from "@/lib/proctor-session-actions";
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
 import { findVirtualDevice } from "@/lib/device-integrity";
+import { getBlazeFace } from "@/lib/model-cache";
+import LivenessCheck from "@/components/student/LivenessCheck";
 
 type CameraState = "idle" | "requesting" | "granted" | "denied" | "virtual";
 type MicState = "idle" | "requesting" | "granted" | "denied" | "virtual";
@@ -58,6 +61,7 @@ function buildSteps(passwordProtected: boolean, proctoringEnabled: boolean, hasI
     ...(passwordProtected ? [{ label: "Password", icon: LockKeyhole }] : []),
     { label: "Microphone", icon: Mic },
     ...(proctoringEnabled ? [{ label: "Camera check", icon: Camera }] : []),
+    ...(proctoringEnabled ? [{ label: "Liveness check", icon: ScanFace }] : []),
   ];
 }
 
@@ -208,7 +212,7 @@ function StepImportantRules({
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-full flex-col">
       <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">
         Before you begin
       </h2>
@@ -216,7 +220,7 @@ function StepImportantRules({
         Read these rules carefully — they are strictly enforced.
       </p>
 
-      <div className="flex-1 space-y-4 overflow-y-auto">
+      <div className="flex-1 space-y-4">
         {rules.map((rule, _i) => (
           <div key={rule.title} className="flex items-start gap-3">
             <rule.icon size={15} className="mt-0.5 shrink-0 text-red-600" />
@@ -267,7 +271,7 @@ function StepInstructions({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-full flex-col">
       <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">
         Lecturer Instructions
       </h2>
@@ -275,7 +279,7 @@ function StepInstructions({
         Your lecturer has provided the following instructions for this assessment. Read them carefully.
       </p>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1">
         <div className="rounded-sm border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-5">
           <div className="flex items-start gap-3 mb-3">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100">
@@ -358,7 +362,7 @@ function StepGeneralRules({
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-full flex-col">
       <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">
         General rules
       </h2>
@@ -366,7 +370,7 @@ function StepGeneralRules({
         Additional guidelines for a fair assessment environment.
       </p>
 
-      <div className="flex-1 space-y-4 overflow-y-auto">
+      <div className="flex-1 space-y-4">
         {rules.map((rule, _i) => (
           <div key={rule.title} className="flex items-start gap-3">
             <rule.icon size={15} className="mt-0.5 shrink-0 text-slate-400" strokeWidth={2} />
@@ -457,7 +461,7 @@ function StepMicCheck({
   const canContinue = micState === "granted";
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-full flex-col">
       <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">Microphone check</h2>
       <p className="text-[12px] text-muted-foreground mb-6">
         Your microphone is required for all exams. Audio is monitored to enforce silence during the assessment.
@@ -558,14 +562,17 @@ function StepCameraCheck({
   assessmentId,
   onBack,
   onCancel,
+  onProceed,
 }: {
   attemptId: number;
   assessmentId: number;
   onBack?: () => void;
   onCancel?: () => void;
+  /** Called after the proctor session is created and fullscreen requested —
+   * hands off to the liveness-check step rather than navigating directly,
+   * so a spoofed camera can't skip straight past both checks. */
+  onProceed: () => void;
 }) {
-  const router = useRouter();
-
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
@@ -636,31 +643,16 @@ function StepCameraCheck({
     }
   }, []);
 
-  // BlazeFace face-presence check. The model is loaded once and cached —
-  // bf.load() downloads model weights and builds the inference graph, which
-  // is far too expensive to redo on every poll tick (was previously reloaded
-  // from scratch every 3s, making the whole step feel permanently stuck on
-  // "Detecting face…").
-  const blazeModelRef = useRef<Awaited<ReturnType<typeof import("@tensorflow-models/blazeface").load>> | null>(null);
-  const blazeLoadingRef = useRef<Promise<void> | null>(null);
-
+  // BlazeFace face-presence check. Uses the shared model cache (see
+  // src/lib/model-cache.ts) — the model is loaded once for the whole
+  // session (often already warmed by ModelPrefetcher right after login) and
+  // reused here, rather than reloaded per-component.
   const checkFace = useCallback(async (): Promise<"ok" | "absent" | "unknown"> => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return "unknown";
     try {
-      if (!blazeModelRef.current) {
-        if (!blazeLoadingRef.current) {
-          blazeLoadingRef.current = (async () => {
-            const tf = await import("@tensorflow/tfjs");
-            await tf.ready();
-            const bf = await import("@tensorflow-models/blazeface");
-            blazeModelRef.current = await bf.load();
-          })();
-        }
-        await blazeLoadingRef.current;
-        if (!blazeModelRef.current) return "unknown";
-      }
-      const predictions = await blazeModelRef.current.estimateFaces(video, false);
+      const model = await getBlazeFace();
+      const predictions = await model.estimateFaces(video, false);
       return predictions.length > 0 ? "ok" : "absent";
     } catch {
       return "unknown";
@@ -716,7 +708,7 @@ function StepCameraCheck({
       console.warn("[AssessmentOnboarding] Fullscreen request failed:", err);
     }
 
-    router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${attemptId}`);
+    onProceed();
   }
 
   const lightingOk = lightingStatus === "ok";
@@ -725,7 +717,7 @@ function StepCameraCheck({
   const canProceed = agreed && cameraState === "granted" && checksComplete && !isProceeding;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-full flex-col">
       <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">Camera check</h2>
       <p className="text-[12px] text-muted-foreground mb-5">
         Make sure your camera is clear, lighting is good, and your face is visible.
@@ -905,6 +897,34 @@ function StepCameraCheck({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Liveness check step — shown after Camera check, right before entering the
+// exam. Gates the actual exam-page navigation (see root's handleLivenessDone).
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StepLivenessCheck({
+  assessmentId,
+  attemptId,
+}: {
+  assessmentId: number;
+  attemptId: number;
+}) {
+  const router = useRouter();
+
+  function goToExam() {
+    router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${attemptId}`);
+  }
+
+  return (
+    <LivenessCheck
+      onPass={() => goToExam()}
+      onInconclusive={() => {
+        console.warn("[AssessmentOnboarding] Liveness check inconclusive", { assessmentId, attemptId });
+      }}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Step 3 — Password (only when passwordProtected)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -943,7 +963,7 @@ function StepPassword({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-full flex-col">
       <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">
         Assessment password
       </h2>
@@ -1039,6 +1059,7 @@ export default function AssessmentOnboardingClient({
   const passwordStepIndex = passwordProtected ? generalRulesStepIndex + 1 : -1;
   const micStepIndex = passwordProtected ? passwordStepIndex + 1 : generalRulesStepIndex + 1;
   const proctorStepIndex = proctoringEnabled ? micStepIndex + 1 : -1;
+  const livenessStepIndex = proctoringEnabled ? proctorStepIndex + 1 : -1;
   const resolvedAttemptId = createdAttemptId;
 
   async function handleGeneralRulesNext() {
@@ -1072,7 +1093,7 @@ export default function AssessmentOnboardingClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
+    <div className="min-h-dvh bg-[#F8F9FA] flex flex-col">
       {/* Navbar */}
       <header className="h-12 bg-primary dark:bg-[#002388] flex items-center justify-between px-4 sm:px-6 w-full shrink-0">
         <div className="flex items-center gap-2.5">
@@ -1165,6 +1186,15 @@ export default function AssessmentOnboardingClient({
                     assessmentId={assessmentId}
                     onBack={() => setStep(micStepIndex)}
                     onCancel={() => router.push(`/student/assessments`)}
+                    onProceed={() => setStep(livenessStepIndex)}
+                  />
+                )}
+              {step === livenessStepIndex &&
+                proctoringEnabled &&
+                resolvedAttemptId != null && (
+                  <StepLivenessCheck
+                    assessmentId={assessmentId}
+                    attemptId={resolvedAttemptId}
                   />
                 )}
             </div>

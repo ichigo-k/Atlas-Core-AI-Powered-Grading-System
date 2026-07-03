@@ -44,17 +44,18 @@ export default function RootLayout({
       className={`${inter.variable} ${sora.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <head>
-        {/* Apply saved theme before paint — prevents a light→dark flash on load */}
+        {/* Dark mode is disabled for now — strip any previously-saved 'dark'
+            preference so returning users don't get stuck in it. */}
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.classList.remove('dark');localStorage.removeItem('theme')}catch(e){}})();`,
           }}
         />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <TooltipProvider>{children}</TooltipProvider>
-        <Toaster richColors position="top-right" theme="system" />
+        <Toaster richColors position="top-right" theme="light" />
       </body>
     </html>
   );

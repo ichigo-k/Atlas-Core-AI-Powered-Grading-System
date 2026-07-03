@@ -28,7 +28,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import LoadingLogo from "@/components/ui/LoadingLogo";
+import { LecturerTableSkeleton } from "@/components/ui/page-loaders";
 import {
 	Select,
 	SelectContent,
@@ -44,7 +44,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -304,16 +303,7 @@ export default function GradebookClient() {
 	};
 
 	if (loading) {
-		return (
-			<div className="relative">
-				<TableSkeleton />
-				<div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-					<div className="scale-75 opacity-80">
-						<LoadingLogo />
-					</div>
-				</div>
-			</div>
-		);
+		return <LecturerTableSkeleton />;
 	}
 
 	if (!data) return null;

@@ -13,8 +13,7 @@ import {
   Globe,
   Lock,
 } from "lucide-react"
-import LoadingLogo from "@/components/ui/LoadingLogo"
-import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { LecturerTableSkeleton } from "@/components/ui/page-loaders"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -316,14 +315,7 @@ export default function QuestionBankClient() {
 
       {/* Content */}
       {loading ? (
-        <div className="relative">
-          <TableSkeleton />
-          <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-            <div className="scale-75 opacity-80">
-              <LoadingLogo />
-            </div>
-          </div>
-        </div>
+        <LecturerTableSkeleton />
       ) : banks.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-sm border border-dashed border-border bg-white px-6 py-20 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">

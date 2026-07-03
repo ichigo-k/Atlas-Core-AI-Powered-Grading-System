@@ -81,7 +81,7 @@ export default function AdminNavSidebar({ onClose }: AdminNavSidebarProps) {
     return pathname === href || pathname.startsWith(href + "/");
   }
 
-  const w = collapsed ? "w-[48px]" : "w-56";
+  const w = collapsed ? "w-[48px]" : "w-64 lg:w-56";
 
   return (
     <nav

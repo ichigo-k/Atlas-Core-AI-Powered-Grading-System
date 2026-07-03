@@ -24,8 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import LoadingLogo from "@/components/ui/LoadingLogo"
-import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { LecturerDetailSkeleton } from "@/components/ui/page-loaders"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,16 +143,7 @@ export default function StudentGradeClient({ studentId }: { studentId: number })
   }, [studentId, router])
 
   if (loading) {
-    return (
-      <div className="relative">
-        <TableSkeleton />
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-          <div className="scale-75 opacity-80">
-            <LoadingLogo />
-          </div>
-        </div>
-      </div>
-    )
+    return <LecturerDetailSkeleton />
   }
 
   if (!data) return null

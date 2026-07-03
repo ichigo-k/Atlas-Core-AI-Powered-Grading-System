@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Bell, HelpCircle, Menu } from "lucide-react";
 import AdminNavSidebar from "./AdminNavSidebar";
-import ThemeToggle from "./ThemeToggle";
 
 interface AdminShellProps {
   children: React.ReactNode;
@@ -29,10 +28,10 @@ export default function AdminShell({
   const adminId = userEmail?.split("@")[0] ?? "";
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#0f1b2d] flex flex-col">
+    <div className="min-h-dvh bg-[#f8f9fa] dark:bg-[#0f1b2d] flex flex-col">
 
       {/* ── TOP BAR ── */}
-      <header className="h-12 flex-shrink-0 bg-primary dark:bg-[#002388] flex items-center gap-2 px-3 sm:px-4 z-50 relative overflow-hidden">
+      <header className="sticky top-0 h-12 flex-shrink-0 bg-primary dark:bg-[#002388] flex items-center gap-2 px-3 sm:px-4 z-50 overflow-hidden">
         {/* Kente-inspired pattern overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
           <defs>
@@ -49,7 +48,7 @@ export default function AdminShell({
         </svg>
         <button
           type="button"
-          onClick={() => setMobileOpen(true)}
+          onClick={() => setMobileOpen((o) => !o)}
           className="lg:hidden p-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors"
           aria-label="Open navigation"
         >
@@ -86,7 +85,6 @@ export default function AdminShell({
         </Link>
 
         <div className="ml-auto flex items-center gap-0.5">
-          <ThemeToggle onDark />
           <Link
             href="/admin"
             className="w-9 h-9 flex items-center justify-center rounded text-white/75 hover:text-white hover:bg-white/12 transition-colors"
@@ -115,7 +113,7 @@ export default function AdminShell({
       </header>
 
       {/* ── BODY: sidebar + content ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1">
 
         {/* Mobile overlay */}
         {mobileOpen && (
@@ -130,7 +128,7 @@ export default function AdminShell({
           className={[
             "fixed top-12 bottom-0 left-0 z-50",
             "transition-transform duration-200 ease-in-out",
-            "lg:static lg:top-auto lg:bottom-auto lg:z-auto lg:translate-x-0 lg:flex-shrink-0 lg:h-full",
+            "lg:sticky lg:top-12 lg:bottom-auto lg:z-30 lg:translate-x-0 lg:flex-shrink-0 lg:h-[calc(100dvh-3rem)]",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
@@ -138,7 +136,7 @@ export default function AdminShell({
         </div>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto min-w-0 bg-[#f8f9fa] dark:bg-[#0f1b2d]">
+        <main className="flex-1 min-w-0 bg-[#f8f9fa] dark:bg-[#0f1b2d]">
           {children}
         </main>
       </div>

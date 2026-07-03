@@ -1,9 +1,5 @@
-import LoadingLogo from "@/components/ui/LoadingLogo";
+import { AdminRouteSkeleton } from "@/components/ui/page-loaders";
 
 export default function AdminLoading() {
-  return (
-    <div className="flex h-full min-h-[60vh] items-center justify-center">
-      <LoadingLogo />
-    </div>
-  );
+  return <AdminRouteSkeleton />;
 }

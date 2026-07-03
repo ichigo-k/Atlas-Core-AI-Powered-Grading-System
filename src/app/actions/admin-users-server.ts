@@ -284,3 +284,106 @@ export async function reassignClassAction(userId: number, classId: number) {
 		return { success: false, error: "Failed to reassign class" };
 	}
 }
+
+export async function bulkReassignClassAction(
+	studentIds: number[],
+	classId: number | null,
+) {
+	try {
+		await requireAdmin();
+		if (studentIds.length === 0) return { success: false, error: "No students selected" };
+
+		await prisma.studentProfile.updateMany({
+			where: { id: { in: studentIds } },
+			data: { classId },
+		});
+
+		await logAction(
+			"CLASS_ASSIGNED",
+			classId
+				? `${studentIds.length} student(s) were bulk-assigned to class ID ${classId}`
+				: `${studentIds.length} student(s) were bulk-unassigned from their class`,
+			"CLASS",
+		);
+
+		revalidatePath("/admin/users");
+		return { success: true };
+	} catch (error) {
+		console.error("[bulkReassignClassAction] Failed to bulk reassign class", {
+			studentIds,
+			classId,
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+		return { success: false, error: "Failed to reassign class for the selected students" };
+	}
+}
+
+export async function bulkReassignProgramAction(
+	studentIds: number[],
+	programId: number | null,
+) {
+	try {
+		await requireAdmin();
+		if (studentIds.length === 0) return { success: false, error: "No students selected" };
+
+		await prisma.studentProfile.updateMany({
+			where: { id: { in: studentIds } },
+			data: { programId },
+		});
+
+		await logAction(
+			"USER_UPDATED",
+			programId
+				? `${studentIds.length} student(s) were bulk-assigned to program ID ${programId}`
+				: `${studentIds.length} student(s) were bulk-unassigned from their program`,
+			"USER",
+		);
+
+		revalidatePath("/admin/users");
+		return { success: true };
+	} catch (error) {
+		console.error("[bulkReassignProgramAction] Failed to bulk reassign program", {
+			studentIds,
+			programId,
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+		return { success: false, error: "Failed to reassign program for the selected students" };
+	}
+}
+
+export async function bulkAssignCourseToLecturersAction(
+	lecturerIds: number[],
+	courseId: number,
+) {
+	try {
+		await requireAdmin();
+		if (lecturerIds.length === 0) return { success: false, error: "No lecturers selected" };
+
+		await prisma.course.update({
+			where: { id: courseId },
+			data: {
+				lecturers: { connect: lecturerIds.map((id) => ({ id })) },
+			},
+		});
+
+		await logAction(
+			"COURSE_ASSIGNED",
+			`${lecturerIds.length} lecturer(s) were bulk-assigned to course ID ${courseId}`,
+			"COURSE",
+		);
+
+		revalidatePath("/admin/users");
+		revalidatePath("/admin/courses");
+		return { success: true };
+	} catch (error) {
+		console.error("[bulkAssignCourseToLecturersAction] Failed to bulk assign course", {
+			lecturerIds,
+			courseId,
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+		return { success: false, error: "Failed to assign the course to the selected lecturers" };
+	}
+}

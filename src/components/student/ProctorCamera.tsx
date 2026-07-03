@@ -29,6 +29,7 @@ import { addViolation, type ViolationReason } from "@/lib/violation-tracker"
 import { proctorSignals } from "@/lib/proctor-signals"
 import { findVirtualDevice } from "@/lib/device-integrity"
 import type { FlagType } from "@/components/student/FlagOverlay"
+import { getFaceLandmarker, getCocoSsd } from "@/lib/model-cache"
 import { Video, VideoOff, ShieldAlert } from "lucide-react"
 
 // Virtual devices are re-flagged on this cadence for as long as they remain
@@ -298,42 +299,15 @@ export default function ProctorCamera({ attemptId }: Props) {
 
     async function loadAndRun() {
       try {
-        const vision = await import("@mediapipe/tasks-vision")
-        const { FaceLandmarker, FilesetResolver } = vision
+        // Shared/cached instance — loaded once and reused across the whole
+        // session (see src/lib/model-cache.ts). Must NOT be closed here: it
+        // may still be in use by another mounted consumer.
+        const faceLandmarker = await getFaceLandmarker()
 
-        const filesetResolver = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-        )
-
-        let faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-            delegate: "GPU",
-          },
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: true,
-          runningMode: "VIDEO",
-          numFaces: 2,
-        }).catch(async () => {
-          // GPU unavailable — fall back to CPU silently
-          return FaceLandmarker.createFromOptions(filesetResolver, {
-            baseOptions: {
-              modelAssetPath:
-                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-              delegate: "CPU",
-            },
-            outputFaceBlendshapes: true,
-            outputFacialTransformationMatrixes: true,
-            runningMode: "VIDEO",
-            numFaces: 2,
-          })
-        })
-
-        if (cancelled) { faceLandmarker.close(); return }
+        if (cancelled) return
 
         function run(timestamp: DOMHighResTimeStamp) {
-          if (cancelled) { faceLandmarker.close(); return }
+          if (cancelled) return
 
           const video = videoRef.current
           if (!video || video.readyState < 2 || !video.videoWidth) {
@@ -416,10 +390,8 @@ export default function ProctorCamera({ attemptId }: Props) {
 
     async function loadAndRun() {
       try {
-        const tf = await import("@tensorflow/tfjs")
-        await tf.ready()
-        const ssd = await import("@tensorflow-models/coco-ssd")
-        cocoSsd = await ssd.load()
+        // Shared/cached instance — see src/lib/model-cache.ts.
+        cocoSsd = await getCocoSsd()
       } catch (err) {
         console.error("[ProctorCamera] COCO-SSD load error:", err)
         return

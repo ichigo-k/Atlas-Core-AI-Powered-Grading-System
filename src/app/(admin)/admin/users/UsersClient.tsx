@@ -3,9 +3,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import {
 	ArrowUpDown,
+	BookOpen,
 	Edit2,
+	FolderKanban,
 	GraduationCap,
 	History,
+	School,
 	ShieldCheck,
 	Trash2,
 	Upload,
@@ -18,6 +21,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+	bulkAssignCourseToLecturersAction,
+	bulkReassignClassAction,
+	bulkReassignProgramAction,
 	deleteUserAction,
 	toggleUserStatusAction,
 } from "@/app/actions/admin-users-server";
@@ -27,6 +33,7 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DataTable } from "@/components/ui/data-table";
 import type { UserWithProfile } from "@/lib/admin-users";
 import AddUserSheet from "./AddUserSheet";
+import BulkAssignDialog from "./BulkAssignDialog";
 import BulkImportSheet from "./BulkImportSheet";
 import EditUserSheet from "./EditUserSheet";
 
@@ -51,6 +58,7 @@ type AdminSelectOption = {
 	code?: string | null;
 	level?: number | null;
 };
+type CourseOption = { id: number; code: string; title: string };
 
 function emailLocalPart(email: string): string {
 	return email.split("@")[0];
@@ -81,11 +89,13 @@ export default function UsersClient({
 	classes = [],
 	faculties = [],
 	programs = [],
+	courses = [],
 }: {
 	users: UserWithProfile[];
 	classes?: AdminSelectOption[];
 	faculties?: AdminSelectOption[];
 	programs?: AdminSelectOption[];
+	courses?: CourseOption[];
 }) {
 	const router = useRouter();
 	const [activeTab, setActiveTab] = useState<UserRole>("STUDENT");
@@ -99,11 +109,57 @@ export default function UsersClient({
 	);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+	const [bulkClassOpen, setBulkClassOpen] = useState(false);
+	const [bulkProgramOpen, setBulkProgramOpen] = useState(false);
+	const [bulkCourseOpen, setBulkCourseOpen] = useState(false);
 
 	// Selection resets whenever the visible rows change (tab/status switch).
 	const resetKey = `${activeTab}-${statusFilter}`;
 
 	const singleSelected = selected.length === 1 ? selected[0] : null;
+
+	const handleBulkClassAssign = async (classId: number | null) => {
+		const result = await bulkReassignClassAction(
+			selected.map((u) => u.id),
+			classId,
+		);
+		if (result.success) {
+			toast.success(`Class updated for ${selected.length} student${selected.length === 1 ? "" : "s"}`);
+			setBulkClassOpen(false);
+			setSelected([]);
+		} else {
+			toast.error(result.error || "Failed to reassign class");
+		}
+	};
+
+	const handleBulkProgramAssign = async (programId: number | null) => {
+		const result = await bulkReassignProgramAction(
+			selected.map((u) => u.id),
+			programId,
+		);
+		if (result.success) {
+			toast.success(`Program updated for ${selected.length} student${selected.length === 1 ? "" : "s"}`);
+			setBulkProgramOpen(false);
+			setSelected([]);
+		} else {
+			toast.error(result.error || "Failed to reassign program");
+		}
+	};
+
+	const handleBulkCourseAssign = async (courseId: number | null) => {
+		if (!courseId) return;
+		const result = await bulkAssignCourseToLecturersAction(
+			selected.map((u) => u.id),
+			courseId,
+		);
+		if (result.success) {
+			toast.success(`Course assigned to ${selected.length} lecturer${selected.length === 1 ? "" : "s"}`);
+			setBulkCourseOpen(false);
+			setSelected([]);
+		} else {
+			toast.error(result.error || "Failed to assign course");
+		}
+	};
 
 	const executeDelete = async () => {
 		if (!deleteTargets || deleteTargets.length === 0) return;
@@ -467,6 +523,39 @@ export default function UsersClient({
 									Records
 								</Button>
 							)}
+							{activeTab === "STUDENT" && (
+								<>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => setBulkClassOpen(true)}
+										className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+									>
+										<FolderKanban className="h-3.5 w-3.5" />
+										Change Class
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => setBulkProgramOpen(true)}
+										className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+									>
+										<School className="h-3.5 w-3.5" />
+										Change Program
+									</Button>
+								</>
+							)}
+							{activeTab === "LECTURER" && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setBulkCourseOpen(true)}
+									className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
+								>
+									<BookOpen className="h-3.5 w-3.5" />
+									Assign Course
+								</Button>
+							)}
 							<Button
 								variant="outline"
 								size="sm"
@@ -479,6 +568,36 @@ export default function UsersClient({
 						</>
 					) : null
 				}
+			/>
+
+			<BulkAssignDialog
+				open={bulkClassOpen}
+				onOpenChange={setBulkClassOpen}
+				title={`Change class for ${selected.length} student${selected.length === 1 ? "" : "s"}`}
+				description="Pick the class these students should be moved into. This replaces their current class assignment."
+				options={classes.map((c) => ({ id: c.id, label: `${c.name} (L${c.level})` }))}
+				confirmLabel="Apply"
+				allowUnassign
+				onConfirm={handleBulkClassAssign}
+			/>
+			<BulkAssignDialog
+				open={bulkProgramOpen}
+				onOpenChange={setBulkProgramOpen}
+				title={`Change program for ${selected.length} student${selected.length === 1 ? "" : "s"}`}
+				description="Pick the academic program these students should be moved into. This replaces their current program."
+				options={programs.map((p) => ({ id: p.id, label: p.name }))}
+				confirmLabel="Apply"
+				allowUnassign
+				onConfirm={handleBulkProgramAssign}
+			/>
+			<BulkAssignDialog
+				open={bulkCourseOpen}
+				onOpenChange={setBulkCourseOpen}
+				title={`Assign course to ${selected.length} lecturer${selected.length === 1 ? "" : "s"}`}
+				description="Pick a course to add to these lecturers. This adds the course alongside whatever they already teach."
+				options={courses.map((c) => ({ id: c.id, label: `${c.code} — ${c.title}` }))}
+				confirmLabel="Assign"
+				onConfirm={handleBulkCourseAssign}
 			/>
 		</div>
 	);

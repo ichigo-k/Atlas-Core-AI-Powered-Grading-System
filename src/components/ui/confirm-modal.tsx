@@ -13,8 +13,9 @@ interface ConfirmModalProps {
 	cancelText?: string;
 	isDestructive?: boolean;
 	isLoading?: boolean;
-	onConfirm: () => void;
+	onConfirm: () => void | Promise<void>;
 	onCancel: () => void;
+	portal?: boolean;
 }
 
 export function ConfirmModal({
@@ -27,8 +28,10 @@ export function ConfirmModal({
 	isLoading = false,
 	onConfirm,
 	onCancel,
+	portal = true,
 }: ConfirmModalProps) {
 	const [mounted, setMounted] = useState(false);
+	const [internalLoading, setInternalLoading] = useState(false);
 
 	useEffect(() => {
 		setMounted(true);
@@ -36,7 +39,18 @@ export function ConfirmModal({
 
 	if (!open || !mounted) return null;
 
-	return createPortal(
+	const loading = isLoading || internalLoading;
+
+	async function handleConfirm() {
+		try {
+			setInternalLoading(true);
+			await onConfirm();
+		} finally {
+			setInternalLoading(false);
+		}
+	}
+
+	const modal = (
 		<div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
 			<div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 				<div className="p-8">
@@ -45,23 +59,25 @@ export function ConfirmModal({
 				</div>
 				<div className="bg-slate-50 px-8 py-5 flex items-center justify-end gap-3 border-t border-slate-100">
 					<Button
+						type="button"
 						variant="outline"
 						onClick={onCancel}
-						disabled={isLoading}
+						disabled={loading}
 						className="h-11 px-6 rounded-xl font-bold text-slate-600 border-slate-200 hover:bg-white hover:text-slate-900 transition-all active:scale-95"
 					>
 						{cancelText}
 					</Button>
 					<Button
-						onClick={onConfirm}
-						disabled={isLoading}
+						type="button"
+						onClick={handleConfirm}
+						disabled={loading}
 						className={`h-11 px-6 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
 							isDestructive
 								? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-900/10"
 								: "bg-[#002388] hover:bg-[#0B4DBB] text-white shadow-blue-900/10"
 						}`}
 					>
-						{isLoading ? (
+						{loading ? (
 							<>
 								<Loader2 className="h-4 w-4 animate-spin" />
 								Processing...
@@ -72,7 +88,8 @@ export function ConfirmModal({
 					</Button>
 				</div>
 			</div>
-		</div>,
-		document.body
+		</div>
 	);
+
+	return portal ? createPortal(modal, document.body) : modal;
 }

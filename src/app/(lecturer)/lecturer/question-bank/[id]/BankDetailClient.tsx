@@ -18,8 +18,7 @@ import {
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import LoadingLogo from "@/components/ui/LoadingLogo"
-import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { LecturerDetailSkeleton } from "@/components/ui/page-loaders"
 import {
   Select,
   SelectContent,
@@ -389,16 +388,7 @@ export default function BankDetailClient({ bankId }: { bankId: number }) {
   const subjective = items.filter((i: any) => i.type === "SUBJECTIVE")
 
   if (loading) {
-    return (
-      <div className="relative">
-        <TableSkeleton />
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-          <div className="scale-75 opacity-80">
-            <LoadingLogo />
-          </div>
-        </div>
-      </div>
-    )
+    return <div className="px-4 py-5 md:px-6 lg:px-8"><LecturerDetailSkeleton /></div>
   }
 
   if (!bank) return null

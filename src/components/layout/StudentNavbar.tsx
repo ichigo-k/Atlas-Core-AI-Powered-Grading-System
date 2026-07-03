@@ -73,7 +73,7 @@ export default function StudentNavbar({ ongoingCount, onClose }: StudentNavbarPr
     return pathname === href || pathname.startsWith(href + "/");
   }
 
-  const w = collapsed ? "w-[48px]" : "w-[200px]";
+  const w = collapsed ? "w-[48px]" : "w-[260px] lg:w-[200px]";
 
   return (
     <nav

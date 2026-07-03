@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Bell, HelpCircle, Menu, X } from "lucide-react";
 import StudentNavbar from "./StudentNavbar";
 import NotificationsPanel from "./NotificationsPanel";
-import ThemeToggle from "./ThemeToggle";
+import ModelPrefetcher from "@/components/student/ModelPrefetcher";
 
 interface StudentShellProps {
   children: React.ReactNode;
@@ -35,7 +35,11 @@ export default function StudentShell({
   const studentId = userEmail?.split("@")[0] ?? "";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f9fa] dark:bg-[#0f1b2d]">
+    <div className="flex min-h-dvh flex-col bg-[#f8f9fa] dark:bg-[#0f1b2d]">
+      {/* Quietly warm the shared ML model cache (proctoring models) so the
+          exam onboarding camera-check doesn't pay the load cost cold. */}
+      <ModelPrefetcher />
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
@@ -53,7 +57,7 @@ export default function StudentShell({
       )}
 
       {/* ── TOP BAR ── */}
-      <header className="fixed inset-x-0 top-0 z-50 h-[48px] bg-[#002388] flex items-center overflow-hidden">
+      <header className="sticky top-0 z-50 h-[48px] bg-[#002388] flex items-center overflow-hidden">
         {/* Kente-inspired pattern overlay (matches lecturer / admin shells) */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
           <defs>
@@ -72,7 +76,7 @@ export default function StudentShell({
         {/* Hamburger — mobile only */}
         <button
           type="button"
-          onClick={() => setMobileOpen(true)}
+          onClick={() => setMobileOpen((o) => !o)}
           className="lg:hidden relative z-10 p-1.5 ml-2 rounded text-white/80 hover:text-white hover:bg-white/12 transition-colors"
           aria-label="Open navigation"
         >
@@ -111,9 +115,6 @@ export default function StudentShell({
 
         {/* Right actions */}
         <div className="relative z-10 ml-auto flex items-center pr-1">
-          {/* Theme */}
-          <ThemeToggle onDark />
-
           {/* Help */}
           <Link
             href="/student/profile"
@@ -158,13 +159,13 @@ export default function StudentShell({
       </header>
 
       {/* ── BODY ── */}
-      <div className="flex flex-1 overflow-hidden pt-[48px]">
+      <div className="flex flex-1">
         {/* Left sidebar */}
         <div
           className={`
             fixed top-[48px] bottom-0 left-0 z-50
             transition-transform duration-200 ease-in-out
-            lg:relative lg:top-0 lg:bottom-auto lg:z-auto lg:flex-shrink-0 lg:translate-x-0
+            lg:sticky lg:top-[48px] lg:bottom-auto lg:z-30 lg:h-[calc(100dvh-48px)] lg:flex-shrink-0 lg:translate-x-0
             ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
           `}
         >
@@ -175,7 +176,7 @@ export default function StudentShell({
         </div>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto min-w-0">
+        <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>
