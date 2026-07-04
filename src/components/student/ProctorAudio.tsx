@@ -18,6 +18,7 @@ const VIRTUAL_DEVICE_REFLAG_MS = 15000
 // spectrum also looks like human voice (see isVoiceLike below).
 const VOICE_WARN_RMS = 0.012  // faint murmur — soft toast only (sharp Tier 1)
 const VOICE_FLAG_RMS = 0.03   // clear talking level — can flag
+const NOISE_WARN_RMS = 0.06   // sustained non-voice noise — "noisy surroundings" toast
 const NOISE_TOAST_RMS = 0.20  // sudden loud non-voice burst — toast only, never flags
 const ANALYSIS_INTERVAL_MS = 400
 
@@ -34,8 +35,10 @@ const FLATNESS_MAX = 0.35       // geometric/arithmetic mean of band magnitudes 
 // Sustained-sample requirements (× ANALYSIS_INTERVAL_MS).
 const WARN_SAMPLES = 2   // ~0.8s of voice in the warn band → toast (snappy)
 const FLAG_SAMPLES = 8   // ~3.2s of sustained clear talking → flag (lenient)
-const WARN_COOLDOWN_MS = 6000   // don't repeat the talking toast within this window
-const NOISE_COOLDOWN_MS = 8000  // don't repeat the loud-noise toast within this window
+const WARN_COOLDOWN_MS = 6000       // don't repeat the talking toast within this window
+const NOISE_COOLDOWN_MS = 8000      // don't repeat the loud-noise toast within this window
+const NOISE_WARN_SAMPLES = 5        // ~2s of sustained non-voice noise → "noisy surroundings" toast
+const NOISE_WARN_COOLDOWN_MS = 15000 // don't nag about a noisy room too often
 
 // ── Speech recognition (actual words) ───────────────────────────────────────
 // The spectral test only tells us "this sounds like a voice" — it can't tell
@@ -61,6 +64,8 @@ export default function ProctorAudio({ attemptId }: Props) {
   const flagSamplesRef = useRef(0)
   const lastWarnAtRef = useRef(-Infinity)
   const lastNoiseAtRef = useRef(-Infinity)
+  const noiseSamplesRef = useRef(0)          // consecutive sustained-noise ticks
+  const lastBgNoiseAtRef = useRef(-Infinity)
   const lastWordsAtRef = useRef(-Infinity)  // performance.now() of the last recognized word(s)
 
   // Reset when the student dismisses the overlay (acts as the re-flag cooldown).
@@ -223,20 +228,44 @@ export default function ProctorAudio({ attemptId }: Props) {
           const now = performance.now()
           const voice = rms >= VOICE_WARN_RMS && isVoiceLike()
 
-          // Loud but not voice-shaped (bang, dropped object) — soft toast only.
+          // Not voice-shaped (bang, dropped object, fan, chatter across the room)
+          // — toast tiers only, never flags.
           if (!voice) {
             warnSamplesRef.current = 0
             flagSamplesRef.current = 0
+
+            // Sudden loud burst — instant toast.
             if (rms >= NOISE_TOAST_RMS && now - lastNoiseAtRef.current >= NOISE_COOLDOWN_MS) {
               lastNoiseAtRef.current = now
+              noiseSamplesRef.current = 0
               toast.warning("Loud noise detected.", {
                 id: "proctor-warn-noise",
+                duration: 4000,
+              })
+              return
+            }
+
+            // Sustained moderate background noise — nudge them to a quieter place.
+            if (rms >= NOISE_WARN_RMS) {
+              noiseSamplesRef.current += 1
+            } else {
+              noiseSamplesRef.current = 0
+            }
+            if (
+              noiseSamplesRef.current >= NOISE_WARN_SAMPLES &&
+              now - lastBgNoiseAtRef.current >= NOISE_WARN_COOLDOWN_MS
+            ) {
+              lastBgNoiseAtRef.current = now
+              toast.warning("Your surroundings are noisy — please move somewhere quieter.", {
+                id: "proctor-warn-bg-noise",
                 duration: 4000,
               })
             }
             return
           }
 
+          // Voice-shaped from here on — reset the background-noise streak.
+          noiseSamplesRef.current = 0
           warnSamplesRef.current += 1
 
           // Only recognized words (from SpeechRecognition) count toward a flag.

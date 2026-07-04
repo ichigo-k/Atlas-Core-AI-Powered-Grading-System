@@ -40,15 +40,17 @@ const VIRTUAL_DEVICE_REFLAG_MS = 15000
 const OBJECT_INTERVAL_MS = 800
 
 // ── Head-pose tiers (degrees) ──────────────────────────────────────────────
-// FLAG = clearly turned away → hard flag (reachable, not "staring into lap").
-// WARN = soft toast only (no flag).
-// These are deliberately lenient: gaze is based on HEAD pose only (not eye
-// movement), so normal reading — eyes tracking across the screen while the
-// head stays roughly forward, glancing at the keyboard, a moment of thought —
-// must never trip a warning or a flag. Only a clear, sustained head turn away
-// from the screen should ever escalate.
-const YAW_FLAG = 30, PITCH_DOWN_FLAG = -48, PITCH_UP_FLAG = 26
-const YAW_WARN = 24, PITCH_DOWN_WARN = -38, PITCH_UP_WARN = 20
+// FLAG = clearly turned away → hard flag. WARN = soft toast only (no flag).
+// Gaze is based on HEAD pose only (not eye movement), tuned to be fair:
+//  - Eyes tracking across the screen while the head stays roughly forward
+//    (< YAW_WARN) never escalates — normal reading is free.
+//  - A noticeable head tilt/turn (YAW_WARN..YAW_FLAG, or looking up) raises a
+//    soft toast so the student self-corrects before it ever flags.
+//  - Only a clear, sustained head turn past the FLAG angle counts as a flag.
+//  - Downward pitch stays deliberately lenient so looking DOWN AT THE KEYBOARD
+//    to type is always fine — only a deep, sustained look into the lap flags.
+const YAW_FLAG = 24, PITCH_DOWN_FLAG = -46, PITCH_UP_FLAG = 22
+const YAW_WARN = 15, PITCH_DOWN_WARN = -35, PITCH_UP_WARN = 13
 
 // ── Escalation timing ──────────────────────────────────────────────────────
 const WARN_SUSTAIN_MS = 600       // default continuous time before a soft toast
@@ -99,7 +101,7 @@ const SIGNAL: Record<WarnKey, { warns: boolean; flagMs: number; warnMs?: number;
   // partially in a hand can easily drop out of a single tick. clearMs spans
   // roughly one missed tick so that doesn't wipe real progress.
   PHONE_DETECTED: { warns: false, flagMs: 900, clearMs: 900 },   // phone in view → flag
-  GAZE_AWAY: { warns: true, flagMs: 8000, warnMs: 3500 },   // ambiguous (typing/thinking/reading) → very lenient
+  GAZE_AWAY: { warns: true, flagMs: 4500, warnMs: 1800, clearMs: 500 },   // warn early, flag only on a sustained head turn
   MOUTH_MOVING: { warns: true, flagMs: Infinity }, // toast only
 }
 
