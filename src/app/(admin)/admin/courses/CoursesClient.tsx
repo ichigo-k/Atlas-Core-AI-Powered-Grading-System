@@ -12,6 +12,8 @@ import { deleteCourseAction } from "@/app/actions/admin-courses";
 import type { CourseWithDetails } from "@/lib/admin-classes";
 
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { RowActionsMenu, type RowAction } from "@/components/ui/row-actions-menu";
+import CourseDetailSheet from "./CourseDetailSheet";
 
 interface CoursesClientProps {
   courses: CourseWithDetails[];
@@ -25,17 +27,24 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
   const searchParams = useSearchParams();
 
   const [addEditOpen, setAddEditOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<CourseWithDetails | null>(null);
   const [selected, setSelected] = useState<CourseWithDetails[]>([]);
   const [deleteTargets, setDeleteTargets] = useState<CourseWithDetails[] | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [detailCourse, setDetailCourse] = useState<CourseWithDetails | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("add") === "true") {
-      setSelectedCourse(null);
       setAddEditOpen(true);
     }
   }, [searchParams]);
+
+  // Keep the open drawer's data in sync after server-action refreshes.
+  useEffect(() => {
+    if (!detailCourse) return;
+    const fresh = courses.find((c) => c.id === detailCourse.id);
+    if (fresh && fresh !== detailCourse) setDetailCourse(fresh);
+  }, [courses, detailCourse]);
 
   const handleCloseAddEdit = (open: boolean) => {
     if (!open) {
@@ -49,9 +58,9 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
     }
   };
 
-  const handleEdit = (course: CourseWithDetails) => {
-    setSelectedCourse(course);
-    setAddEditOpen(true);
+  const handleOpenDetail = (course: CourseWithDetails) => {
+    setDetailCourse(course);
+    setDetailOpen(true);
   };
 
   const executeDelete = async () => {
@@ -140,12 +149,35 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
     },
   ];
 
+  const rowActions: RowAction[] = [
+    {
+      label: "Open",
+      icon: Edit2,
+      disabled: !singleSelected,
+      onClick: () => singleSelected && handleOpenDetail(singleSelected),
+    },
+    {
+      label: "Delete",
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onClick: () => setDeleteTargets(selected),
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <AddEditCourseSheet
-        course={selectedCourse}
         open={addEditOpen}
         onOpenChange={handleCloseAddEdit}
+        classes={classes}
+        lecturers={lecturers}
+      />
+
+      <CourseDetailSheet
+        course={detailCourse}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
         classes={classes}
         lecturers={lecturers}
       />
@@ -182,32 +214,8 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
         enableSelection
         getRowId={(course) => course.id}
         onSelectionChange={setSelected}
-        onRowClick={(course) => handleEdit(course)}
-        toolbarActions={
-          selected.length > 0 ? (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!singleSelected}
-                onClick={() => singleSelected && handleEdit(singleSelected)}
-                className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDeleteTargets(selected)}
-                className="h-9 gap-1.5 px-3.5 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </Button>
-            </>
-          ) : null
-        }
+        onRowClick={(course) => handleOpenDetail(course)}
+        toolbarActions={selected.length > 0 ? <RowActionsMenu actions={rowActions} /> : null}
       />
     </div>
   );

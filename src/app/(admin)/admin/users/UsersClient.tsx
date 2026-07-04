@@ -5,7 +5,6 @@ import {
 	ArrowUpDown,
 	BookOpen,
 	Edit2,
-	Filter,
 	FolderKanban,
 	GraduationCap,
 	History,
@@ -32,17 +31,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DataTable } from "@/components/ui/data-table";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { RowActionsMenu, type RowAction } from "@/components/ui/row-actions-menu";
 import type { UserWithProfile } from "@/lib/admin-users";
 import AddUserSheet from "./AddUserSheet";
 import BulkAssignDialog from "./BulkAssignDialog";
 import BulkImportSheet from "./BulkImportSheet";
 import EditUserSheet from "./EditUserSheet";
+import UserFilterMenu, { type FieldKey } from "./UserFilterMenu";
 
 const tabs = [
 	{ key: "STUDENT" as const, label: "Students", icon: GraduationCap },
@@ -107,6 +102,10 @@ export default function UsersClient({
 	const router = useRouter();
 	const [activeTab, setActiveTab] = useState<UserRole>("STUDENT");
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+	const [programFilter, setProgramFilter] = useState<number | "ALL">("ALL");
+	const [classFilter, setClassFilter] = useState<number | "ALL">("ALL");
+	const [departmentFilter, setDepartmentFilter] = useState<string | "ALL">("ALL");
+	const [visibleExtraFilters, setVisibleExtraFilters] = useState<FieldKey[]>([]);
 	const [addUserOpen, setAddUserOpen] = useState(false);
 	const [bulkImportOpen, setBulkImportOpen] = useState(false);
 	const [editUser, setEditUser] = useState<UserWithProfile | null>(null);
@@ -121,7 +120,15 @@ export default function UsersClient({
 	const [bulkCourseOpen, setBulkCourseOpen] = useState(false);
 
 	// Selection resets whenever the visible rows change (tab/status switch).
-	const resetKey = `${activeTab}-${statusFilter}`;
+	const resetKey = `${activeTab}-${statusFilter}-${programFilter}-${classFilter}-${departmentFilter}`;
+
+	const clearFacetFilters = () => {
+		setStatusFilter("ALL");
+		setProgramFilter("ALL");
+		setClassFilter("ALL");
+		setDepartmentFilter("ALL");
+		setVisibleExtraFilters([]);
+	};
 
 	const singleSelected = selected.length === 1 ? selected[0] : null;
 
@@ -236,12 +243,38 @@ export default function UsersClient({
 		[usersForActiveRole],
 	);
 
+	const departmentOptions = useMemo(
+		() =>
+			Array.from(
+				new Set(
+					users
+						.filter((u) => u.role === "LECTURER" && u.lecturerProfile?.department)
+						.map((u) => u.lecturerProfile!.department as string),
+				),
+			).sort((a, b) => a.localeCompare(b)),
+		[users],
+	);
+
 	const filteredData = useMemo(
 		() =>
-			usersForActiveRole.filter(
-				(user) => statusFilter === "ALL" || user.status === statusFilter,
-			),
-		[usersForActiveRole, statusFilter],
+			usersForActiveRole.filter((user) => {
+				if (statusFilter !== "ALL" && user.status !== statusFilter) return false;
+				if (activeTab === "STUDENT") {
+					if (programFilter !== "ALL" && user.studentProfile?.programId !== programFilter)
+						return false;
+					if (classFilter !== "ALL" && user.studentProfile?.classId !== classFilter)
+						return false;
+				}
+				if (activeTab === "LECTURER") {
+					if (
+						departmentFilter !== "ALL" &&
+						user.lecturerProfile?.department !== departmentFilter
+					)
+						return false;
+				}
+				return true;
+			}),
+		[usersForActiveRole, statusFilter, programFilter, classFilter, departmentFilter, activeTab],
 	);
 
 	const columns = useMemo(() => {
@@ -344,6 +377,46 @@ export default function UsersClient({
 		return baseColumns;
 	}, [activeTab]);
 
+	const rowActions: RowAction[] = [
+		{
+			label: "Edit",
+			icon: Edit2,
+			disabled: !singleSelected,
+			onClick: () => singleSelected && setEditUser(singleSelected),
+		},
+		{
+			label: singleSelected?.status === "SUSPENDED" ? "Unsuspend" : "Suspend",
+			icon: singleSelected?.status === "SUSPENDED" ? UserCheck : UserX,
+			disabled: !singleSelected || isTogglingStatus,
+			onClick: handleToggleStatus,
+		},
+		...(singleSelected?.role === "STUDENT"
+			? [
+					{
+						label: "Records",
+						icon: History,
+						onClick: () => router.push(`/admin/student-history/${singleSelected.id}`),
+					},
+				]
+			: []),
+		...(activeTab === "STUDENT"
+			? [
+					{ label: "Change Class", icon: FolderKanban, onClick: () => setBulkClassOpen(true) },
+					{ label: "Change Program", icon: School, onClick: () => setBulkProgramOpen(true) },
+				]
+			: []),
+		...(activeTab === "LECTURER"
+			? [{ label: "Assign Course", icon: BookOpen, onClick: () => setBulkCourseOpen(true) }]
+			: []),
+		{
+			label: "Delete",
+			icon: Trash2,
+			destructive: true,
+			separatorBefore: true,
+			onClick: () => setDeleteTargets(selected),
+		},
+	];
+
 	return (
 		<div className="flex flex-col gap-6">
 			{/* Page-level primary actions */}
@@ -415,7 +488,7 @@ export default function UsersClient({
 							key={key}
 							onClick={() => {
 								setActiveTab(key);
-								setStatusFilter("ALL");
+								clearFacetFilters();
 								setSelected([]);
 							}}
 							className={`group relative flex items-center gap-2.5 pb-4 text-sm transition-colors ${
@@ -460,121 +533,27 @@ export default function UsersClient({
 				onRowClick={(user) => setEditUser(user)}
 				toolbarActions={
 					<>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="outline"
-									size="sm"
-									className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-								>
-									<Filter className="h-3.5 w-3.5" />
-									{statusFilter === "ALL" ? "Filter" : statusFilters.find((f) => f.key === statusFilter)?.label}
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-44 rounded-sm">
-								{statusFilters.map((filter) => (
-									<DropdownMenuItem
-										key={filter.key}
-										onClick={() => {
-											setStatusFilter(filter.key);
-											setSelected([]);
-										}}
-										className={`flex items-center justify-between text-xs font-medium ${
-											statusFilter === filter.key ? "bg-[#eef3ff] text-[#002388] font-semibold" : ""
-										}`}
-									>
-										<span>{filter.label}</span>
-										<span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
-											{statusCounts[filter.key]}
-										</span>
-									</DropdownMenuItem>
-								))}
-							</DropdownMenuContent>
-						</DropdownMenu>
-						{selected.length > 0 && (
-							<>
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={!singleSelected}
-								onClick={() => singleSelected && setEditUser(singleSelected)}
-								className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-							>
-								<Edit2 className="h-3.5 w-3.5" />
-								Edit
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={!singleSelected || isTogglingStatus}
-								onClick={handleToggleStatus}
-								className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
-							>
-								{singleSelected?.status === "SUSPENDED" ? (
-									<UserCheck className="h-3.5 w-3.5 text-emerald-600" />
-								) : (
-									<UserX className="h-3.5 w-3.5 text-rose-600" />
-								)}
-								{singleSelected?.status === "SUSPENDED" ? "Unsuspend" : "Suspend"}
-							</Button>
-							{singleSelected?.role === "STUDENT" && (
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() =>
-										singleSelected &&
-										router.push(`/admin/student-history/${singleSelected.id}`)
-									}
-									className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-								>
-									<History className="h-3.5 w-3.5" />
-									Records
-								</Button>
-							)}
-							{activeTab === "STUDENT" && (
-								<>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => setBulkClassOpen(true)}
-										className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-									>
-										<FolderKanban className="h-3.5 w-3.5" />
-										Change Class
-									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => setBulkProgramOpen(true)}
-										className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-									>
-										<School className="h-3.5 w-3.5" />
-										Change Program
-									</Button>
-								</>
-							)}
-							{activeTab === "LECTURER" && (
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setBulkCourseOpen(true)}
-									className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-								>
-									<BookOpen className="h-3.5 w-3.5" />
-									Assign Course
-								</Button>
-							)}
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => setDeleteTargets(selected)}
-								className="h-9 gap-1.5 px-3.5 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
-							>
-								<Trash2 className="h-3.5 w-3.5" />
-								Delete
-							</Button>
-							</>
-						)}
+						<UserFilterMenu
+							key={activeTab}
+							activeTab={activeTab}
+							statusFilter={statusFilter}
+							setStatusFilter={setStatusFilter}
+							statusFilters={statusFilters}
+							statusCounts={statusCounts}
+							programFilter={programFilter}
+							setProgramFilter={setProgramFilter}
+							programs={programs}
+							classFilter={classFilter}
+							setClassFilter={setClassFilter}
+							classes={classes}
+							departmentFilter={departmentFilter}
+							setDepartmentFilter={setDepartmentFilter}
+							departmentOptions={departmentOptions}
+							onFilterChange={() => setSelected([])}
+						visibleExtra={visibleExtraFilters}
+						setVisibleExtra={setVisibleExtraFilters}
+						/>
+						{selected.length > 0 && <RowActionsMenu actions={rowActions} />}
 					</>
 				}
 			/>

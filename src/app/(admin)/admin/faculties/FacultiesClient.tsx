@@ -5,6 +5,7 @@ import { Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DataTable } from "@/components/ui/data-table";
+import { RowActionsMenu, type RowAction } from "@/components/ui/row-actions-menu";
 import AddFacultySheet from "./AddFacultySheet";
 import type { FacultySimple } from "@/lib/admin-entities";
 import { toast } from "sonner";
@@ -66,6 +67,22 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
     { accessorKey: "code", header: "Code", cell: ({ row }: any) => row.original.code || "-" },
   ];
 
+  const rowActions: RowAction[] = [
+    {
+      label: "Edit",
+      icon: Edit2,
+      disabled: !singleSelected,
+      onClick: () => singleSelected && handleEdit(singleSelected),
+    },
+    {
+      label: "Delete",
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onClick: () => setDeleteTargets(selected),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end gap-3">
@@ -87,31 +104,7 @@ export default function FacultiesClient({ initialFaculties }: { initialFaculties
         getRowId={(faculty) => faculty.id}
         onSelectionChange={setSelected}
         onRowClick={(faculty) => handleEdit(faculty)}
-        toolbarActions={
-          selected.length > 0 ? (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!singleSelected}
-                onClick={() => singleSelected && handleEdit(singleSelected)}
-                className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDeleteTargets(selected)}
-                className="h-9 gap-1.5 px-3.5 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </Button>
-            </>
-          ) : null
-        }
+        toolbarActions={selected.length > 0 ? <RowActionsMenu actions={rowActions} /> : null}
       />
 
       <AddFacultySheet

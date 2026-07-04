@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
 	createCourseAction,
-	updateCourseAction,
 	updateCourseAssignmentsAction,
 } from "@/app/actions/admin-courses";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,6 @@ import {
 } from "@/components/ui/sheet";
 
 interface AddEditCourseSheetProps {
-	course: any | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	classes: any[];
@@ -38,7 +36,6 @@ interface AddEditCourseSheetProps {
 }
 
 export default function AddEditCourseSheet({
-	course,
 	open,
 	onOpenChange,
 	classes,
@@ -55,27 +52,21 @@ export default function AddEditCourseSheet({
 	);
 
 	useEffect(() => {
-		if (course) {
-			setSelectedLecturerIds(course.lecturers.map((l: any) => l.id));
-			setSelectedClassIds(course.classes.map((c: any) => c.id));
-		} else {
+		if (open) {
 			setSelectedLecturerIds([]);
 			setSelectedClassIds([]);
 		}
-	}, [course, open]);
+	}, [open]);
 
 	async function handleSubmit(formData: FormData) {
 		if (submittingRef.current) return;
 		submittingRef.current = true;
 		setLoading(true);
 		try {
-			const result = course
-				? await updateCourseAction(course.id, formData)
-				: await createCourseAction(formData);
+			const result = await createCourseAction(formData);
 
 			if (result.success) {
-				// Save lecturer + class assignments for both create and edit
-				const courseId = course ? course.id : (result as any).courseId;
+				const courseId = (result as any).courseId;
 				if (courseId && (selectedLecturerIds.length > 0 || selectedClassIds.length > 0)) {
 					const assignmentResult = await updateCourseAssignmentsAction(
 						courseId,
@@ -84,19 +75,16 @@ export default function AddEditCourseSheet({
 					);
 					if (!assignmentResult.success) {
 						toast.error(
-							assignmentResult.error ||
-								`Course ${course ? "updated" : "created"} but failed to save assignments`,
+							assignmentResult.error || "Course created but failed to save assignments",
 						);
 					}
 				}
 
-				toast.success(`Course ${course ? "updated" : "created"} successfully`);
+				toast.success("Course created successfully");
 				onOpenChange(false);
 				router.refresh();
 			} else {
-				toast.error(
-					result.error || `Failed to ${course ? "update" : "create"} course`,
-				);
+				toast.error(result.error || "Failed to create course");
 			}
 		} catch (error) {
 			toast.error("An unexpected error occurred");
@@ -124,12 +112,10 @@ export default function AddEditCourseSheet({
 						<div className="flex items-center gap-4">
 							<div className="text-left flex-1">
 								<SheetTitle className="text-xl font-bold text-slate-900">
-									{course ? "Edit Course" : "Add New Course"}
+									Add New Course
 								</SheetTitle>
 								<SheetDescription className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-0.5">
-									{course
-										? `Course ID: ${course.code}`
-										: "Define a new academic course"}
+									Define a new academic course
 								</SheetDescription>
 							</div>
 						</div>
@@ -157,7 +143,6 @@ export default function AddEditCourseSheet({
 											<Input
 												id="code"
 												name="code"
-												defaultValue={course?.code || ""}
 												placeholder="e.g. CS101"
 												className="h-11 pl-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all font-mono uppercase"
 											/>
@@ -181,7 +166,7 @@ export default function AddEditCourseSheet({
 												type="number"
 												min="1"
 												max="10"
-												defaultValue={course?.credits || 3}
+												defaultValue={3}
 												className="h-11 pl-11 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all"
 											/>
 										</div>
@@ -199,7 +184,6 @@ export default function AddEditCourseSheet({
 										<Input
 											id="title"
 											name="title"
-											defaultValue={course?.title || ""}
 											placeholder="e.g. Introduction to Computer Science"
 											className="h-11 px-4 rounded-sm border-border bg-slate-50/50 focus:bg-white transition-all"
 										/>
@@ -245,11 +229,7 @@ export default function AddEditCourseSheet({
 							disabled={loading}
 						>
 							{loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-							{loading
-								? "Saving..."
-								: course
-									? "Save Changes"
-									: "Create Course"}
+							{loading ? "Saving..." : "Create Course"}
 						</Button>
 					</div>
 				</div>

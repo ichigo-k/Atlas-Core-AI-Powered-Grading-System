@@ -38,6 +38,17 @@ export async function getClasses(): Promise<ClassWithDetails[]> {
   })
 }
 
+export async function getClassById(id: number): Promise<ClassWithDetails | null> {
+  return prisma.class.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: { students: true, courses: true }
+      }
+    }
+  })
+}
+
 export type CourseSimple = {
   id: number
   code: string
@@ -68,4 +79,23 @@ export async function getCoursesWithDetails(): Promise<CourseWithDetails[]> {
     },
     orderBy: { code: "asc" }
   }) as unknown as Promise<CourseWithDetails[]>
+}
+
+export async function getCourseById(id: number): Promise<CourseWithDetails | null> {
+  return prisma.course.findUnique({
+    where: { id },
+    include: {
+      classes: {
+        select: { id: true, name: true, level: true }
+      },
+      lecturers: {
+        select: {
+          id: true,
+          user: {
+            select: { name: true }
+          }
+        }
+      }
+    }
+  }) as unknown as Promise<CourseWithDetails | null>
 }

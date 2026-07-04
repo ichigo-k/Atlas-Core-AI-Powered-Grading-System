@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import {
 	FolderPlus,
@@ -19,10 +19,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 import AddEditClassSheet from "./AddEditClassSheet";
-import ManageCoursesSheet from "./ManageCoursesSheet";
-import ClassMembersSheet from "./ClassMembersSheet";
 
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { RowActionsMenu, type RowAction } from "@/components/ui/row-actions-menu";
+import ClassDetailSheet from "./ClassDetailSheet";
 
 export default function ClassesClient({
 	initialClasses,
@@ -34,22 +34,34 @@ export default function ClassesClient({
 	const router = useRouter();
 	const [classes, setClasses] = useState<ClassWithDetails[]>(initialClasses);
 	const [addEditOpen, setAddEditOpen] = useState(false);
-	const [editingClass, setEditingClass] = useState<ClassWithDetails | null>(null);
-	const [coursesOpen, setCoursesOpen] = useState(false);
-	const [membersOpen, setMembersOpen] = useState(false);
 	const [selected, setSelected] = useState<ClassWithDetails[]>([]);
 	const [isUpgrading, setIsUpgrading] = useState(false);
 
 	const [upgradeConfirmOpen, setUpgradeConfirmOpen] = useState(false);
 	const [deleteTargets, setDeleteTargets] = useState<ClassWithDetails[] | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [detailClass, setDetailClass] = useState<ClassWithDetails | null>(null);
+	const [detailOpen, setDetailOpen] = useState(false);
+	const [detailTab, setDetailTab] = useState<"overview" | "members" | "courses">("overview");
 
 	const singleSelected = selected.length === 1 ? selected[0] : null;
 
-	const handleEdit = (cls: ClassWithDetails) => {
-		setEditingClass(cls);
-		setAddEditOpen(true);
+	const handleOpenDetail = (cls: ClassWithDetails, tab: "overview" | "members" | "courses" = "overview") => {
+		setDetailClass(cls);
+		setDetailTab(tab);
+		setDetailOpen(true);
 	};
+
+	// Keep the local table copy (and any open drawer) in sync with fresh server data.
+	useEffect(() => {
+		setClasses(initialClasses);
+	}, [initialClasses]);
+
+	useEffect(() => {
+		if (!detailClass) return;
+		const fresh = classes.find((c) => c.id === detailClass.id);
+		if (fresh && fresh !== detailClass) setDetailClass(fresh);
+	}, [classes, detailClass]);
 
 	const executeBulkUpgrade = async () => {
 		setIsUpgrading(true);
@@ -157,6 +169,34 @@ export default function ClassesClient({
 		},
 	];
 
+	const rowActions: RowAction[] = [
+		{
+			label: "Open",
+			icon: Edit2,
+			disabled: !singleSelected,
+			onClick: () => singleSelected && handleOpenDetail(singleSelected),
+		},
+		{
+			label: "Members",
+			icon: UserPlus,
+			disabled: !singleSelected,
+			onClick: () => singleSelected && handleOpenDetail(singleSelected, "members"),
+		},
+		{
+			label: "Courses",
+			icon: Settings2,
+			disabled: !singleSelected,
+			onClick: () => singleSelected && handleOpenDetail(singleSelected, "courses"),
+		},
+		{
+			label: "Delete",
+			icon: Trash2,
+			destructive: true,
+			separatorBefore: true,
+			onClick: () => setDeleteTargets(selected),
+		},
+	];
+
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-end gap-3">
@@ -169,7 +209,7 @@ export default function ClassesClient({
 					Bulk Upgrade Levels
 				</button>
 				<button
-					onClick={() => { setEditingClass(null); setAddEditOpen(true); }}
+					onClick={() => setAddEditOpen(true)}
 					className="flex items-center gap-2 rounded-sm bg-[#002388] px-4 py-2 text-[12px] font-semibold text-white transition-all hover:bg-[#001570]"
 				>
 					<FolderPlus size={18} />
@@ -190,71 +230,21 @@ export default function ClassesClient({
 				enableSelection
 				getRowId={(cls) => cls.id}
 				onSelectionChange={setSelected}
-				onRowClick={(cls) => handleEdit(cls)}
-				toolbarActions={
-					selected.length > 0 ? (
-						<>
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={!singleSelected}
-								onClick={() => singleSelected && handleEdit(singleSelected)}
-								className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
-							>
-								<Edit2 className="h-3.5 w-3.5" />
-								Edit
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={!singleSelected}
-								onClick={() => setMembersOpen(true)}
-								className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
-							>
-								<UserPlus className="h-3.5 w-3.5" />
-								Members
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={!singleSelected}
-								onClick={() => setCoursesOpen(true)}
-								className="h-9 gap-1.5 px-3.5 rounded-sm border-border text-[#323130] text-[11px] font-semibold uppercase tracking-wider hover:bg-slate-50 disabled:opacity-40"
-							>
-								<Settings2 className="h-3.5 w-3.5" />
-								Courses
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => setDeleteTargets(selected)}
-								className="h-9 gap-1.5 px-3.5 rounded-sm border-rose-200 text-rose-600 text-[11px] font-semibold uppercase tracking-wider hover:bg-rose-50"
-							>
-								<Trash2 className="h-3.5 w-3.5" />
-								Delete
-							</Button>
-						</>
-					) : null
-				}
+				onRowClick={(cls) => handleOpenDetail(cls)}
+				toolbarActions={selected.length > 0 ? <RowActionsMenu actions={rowActions} /> : null}
 			/>
 
 			<AddEditClassSheet
 				open={addEditOpen}
 				onOpenChange={setAddEditOpen}
-				editingClass={editingClass}
 			/>
 
-			<ManageCoursesSheet
-				open={coursesOpen}
-				onOpenChange={setCoursesOpen}
-				cls={singleSelected}
+			<ClassDetailSheet
+				cls={detailClass}
+				open={detailOpen}
+				onOpenChange={setDetailOpen}
+				initialTab={detailTab}
 				allCourses={courses}
-			/>
-
-			<ClassMembersSheet
-				open={membersOpen}
-				onOpenChange={setMembersOpen}
-				cls={singleSelected}
 			/>
 
 			<ConfirmModal
