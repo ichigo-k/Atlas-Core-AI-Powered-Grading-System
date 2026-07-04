@@ -93,6 +93,64 @@ export function listRealMicrophones(): Promise<string[]> {
   return listRealInputDevices("audioinput")
 }
 
+// Wireless / Bluetooth audio devices (headsets, earbuds). On mobile the device
+// count from enumerateDevices() collapses to a single "default" audioinput even
+// when AirPods/Buds are connected, so counting mics misses them — the device
+// LABEL is the reliable signal across iOS and Android. A Bluetooth mic is an
+// obvious channel for feeding a student answers, so it's blocked on every
+// platform.
+const WIRELESS_AUDIO_PATTERNS = [
+  "airpods", "bluetooth", "buds", "wireless", "headset", "earbud", "earphone",
+  "beats", "jabra", "bose", "handsfree", "hands-free", "a2dp", "hfp", "sco",
+  "wh-", "wf-", "qcy", "soundcore", "jbl", "galaxy buds", "pixel buds",
+]
+
+/** True if a device/track label looks like a Bluetooth/wireless audio device. */
+export function isWirelessAudioLabel(label: string | null | undefined): boolean {
+  if (!label) return false
+  const lower = label.toLowerCase()
+  return WIRELESS_AUDIO_PATTERNS.some((p) => lower.includes(p))
+}
+
+/** The label of the first Bluetooth/wireless track in a stream, or null. */
+export function findWirelessAudio(stream: MediaStream): string | null {
+  for (const track of stream.getAudioTracks()) {
+    if (isWirelessAudioLabel(track.label)) return track.label
+  }
+  return null
+}
+
+/**
+ * Scans enumerated audio inputs and returns the label of the first that looks
+ * like a Bluetooth/wireless device, or null. Labels are only populated after
+ * mic permission is granted.
+ */
+export async function findWirelessMicrophone(): Promise<string | null> {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+    return null
+  }
+  const devices = await navigator.mediaDevices.enumerateDevices()
+  for (const d of devices) {
+    if (d.kind !== "audioinput") continue
+    if (isWirelessAudioLabel(d.label)) return d.label
+  }
+  return null
+}
+
+/**
+ * Best-effort mobile-device detection. Phones and tablets legitimately expose
+ * several cameras (front, back, and often multiple rear lenses enumerated
+ * separately), so the "more than one camera" block must not apply to them.
+ */
+export function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false
+  const ua = navigator.userAgent || ""
+  if (/Android|iPhone|iPad|iPod|Windows Phone|IEMobile|BlackBerry|Opera Mini/i.test(ua)) return true
+  // iPadOS 13+ reports a desktop "Macintosh" UA — fall back to touch points.
+  if (/Macintosh/.test(ua) && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1) return true
+  return false
+}
+
 /**
  * True when the desktop currently spans more than one display (extended
  * monitor setup). A second screen is a common way to keep notes or an AI

@@ -30,7 +30,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createOrResumeAttempt } from "@/lib/assessment-actions";
 import { createProctorSession } from "@/lib/proctor-session-actions";
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
-import { findVirtualDevice, listRealCameras, listRealMicrophones, hasMultipleMonitors } from "@/lib/device-integrity";
+import { findVirtualDevice, listRealCameras, listRealMicrophones, hasMultipleMonitors, isMobileDevice, findWirelessAudio, findWirelessMicrophone } from "@/lib/device-integrity";
 import { getBlazeFace } from "@/lib/model-cache";
 import LivenessCheck from "@/components/student/LivenessCheck";
 
@@ -432,11 +432,13 @@ function StepMicCheck({
 
   const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
   const [extraMics, setExtraMics] = useState<string[]>([]);
+  const [wirelessMic, setWirelessMic] = useState<string | null>(null);
   const [multiMonitor, setMultiMonitor] = useState(false);
 
   const requestMic = useCallback(async () => {
     setMicState("requesting");
     setVirtualLabel(null);
+    setWirelessMic(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       const virtual = findVirtualDevice(stream);
@@ -446,6 +448,10 @@ function StepMicCheck({
         setMicState("virtual");
         return;
       }
+      // Bluetooth/wireless audio (AirPods, Buds, headset) — read from the active
+      // track, the most reliable label on mobile where enumeration collapses.
+      const wireless = findWirelessAudio(stream);
+      if (wireless) setWirelessMic(wireless);
       streamRef.current = stream;
       setMicState("granted");
     } catch {
@@ -469,7 +475,12 @@ function StepMicCheck({
 
     const scan = async () => {
       const mics = await listRealMicrophones();
-      if (!cancelled) setExtraMics(mics);
+      const wireless = await findWirelessMicrophone();
+      if (cancelled) return;
+      setExtraMics(mics);
+      // Keep any wireless device already found on the active track; also flag
+      // one surfaced by enumeration (e.g. connected after the initial grant).
+      setWirelessMic((prev) => prev ?? wireless);
     };
 
     scan();
@@ -499,7 +510,7 @@ function StepMicCheck({
   }, []);
 
   const singleMic = extraMics.length <= 1;
-  const canContinue = micState === "granted" && singleMic && !multiMonitor;
+  const canContinue = micState === "granted" && singleMic && !wirelessMic && !multiMonitor;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -559,7 +570,7 @@ function StepMicCheck({
                 <button type="button" onClick={requestMic} className="underline font-semibold">try again</button>.
               </p>
             )}
-            {micState === "granted" && singleMic && (
+            {micState === "granted" && singleMic && !wirelessMic && (
               <p className="text-[11px] text-emerald-700/80 mt-0.5">Ready. You may proceed.</p>
             )}
           </div>
@@ -576,6 +587,23 @@ function StepMicCheck({
                 start the exam with an external or Bluetooth microphone attached.
                 Disconnect all external microphones and headsets, turn off Bluetooth,
                 then{" "}
+                <button type="button" onClick={requestMic} className="underline font-semibold">re-check</button>.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Bluetooth / wireless mic — hard block (catches AirPods/Buds on mobile
+            where the device count collapses to one) */}
+        {micState === "granted" && wirelessMic && (
+          <div className="flex items-start gap-3 rounded-sm border border-red-200 bg-red-50 p-4">
+            <MicOff size={16} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 mb-1">Wireless audio device detected</p>
+              <p className="text-[11px] text-red-700/90 leading-relaxed">
+                “{wirelessMic}” is a Bluetooth/wireless audio device and can't be used
+                for a proctored exam. Disconnect it, turn off Bluetooth, and use your
+                device's built-in microphone, then{" "}
                 <button type="button" onClick={requestMic} className="underline font-semibold">re-check</button>.
               </p>
             </div>
@@ -620,8 +648,9 @@ function StepMicCheck({
             {micState === "virtual" ? "A physical microphone is required to proceed."
               : micState === "denied" ? "Microphone access is required to proceed."
                 : !singleMic ? "Disconnect all external microphones (and turn off Bluetooth) to proceed."
-                  : multiMonitor ? "Disconnect all extra monitors to proceed."
-                    : "Waiting for microphone…"}
+                  : wirelessMic ? "Disconnect the Bluetooth/wireless audio device to proceed."
+                    : multiMonitor ? "Disconnect all extra monitors to proceed."
+                      : "Waiting for microphone…"}
           </p>
         )}
       </div>
@@ -777,7 +806,9 @@ function StepCameraCheck({
 
   const lightingOk = lightingStatus === "ok";
   const faceOk = faceStatus === "ok";
-  const singleCamera = extraCameras.length <= 1;
+  // Phones/tablets expose multiple built-in cameras, so the "single camera"
+  // rule only applies to desktops/laptops.
+  const singleCamera = isMobileDevice() || extraCameras.length <= 1;
   const checksComplete = lightingOk && faceOk && singleCamera;
   const canProceed = agreed && cameraState === "granted" && checksComplete;
 
@@ -892,7 +923,7 @@ function StepCameraCheck({
             </div>
           </div>
         )}
-        {extraCameras.length > 1 && (
+        {!singleCamera && (
           <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
             <div>
@@ -1000,7 +1031,7 @@ function StepLivenessCheck({
       return { ok: false, reason: `a virtual camera (“${vVirtual}”) is in use. Disable it and use a physical camera.` };
     }
 
-    // Microphone access + not a virtual mic.
+    // Microphone access + not a virtual or wireless mic.
     let audioStream: MediaStream;
     try {
       audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -1008,14 +1039,20 @@ function StepLivenessCheck({
       return { ok: false, reason: "your microphone is off or blocked. Go back to the Microphone check, re-enable your microphone, and try again." };
     }
     const aVirtual = findVirtualDevice(audioStream);
+    const aWireless = findWirelessAudio(audioStream);
     audioStream.getTracks().forEach((t) => t.stop());
     if (aVirtual) {
       return { ok: false, reason: `a virtual microphone (“${aVirtual}”) is in use. Disable it and use a physical microphone.` };
     }
+    const wirelessMicLabel = aWireless ?? (await findWirelessMicrophone());
+    if (wirelessMicLabel) {
+      return { ok: false, reason: `a Bluetooth/wireless audio device (“${wirelessMicLabel}”) is connected. Disconnect it, turn off Bluetooth, and use your device's built-in microphone.` };
+    }
 
-    // Exactly one camera and one microphone.
+    // Exactly one camera and one microphone (phones/tablets are exempt from the
+    // camera count — they legitimately have multiple built-in cameras).
     const cams = await listRealCameras();
-    if (cams.length > 1) {
+    if (!isMobileDevice() && cams.length > 1) {
       return { ok: false, reason: "more than one camera is connected. Disconnect all external cameras and turn off Bluetooth." };
     }
     const mics = await listRealMicrophones();
