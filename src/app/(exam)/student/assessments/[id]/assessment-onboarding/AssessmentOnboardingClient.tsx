@@ -30,7 +30,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createOrResumeAttempt } from "@/lib/assessment-actions";
 import { createProctorSession } from "@/lib/proctor-session-actions";
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
-import { findVirtualDevice, listRealCameras, listRealMicrophones } from "@/lib/device-integrity";
+import { findVirtualDevice, listRealCameras, listRealMicrophones, hasMultipleMonitors } from "@/lib/device-integrity";
 import { getBlazeFace } from "@/lib/model-cache";
 import LivenessCheck from "@/components/student/LivenessCheck";
 
@@ -432,6 +432,7 @@ function StepMicCheck({
 
   const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
   const [extraMics, setExtraMics] = useState<string[]>([]);
+  const [multiMonitor, setMultiMonitor] = useState(false);
 
   const requestMic = useCallback(async () => {
     setMicState("requesting");
@@ -479,8 +480,26 @@ function StepMicCheck({
     };
   }, [micState]);
 
+  // Detect an extended (multi-monitor) desktop, re-checking as displays are
+  // connected/disconnected. A second screen is blocked for the exam.
+  useEffect(() => {
+    const check = () => setMultiMonitor(hasMultipleMonitors());
+    check();
+    const scr = window.screen as Screen & {
+      addEventListener?: typeof window.addEventListener;
+      removeEventListener?: typeof window.removeEventListener;
+    };
+    scr.addEventListener?.("change", check);
+    // Poll as a fallback — Screen "change" event support varies by browser.
+    const id = setInterval(check, 3000);
+    return () => {
+      scr.removeEventListener?.("change", check);
+      clearInterval(id);
+    };
+  }, []);
+
   const singleMic = extraMics.length <= 1;
-  const canContinue = micState === "granted" && singleMic;
+  const canContinue = micState === "granted" && singleMic && !multiMonitor;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -562,6 +581,22 @@ function StepMicCheck({
             </div>
           </div>
         )}
+
+        {/* Multiple monitors — hard block */}
+        {multiMonitor && (
+          <div className="flex items-start gap-3 rounded-sm border border-red-200 bg-red-50 p-4">
+            <Monitor size={16} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 mb-1">Multiple monitors detected</p>
+              <p className="text-[11px] text-red-700/90 leading-relaxed">
+                Your desktop is extended across more than one screen. You cannot start
+                the exam with a second monitor connected — disconnect all external
+                monitors and use a single display, then the check will clear
+                automatically.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="pt-6 border-t border-border flex items-center gap-2 mt-auto">
@@ -585,7 +620,8 @@ function StepMicCheck({
             {micState === "virtual" ? "A physical microphone is required to proceed."
               : micState === "denied" ? "Microphone access is required to proceed."
                 : !singleMic ? "Disconnect all external microphones (and turn off Bluetooth) to proceed."
-                  : "Waiting for microphone…"}
+                  : multiMonitor ? "Disconnect all extra monitors to proceed."
+                    : "Waiting for microphone…"}
           </p>
         )}
       </div>
@@ -985,6 +1021,11 @@ function StepLivenessCheck({
     const mics = await listRealMicrophones();
     if (mics.length > 1) {
       return { ok: false, reason: "more than one microphone is connected. Disconnect all external microphones/headsets and turn off Bluetooth." };
+    }
+
+    // Single display only.
+    if (hasMultipleMonitors()) {
+      return { ok: false, reason: "more than one monitor is connected. Disconnect all extra monitors and use a single screen." };
     }
 
     return { ok: true };

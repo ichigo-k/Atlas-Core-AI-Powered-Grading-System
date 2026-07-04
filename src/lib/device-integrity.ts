@@ -92,3 +92,18 @@ export function listRealCameras(): Promise<string[]> {
 export function listRealMicrophones(): Promise<string[]> {
   return listRealInputDevices("audioinput")
 }
+
+/**
+ * True when the desktop currently spans more than one display (extended
+ * monitor setup). A second screen is a common way to keep notes or an AI
+ * assistant visible without ever stealing focus from the exam window.
+ *
+ * `screen.isExtended` is a boolean that is true whenever the OS desktop
+ * extends across 2+ displays. It needs no permission. On browsers that don't
+ * support it the value is `undefined`, so we fail open (return false) rather
+ * than block a student on a single screen.
+ */
+export function hasMultipleMonitors(): boolean {
+  if (typeof window === "undefined" || !window.screen) return false
+  return (window.screen as Screen & { isExtended?: boolean }).isExtended === true
+}
