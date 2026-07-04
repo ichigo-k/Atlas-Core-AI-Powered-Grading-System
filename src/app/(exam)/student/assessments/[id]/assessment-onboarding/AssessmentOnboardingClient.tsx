@@ -30,7 +30,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createOrResumeAttempt } from "@/lib/assessment-actions";
 import { createProctorSession } from "@/lib/proctor-session-actions";
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
-import { findVirtualDevice } from "@/lib/device-integrity";
+import { findVirtualDevice, listRealCameras, listRealMicrophones } from "@/lib/device-integrity";
 import { getBlazeFace } from "@/lib/model-cache";
 import LivenessCheck from "@/components/student/LivenessCheck";
 
@@ -431,6 +431,7 @@ function StepMicCheck({
   const streamRef = useRef<MediaStream | null>(null);
 
   const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
+  const [extraMics, setExtraMics] = useState<string[]>([]);
 
   const requestMic = useCallback(async () => {
     setMicState("requesting");
@@ -458,7 +459,28 @@ function StepMicCheck({
     };
   }, [requestMic]);
 
-  const canContinue = micState === "granted";
+  // Detect additional (external / Bluetooth) microphones once mic permission
+  // is granted, and re-check on devicechange so plugging one in afterward is
+  // still caught.
+  useEffect(() => {
+    if (micState !== "granted") return;
+    let cancelled = false;
+
+    const scan = async () => {
+      const mics = await listRealMicrophones();
+      if (!cancelled) setExtraMics(mics);
+    };
+
+    scan();
+    navigator.mediaDevices?.addEventListener?.("devicechange", scan);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices?.removeEventListener?.("devicechange", scan);
+    };
+  }, [micState]);
+
+  const singleMic = extraMics.length <= 1;
+  const canContinue = micState === "granted" && singleMic;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -518,11 +540,28 @@ function StepMicCheck({
                 <button type="button" onClick={requestMic} className="underline font-semibold">try again</button>.
               </p>
             )}
-            {micState === "granted" && (
+            {micState === "granted" && singleMic && (
               <p className="text-[11px] text-emerald-700/80 mt-0.5">Ready. You may proceed.</p>
             )}
           </div>
         </div>
+
+        {/* Multiple microphones — hard block */}
+        {micState === "granted" && !singleMic && (
+          <div className="flex items-start gap-3 rounded-sm border border-red-200 bg-red-50 p-4">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 mb-1">Multiple microphones detected</p>
+              <p className="text-[11px] text-red-700/90 leading-relaxed">
+                {extraMics.length} microphones are connected to this computer. You cannot
+                start the exam with an external or Bluetooth microphone attached.
+                Disconnect all external microphones and headsets, turn off Bluetooth,
+                then{" "}
+                <button type="button" onClick={requestMic} className="underline font-semibold">re-check</button>.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="pt-6 border-t border-border flex items-center gap-2 mt-auto">
@@ -545,7 +584,8 @@ function StepMicCheck({
           <p className="text-[11px] text-muted-foreground ml-1">
             {micState === "virtual" ? "A physical microphone is required to proceed."
               : micState === "denied" ? "Microphone access is required to proceed."
-                : "Waiting for microphone…"}
+                : !singleMic ? "Disconnect all external microphones (and turn off Bluetooth) to proceed."
+                  : "Waiting for microphone…"}
           </p>
         )}
       </div>
@@ -574,6 +614,7 @@ function StepCameraCheck({
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
   const [agreed, setAgreed] = useState(false);
   const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
+  const [extraCameras, setExtraCameras] = useState<string[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -611,6 +652,26 @@ function StepCameraCheck({
       videoRef.current.srcObject = streamRef.current;
       videoRef.current.play().catch(() => { });
     }
+  }, [cameraState]);
+
+  // Detect additional (external) cameras. Labels are only populated once
+  // camera permission is granted, so this runs after that. Also re-checks on
+  // devicechange so plugging in a webcam after the check still surfaces it.
+  useEffect(() => {
+    if (cameraState !== "granted") return;
+    let cancelled = false;
+
+    const scan = async () => {
+      const cameras = await listRealCameras();
+      if (!cancelled) setExtraCameras(cameras);
+    };
+
+    scan();
+    navigator.mediaDevices?.addEventListener?.("devicechange", scan);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices?.removeEventListener?.("devicechange", scan);
+    };
   }, [cameraState]);
 
   // Local brightness check via canvas — no external service needed
@@ -680,7 +741,8 @@ function StepCameraCheck({
 
   const lightingOk = lightingStatus === "ok";
   const faceOk = faceStatus === "ok";
-  const checksComplete = lightingOk && faceOk;
+  const singleCamera = extraCameras.length <= 1;
+  const checksComplete = lightingOk && faceOk && singleCamera;
   const canProceed = agreed && cameraState === "granted" && checksComplete;
 
   return (
@@ -794,6 +856,20 @@ function StepCameraCheck({
             </div>
           </div>
         )}
+        {extraCameras.length > 1 && (
+          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Multiple cameras detected</p>
+              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
+                {extraCameras.length} cameras are connected to this computer. You cannot
+                start the exam with an external webcam attached. Disconnect all external
+                cameras and turn off Bluetooth, then use only your computer's built-in
+                camera.
+              </p>
+            </div>
+          </div>
+        )}
         {cameraState === "granted" && checksComplete && (
           <div className="flex items-center gap-2 px-1">
             <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
@@ -840,6 +916,7 @@ function StepCameraCheck({
           <p className="text-[11px] text-muted-foreground">
             {cameraState === "virtual" ? "A physical camera is required to proceed."
               : cameraState === "denied" ? "Camera access is required to proceed."
+              : !singleCamera ? "Disconnect all external cameras (and turn off Bluetooth) to proceed."
               : lightingStatus === "poor" ? "Improve your lighting to continue."
                 : faceStatus === "absent" ? "Position your face in front of the camera."
                   : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"
