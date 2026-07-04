@@ -42,6 +42,7 @@ async function fetchAttemptDetail(
       attemptNumber: true,
       status: true,
       score: true,
+      activeQuestionIds: true,
       startedAt: true,
       submittedAt: true,
       answers: {
@@ -97,6 +98,13 @@ async function fetchAttemptDetail(
     gradingDetail?.answerFeedbacks.map((f: any) => [f.questionId, f]) ?? [],
   )
 
+  // Questions dropped by an "answer N of M" quota selection are excluded from
+  // scoring at submission time (assessment-actions.ts). When set, this list is
+  // the authoritative set of questions that actually counted for this attempt.
+  const activeIds = attempt.activeQuestionIds as number[] | null
+  const isActive = (questionId: number) =>
+    !Array.isArray(activeIds) || activeIds.length === 0 || activeIds.includes(questionId)
+
   const questions: QuestionDetail[] = assessment.sections.flatMap((section: any) =>
     section.questions.map((q: any) => {
       const answer = answerMap.get(q.id) ?? null
@@ -106,6 +114,7 @@ async function fetchAttemptDetail(
         order: q.order,
         body: q.body,
         marks: q.marks,
+        active: isActive(q.id),
         sectionName: section.name,
         sectionType: section.type,
         answerType: q.answerType,

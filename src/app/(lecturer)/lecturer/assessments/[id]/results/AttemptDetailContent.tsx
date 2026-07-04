@@ -31,6 +31,7 @@ export type QuestionDetail = {
   order: number
   body: string
   marks: number
+  active: boolean
   sectionName: string
   sectionType: string
   answerType: string | null
@@ -668,15 +669,13 @@ export function AttemptDetailView({
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0)
   const [selectedSectionQuestions, setSelectedSectionQuestions] = useState<QuestionDetail[]>([])
 
-  const scoreDisplay =
-    detail.score !== null ? `${detail.score} / ${detail.totalMarks}` : `— / ${detail.totalMarks}`
-  const pct =
-    detail.score !== null && detail.totalMarks > 0
-      ? Math.round((detail.score / detail.totalMarks) * 100)
-      : null
+  // Questions dropped by an "answer N of M" quota never counted toward this
+  // attempt's score — exclude them everywhere so the header total always
+  // agrees with the section breakdown below (both derived from the same set).
+  const activeQuestions = detail.questions.filter((q) => q.active)
 
-  const overrideCount = detail.questions.filter((q: any) => q.lecturerAdjustedScore !== null).length
-  const flaggedCount = detail.questions.filter((q: any) => q.feedback?.flag).length
+  const overrideCount = activeQuestions.filter((q: any) => q.lecturerAdjustedScore !== null).length
+  const flaggedCount = activeQuestions.filter((q: any) => q.feedback?.flag).length
 
   const submittedDate = detail.submittedAt
     ? new Date(detail.submittedAt).toLocaleString("en-GB", {
@@ -688,7 +687,7 @@ export function AttemptDetailView({
   // Build sections
   const sections: { name: string; type: string; questions: QuestionDetail[] }[] = []
   const seen = new Map<string, QuestionDetail[]>()
-  for (const q of detail.questions) {
+  for (const q of activeQuestions) {
     if (!seen.has(q.sectionName)) {
       const arr: QuestionDetail[] = []
       seen.set(q.sectionName, arr)
@@ -723,6 +722,16 @@ export function AttemptDetailView({
     const sectionPct = possible > 0 ? Math.round((earned / possible) * 100) : 0
     return { ...section, earned, possible, answered, pct: sectionPct }
   })
+
+  // Total score/marks are the sum of the section breakdown above, not the
+  // denormalized attempt.score/assessment.totalMarks columns — those can go
+  // stale relative to the live per-question data (edits after submission,
+  // quota selections, lecturer overrides), which desynced the header from
+  // the section cards.
+  const totalEarned = sectionPerformance.reduce((sum, s) => sum + s.earned, 0)
+  const totalPossible = sectionPerformance.reduce((sum, s) => sum + s.possible, 0)
+  const scoreDisplay = `${totalEarned} / ${totalPossible}`
+  const pct = totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : null
 
   function openQuestion(sectionQuestions: QuestionDetail[], index: number) {
     setSelectedSectionQuestions(sectionQuestions)
@@ -834,7 +843,7 @@ export function AttemptDetailView({
               <div className="flex items-center gap-2">
                 <FileText size={12} className="text-muted-foreground" />
                 <span className="text-[12px] text-[#1e293b]">
-                  <span className="font-semibold">{detail.questions.length}</span> questions
+                  <span className="font-semibold">{activeQuestions.length}</span> questions
                 </span>
               </div>
               <div className="flex items-center gap-2">
