@@ -563,7 +563,7 @@ export default function UsersClient({
 				onOpenChange={setBulkClassOpen}
 				title={`Change class for ${selected.length} student${selected.length === 1 ? "" : "s"}`}
 				description="Pick the class these students should be moved into. This replaces their current class assignment."
-				options={classes.map((c) => ({ id: c.id, label: `${c.name} (L${c.level})` }))}
+				searchUrl="/api/admin/classes/search"
 				confirmLabel="Apply"
 				allowUnassign
 				onConfirm={handleBulkClassAssign}
@@ -573,7 +573,7 @@ export default function UsersClient({
 				onOpenChange={setBulkProgramOpen}
 				title={`Change program for ${selected.length} student${selected.length === 1 ? "" : "s"}`}
 				description="Pick the academic program these students should be moved into. This replaces their current program."
-				options={programs.map((p) => ({ id: p.id, label: p.name }))}
+				searchUrl="/api/admin/programs/search"
 				confirmLabel="Apply"
 				allowUnassign
 				onConfirm={handleBulkProgramAssign}
@@ -583,7 +583,7 @@ export default function UsersClient({
 				onOpenChange={setBulkCourseOpen}
 				title={`Assign course to ${selected.length} lecturer${selected.length === 1 ? "" : "s"}`}
 				description="Pick a course to add to these lecturers. This adds the course alongside whatever they already teach."
-				options={courses.map((c) => ({ id: c.id, label: `${c.code} — ${c.title}` }))}
+				searchUrl="/api/admin/courses/search"
 				confirmLabel="Assign"
 				onConfirm={handleBulkCourseAssign}
 			/>

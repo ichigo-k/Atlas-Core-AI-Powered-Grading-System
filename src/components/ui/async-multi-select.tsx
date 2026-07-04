@@ -42,12 +42,18 @@ export function AsyncMultiSelect({
 
   React.useEffect(() => {
     if (!open) return;
+    const query = search.trim();
+    if (!query) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
     const controller = new AbortController();
+    setLoading(true);
     const timer = setTimeout(async () => {
-      setLoading(true);
       try {
         const res = await fetch(
-          `${searchUrl}?q=${encodeURIComponent(search.trim())}`,
+          `${searchUrl}?q=${encodeURIComponent(query)}`,
           { signal: controller.signal },
         );
         if (res.ok) {

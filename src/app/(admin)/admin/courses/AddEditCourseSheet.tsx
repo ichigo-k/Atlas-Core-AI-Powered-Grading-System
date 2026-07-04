@@ -88,7 +88,7 @@ export default function AddEditCourseSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="w-full sm:max-w-2xl p-0 border-l border-border">
+			<SheetContent className="w-full data-[side=right]:w-full data-[side=right]:sm:max-w-3xl p-0 border-l border-border">
 				<div className="h-full flex flex-col">
 					<SheetHeader className="p-8 bg-slate-50/50 border-b border-slate-100">
 						<div className="flex items-center gap-4">
