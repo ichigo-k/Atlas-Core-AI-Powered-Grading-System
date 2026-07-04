@@ -29,6 +29,17 @@ export interface Gesture {
   id: string
   instruction: string
   category: GestureCategory
+  /**
+   * Whether this gesture is part of the curated "simple" pool that the
+   * liveness check actually draws from. We only ever ask students to perform
+   * plainly-worded, universally-understood actions (close an eye, stick out
+   * your tongue, open your mouth, turn your head, smile, nod) — anything that
+   * needs describing ("pucker your lips", "sneer", "roll your lower lip in")
+   * is left `simple: false` and never shown. The full list is kept intact so
+   * the detection predicates stay available, but only `simple` gestures are
+   * selectable.
+   */
+  simple?: boolean
   check: (blendshapes: Record<string, number>, yaw: number, pitch: number) => boolean
 }
 
@@ -47,18 +58,21 @@ export const SINGLE_GESTURES: Gesture[] = [
     id: "head_turn_left",
     instruction: "Turn your head to the left",
     category: "other",
+    simple: true,
     check: (_b, yaw) => yaw > 20,
   },
   {
     id: "head_turn_right",
     instruction: "Turn your head to the right",
     category: "other",
+    simple: true,
     check: (_b, yaw) => yaw < -20,
   },
   {
     id: "head_tilt_up",
-    instruction: "Tilt your head up, looking at the ceiling",
+    instruction: "Look up at the ceiling",
     category: "other",
+    simple: true,
     check: (_b, _yaw, pitch) => pitch > 15,
   },
   {
@@ -69,8 +83,9 @@ export const SINGLE_GESTURES: Gesture[] = [
   },
   {
     id: "head_nod",
-    instruction: "Nod your head down, as if to say yes",
+    instruction: "Nod your head up and down",
     category: "other",
+    simple: true,
     check: (_b, _yaw, pitch) => pitch < -15,
   },
 
@@ -79,6 +94,7 @@ export const SINGLE_GESTURES: Gesture[] = [
     id: "mouth_open_wide",
     instruction: "Open your mouth wide",
     category: "other",
+    simple: true,
     check: (b) => score(b, "jawOpen") > 0.5,
   },
   {
@@ -109,6 +125,7 @@ export const SINGLE_GESTURES: Gesture[] = [
     id: "smile_both",
     instruction: "Give a big smile",
     category: "other",
+    simple: true,
     check: (b) => score(b, "mouthSmileLeft") > 0.4 && score(b, "mouthSmileRight") > 0.4,
   },
   {
@@ -139,12 +156,14 @@ export const SINGLE_GESTURES: Gesture[] = [
     id: "cheek_puff",
     instruction: "Puff out your cheeks",
     category: "other",
+    simple: true,
     check: (b) => score(b, "cheekPuff") > 0.4,
   },
   {
     id: "tongue_out",
     instruction: "Stick out your tongue",
     category: "other",
+    simple: true,
     check: (b) => score(b, "tongueOut") > 0.4,
   },
   {
@@ -213,6 +232,7 @@ export const SINGLE_GESTURES: Gesture[] = [
     id: "brows_raise",
     instruction: "Raise your eyebrows",
     category: "other",
+    simple: true,
     check: (b) => score(b, "browInnerUp") > 0.4,
   },
   {
@@ -251,18 +271,21 @@ export const SINGLE_GESTURES: Gesture[] = [
     id: "blink_both",
     instruction: "Blink both eyes",
     category: "eye",
+    simple: true,
     check: (b) => score(b, "eyeBlinkLeft") > 0.5 && score(b, "eyeBlinkRight") > 0.5,
   },
   {
     id: "wink_left",
-    instruction: "Wink your left eye",
+    instruction: "Close your left eye",
     category: "eye",
+    simple: true,
     check: (b) => score(b, "eyeBlinkLeft") > 0.6 && score(b, "eyeBlinkRight") < 0.3,
   },
   {
     id: "wink_right",
-    instruction: "Wink your right eye",
+    instruction: "Close your right eye",
     category: "eye",
+    simple: true,
     check: (b) => score(b, "eyeBlinkRight") > 0.6 && score(b, "eyeBlinkLeft") < 0.3,
   },
   {
@@ -366,8 +389,11 @@ export interface Challenge {
  * want the liveness check to unfairly hinge on an eye gesture most of the
  * time).
  */
+// Only the curated, plainly-worded gestures are ever asked of a student.
+export const SIMPLE_GESTURES: Gesture[] = SINGLE_GESTURES.filter((g) => g.simple)
+
 function weightedPickSingle(excludeIds: Set<string> = new Set()): Gesture {
-  const pool = SINGLE_GESTURES.filter((g) => !excludeIds.has(g.id))
+  const pool = SIMPLE_GESTURES.filter((g) => !excludeIds.has(g.id))
   const weight = (g: Gesture) => (g.category === "eye" ? 1 : 3)
   const total = pool.reduce((sum, g) => sum + weight(g), 0)
   let r = Math.random() * total
@@ -387,31 +413,24 @@ function weightedPickSingle(excludeIds: Set<string> = new Set()): Gesture {
  *   testing).
  */
 export function pickRandomChallenge(count: 1 | 2, excludeCategoryBias = true): Challenge {
+  const pickUniform = (exclude: Set<string> = new Set()) => {
+    const pool = SIMPLE_GESTURES.filter((g) => !exclude.has(g.id))
+    return pool[Math.floor(Math.random() * pool.length)]
+  }
+
   if (count === 1) {
-    const gesture = excludeCategoryBias ? weightedPickSingle() : SINGLE_GESTURES[Math.floor(Math.random() * SINGLE_GESTURES.length)]
+    const gesture = excludeCategoryBias ? weightedPickSingle() : pickUniform()
     return { steps: [gesture], sourceId: gesture.id }
   }
 
-  // 50/50 between an authored compound gesture and two freshly-combined
-  // single gestures — both are valid two-step challenges.
-  if (Math.random() < 0.5) {
-    const weight = (c: CompoundGesture) => (c.category === "eye" ? 1 : 3)
-    const total = excludeCategoryBias
-      ? COMPOUND_GESTURES.reduce((sum, c) => sum + weight(c), 0)
-      : COMPOUND_GESTURES.length
-    let r = Math.random() * total
-    for (const c of COMPOUND_GESTURES) {
-      r -= excludeCategoryBias ? weight(c) : 1
-      if (r <= 0) return { steps: [...c.steps], sourceId: c.id }
-    }
-    const last = COMPOUND_GESTURES[COMPOUND_GESTURES.length - 1]
-    return { steps: [...last.steps], sourceId: last.id }
-  }
-
-  const first = excludeCategoryBias ? weightedPickSingle() : SINGLE_GESTURES[Math.floor(Math.random() * SINGLE_GESTURES.length)]
+  // Two-step challenges are always two distinct simple gestures performed in
+  // sequence. Authored compound gestures are intentionally NOT used here —
+  // some of them chain harder-to-describe actions, and we only ever show the
+  // curated simple set.
+  const first = excludeCategoryBias ? weightedPickSingle() : pickUniform()
   const second = excludeCategoryBias
     ? weightedPickSingle(new Set([first.id]))
-    : SINGLE_GESTURES.filter((g) => g.id !== first.id)[Math.floor(Math.random() * (SINGLE_GESTURES.length - 1))]
+    : pickUniform(new Set([first.id]))
   return { steps: [first, second], sourceId: `${first.id}+${second.id}` }
 }
 

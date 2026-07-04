@@ -16,7 +16,7 @@
  *  GAZE_AWAY        — head yaw/pitch outside thresholds (not eye movements)
  *
  * Object violations (every 800ms, COCO-SSD):
- *  PHONE_DETECTED / SUSPICIOUS_OBJECT
+ *  PHONE_DETECTED
  *
  * Grace period: warning overlay fires immediately, flag +1 only after 15s.
  */
@@ -42,11 +42,13 @@ const OBJECT_INTERVAL_MS = 800
 // ── Head-pose tiers (degrees) ──────────────────────────────────────────────
 // FLAG = clearly turned away → hard flag (reachable, not "staring into lap").
 // WARN = soft toast only (no flag).
-// Downward pitch is deliberately much more lenient: looking down at the
-// keyboard or scratch paper is normal exam behaviour, so only a deep,
-// sustained look into the lap should ever escalate.
-const YAW_FLAG = 18, PITCH_DOWN_FLAG = -35, PITCH_UP_FLAG = 16
-const YAW_WARN = 12, PITCH_DOWN_WARN = -22, PITCH_UP_WARN = 9
+// These are deliberately lenient: gaze is based on HEAD pose only (not eye
+// movement), so normal reading — eyes tracking across the screen while the
+// head stays roughly forward, glancing at the keyboard, a moment of thought —
+// must never trip a warning or a flag. Only a clear, sustained head turn away
+// from the screen should ever escalate.
+const YAW_FLAG = 30, PITCH_DOWN_FLAG = -48, PITCH_UP_FLAG = 26
+const YAW_WARN = 24, PITCH_DOWN_WARN = -38, PITCH_UP_WARN = 20
 
 // ── Escalation timing ──────────────────────────────────────────────────────
 const WARN_SUSTAIN_MS = 600       // default continuous time before a soft toast
@@ -60,7 +62,7 @@ const MOUTH_WINDOW_MS = 3000
 const MOUTH_CYCLES_FOR_WARN = 3   // open→close cycles within the window
 
 type CameraViolationType = Extract<FlagType,
-  "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "GAZE_AWAY" | "PHONE_DETECTED" | "SUSPICIOUS_OBJECT">
+  "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "GAZE_AWAY" | "PHONE_DETECTED">
 
 // Keys that can raise a soft toast (superset — includes toast-only signals).
 type WarnKey = CameraViolationType | "MOUTH_MOVING"
@@ -68,7 +70,7 @@ type WarnKey = CameraViolationType | "MOUTH_MOVING"
 // Severity per tick: 0 = clear, 1 = warn (toast), 2 = flag (overlay + count).
 type Severity = 0 | 1 | 2
 
-// Types that may hard-flag. SUSPICIOUS_OBJECT and MOUTH_MOVING are toast-only.
+// Types that may hard-flag. MOUTH_MOVING is toast-only.
 const HARD_FLAG_TYPES = new Set<WarnKey>([
   "PERSON_ABSENT", "MULTIPLE_PERSONS", "PHONE_DETECTED", "GAZE_AWAY",
 ])
@@ -97,8 +99,7 @@ const SIGNAL: Record<WarnKey, { warns: boolean; flagMs: number; warnMs?: number;
   // partially in a hand can easily drop out of a single tick. clearMs spans
   // roughly one missed tick so that doesn't wipe real progress.
   PHONE_DETECTED: { warns: false, flagMs: 900, clearMs: 900 },   // phone in view → flag
-  GAZE_AWAY: { warns: true, flagMs: 5000, warnMs: 1500 },   // ambiguous (typing/thinking) → lenient
-  SUSPICIOUS_OBJECT: { warns: true, flagMs: Infinity }, // toast only
+  GAZE_AWAY: { warns: true, flagMs: 8000, warnMs: 3500 },   // ambiguous (typing/thinking/reading) → very lenient
   MOUTH_MOVING: { warns: true, flagMs: Infinity }, // toast only
 }
 
@@ -107,14 +108,10 @@ const WARN_MESSAGES: Record<WarnKey, string> = {
   PERSON_ABSENT: "Stay in view of the camera.",
   MULTIPLE_PERSONS: "Another person was detected nearby.",
   PHONE_DETECTED: "Phones are not allowed during the exam.",
-  SUSPICIOUS_OBJECT: "Keep only exam materials in view.",
   MOUTH_MOVING: "You appear to be talking — this may be flagged.",
 }
 
 const PHONE_CLASSES = ["cell phone"]
-// keyboard/mouse/laptop are normal for an online exam, so SUSPICIOUS_OBJECT is
-// toast-only (see HARD_FLAG_TYPES) — it never adds a flag on its own.
-const SUSPICIOUS_CLASSES = ["book", "laptop", "remote"]
 
 interface Props { attemptId: number }
 
@@ -403,9 +400,8 @@ export default function ProctorCamera({ attemptId }: Props) {
         try {
           const predictions = await cocoSsd.detect(video)
           const classes = predictions.map((p: any) => p.class.toLowerCase())
-          // Phone → hard flag (severity 2). Other objects → toast only (severity 1).
+          // Phone → hard flag (severity 2).
           escalate("PHONE_DETECTED", classes.some((c: any) => PHONE_CLASSES.includes(c)) ? 2 : 0)
-          escalate("SUSPICIOUS_OBJECT", classes.some((c: any) => SUSPICIOUS_CLASSES.includes(c)) ? 1 : 0)
         } catch { /* ignore */ }
       }
       const id = setInterval(run, OBJECT_INTERVAL_MS)

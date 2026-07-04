@@ -558,27 +558,21 @@ function StepMicCheck({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function StepCameraCheck({
-  attemptId,
-  assessmentId,
   onBack,
   onCancel,
   onProceed,
 }: {
-  attemptId: number;
-  assessmentId: number;
   onBack?: () => void;
   onCancel?: () => void;
-  /** Called after the proctor session is created and fullscreen requested —
-   * hands off to the liveness-check step rather than navigating directly,
-   * so a spoofed camera can't skip straight past both checks. */
+  /** Advances to the liveness-check step. The exam itself is not started here —
+   * the proctor session, fullscreen request, and navigation all happen at the
+   * liveness step, so a spoofed camera can't skip straight into the exam. */
   onProceed: () => void;
 }) {
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
   const [agreed, setAgreed] = useState(false);
-  const [isProceeding, setIsProceeding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -684,37 +678,10 @@ function StepCameraCheck({
     };
   }, [cameraState, checkLighting, checkFace]);
 
-  async function handleProceed() {
-    setIsProceeding(true);
-    setError(null);
-
-    const result = await createProctorSession(attemptId);
-    if ("error" in result) {
-      const messages: Record<string, string> = {
-        UNAUTHORIZED: "You are not authorised to start this exam.",
-        ATTEMPT_NOT_FOUND: "Your exam attempt could not be found.",
-        ATTEMPT_NOT_IN_PROGRESS: "This attempt is no longer active.",
-        DB_ERROR: "A server error occurred. Please try again.",
-      };
-      setError(messages[result.error] ?? "An unexpected error occurred.");
-      setIsProceeding(false);
-      return;
-    }
-
-    try {
-      if (!document.fullscreenElement)
-        await document.documentElement.requestFullscreen();
-    } catch (err) {
-      console.warn("[AssessmentOnboarding] Fullscreen request failed:", err);
-    }
-
-    onProceed();
-  }
-
   const lightingOk = lightingStatus === "ok";
   const faceOk = faceStatus === "ok";
   const checksComplete = lightingOk && faceOk;
-  const canProceed = agreed && cameraState === "granted" && checksComplete && !isProceeding;
+  const canProceed = agreed && cameraState === "granted" && checksComplete;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -840,14 +807,14 @@ function StepCameraCheck({
       <div className="mt-auto space-y-4 pt-4 border-t border-border">
         <div className="flex items-center gap-3">
           {onBack && (
-            <button type="button" onClick={onBack} disabled={isProceeding}
-              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={onBack}
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors">
               Back
             </button>
           )}
           {onCancel && (
-            <button type="button" onClick={onCancel} disabled={isProceeding}
-              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={onCancel}
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors">
               Cancel
             </button>
           )}
@@ -864,23 +831,12 @@ function StepCameraCheck({
           </span>
         </label>
 
-        {error && (
-          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
-            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
-            <p className="text-[11px] font-semibold text-red-700">{error}</p>
-          </div>
-        )}
-
-        <button type="button" onClick={handleProceed} disabled={!canProceed}
+        <button type="button" onClick={onProceed} disabled={!canProceed}
           className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#001570] disabled:cursor-not-allowed disabled:opacity-30 animate-in fade-in">
-          {isProceeding ? (
-            <><Loader2 size={13} className="animate-spin" />Starting…</>
-          ) : (
-            <><PlayCircle size={13} />Start Exam<ArrowRight size={13} /></>
-          )}
+          Continue<ArrowRight size={13} />
         </button>
 
-        {!canProceed && !isProceeding && (
+        {!canProceed && (
           <p className="text-[11px] text-muted-foreground">
             {cameraState === "virtual" ? "A physical camera is required to proceed."
               : cameraState === "denied" ? "Camera access is required to proceed."
@@ -909,18 +865,72 @@ function StepLivenessCheck({
   attemptId: number;
 }) {
   const router = useRouter();
+  const [passed, setPassed] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function goToExam() {
+  // The exam is only started once liveness is confirmed and the student
+  // clicks "Start Exam" — this is where the proctor session is created,
+  // fullscreen is requested (needs a fresh user gesture), and we navigate.
+  async function handleStart() {
+    setIsStarting(true);
+    setError(null);
+
+    const result = await createProctorSession(attemptId);
+    if ("error" in result) {
+      const messages: Record<string, string> = {
+        UNAUTHORIZED: "You are not authorised to start this exam.",
+        ATTEMPT_NOT_FOUND: "Your exam attempt could not be found.",
+        ATTEMPT_NOT_IN_PROGRESS: "This attempt is no longer active.",
+        DB_ERROR: "A server error occurred. Please try again.",
+      };
+      setError(messages[result.error] ?? "An unexpected error occurred.");
+      setIsStarting(false);
+      return;
+    }
+
+    try {
+      if (!document.fullscreenElement)
+        await document.documentElement.requestFullscreen();
+    } catch (err) {
+      console.warn("[AssessmentOnboarding] Fullscreen request failed:", err);
+    }
+
     router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${attemptId}`);
   }
 
   return (
-    <LivenessCheck
-      onPass={() => goToExam()}
-      onInconclusive={() => {
-        console.warn("[AssessmentOnboarding] Liveness check inconclusive", { assessmentId, attemptId });
-      }}
-    />
+    <div className="flex min-h-full flex-col">
+      <LivenessCheck
+        onPass={() => setPassed(true)}
+        onInconclusive={() => {
+          console.warn("[AssessmentOnboarding] Liveness check inconclusive", { assessmentId, attemptId });
+        }}
+      />
+
+      {passed && (
+        <div className="mt-auto space-y-3 pt-4 border-t border-border">
+          {error && (
+            <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
+              <p className="text-[11px] font-semibold text-red-700">{error}</p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleStart}
+            disabled={isStarting}
+            className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#001570] disabled:cursor-not-allowed disabled:opacity-40 animate-in fade-in"
+          >
+            {isStarting ? (
+              <><Loader2 size={13} className="animate-spin" />Starting…</>
+            ) : (
+              <><PlayCircle size={13} />Start Exam<ArrowRight size={13} /></>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1182,8 +1192,6 @@ export default function AssessmentOnboardingClient({
                 proctoringEnabled &&
                 resolvedAttemptId != null && (
                   <StepCameraCheck
-                    attemptId={resolvedAttemptId}
-                    assessmentId={assessmentId}
                     onBack={() => setStep(micStepIndex)}
                     onCancel={() => router.push(`/student/assessments`)}
                     onProceed={() => setStep(livenessStepIndex)}
