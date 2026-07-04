@@ -174,7 +174,7 @@ export default function AddUserSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="w-full sm:max-w-md overflow-y-auto p-6">
+			<SheetContent className="w-full data-[side=right]:w-full data-[side=right]:sm:max-w-2xl overflow-y-auto p-6">
 				<SheetHeader className="mb-6 text-left">
 					<SheetTitle className="text-xl font-bold text-slate-900">Add New User</SheetTitle>
 					<SheetDescription className="text-sm text-slate-500">
