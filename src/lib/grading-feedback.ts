@@ -35,6 +35,13 @@ export type AttemptGradingDetail = {
   answerFeedbacks: AnswerFeedbackItem[]
 }
 
+// Older/cached grader rows may still hold the literal string "none" for a
+// no-issue flag (before the grader was fixed to send ""). Treat it as unset
+// here so every consumer of this module sees a single, consistent shape.
+function normalizeFlag(flag: string | null | undefined): string {
+  return flag && flag.toLowerCase() !== 'none' ? flag : ''
+}
+
 /**
  * Fetch the full grading detail for a single attempt, including per-answer
  * AI feedback and per-criterion scores.
@@ -66,7 +73,7 @@ export async function getAttemptGradingDetail(
       questionId: fb.questionId,
       totalScore: fb.totalScore,
       maxScore: fb.maxScore,
-      flag: fb.flag,
+      flag: normalizeFlag(fb.flag),
       flagReason: fb.flagReason,
       criteriaFeedback: parseCriteriaFeedback(fb.criteriaFeedback),
       bedrockError: fb.bedrockError,
@@ -102,7 +109,7 @@ export async function getAssessmentGradingResults(
       questionId: fb.questionId,
       totalScore: fb.totalScore,
       maxScore: fb.maxScore,
-      flag: fb.flag,
+      flag: normalizeFlag(fb.flag),
       flagReason: fb.flagReason,
       criteriaFeedback: parseCriteriaFeedback(fb.criteriaFeedback),
       bedrockError: fb.bedrockError,

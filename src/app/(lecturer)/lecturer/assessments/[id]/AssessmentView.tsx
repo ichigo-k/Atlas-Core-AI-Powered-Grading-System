@@ -1705,7 +1705,7 @@ export default function AssessmentView({
 							{assessment.courseCode} — {assessment.courseTitle}
 						</p>
 					</div>
-					<ActionBar />
+					{ActionBar()}
 				</div>
 
 				{/* Hero stats */}
@@ -1801,8 +1801,8 @@ export default function AssessmentView({
 				)}
 
 				{/* Tab content */}
-				{activeTab === "overview" && <OverviewTab />}
-				{activeTab === "results" && <ResultsTab />}
+				{activeTab === "overview" && OverviewTab()}
+				{activeTab === "results" && ResultsTab()}
 				{activeTab === "proctoring" &&
 					assessment.proctoringEnabled &&
 					proctoringContent}
