@@ -4,11 +4,12 @@
  * LivenessCheck — a short random-gesture challenge shown once during
  * onboarding, right before a student can start a proctored exam. Defeats
  * static-photo / pre-recorded-video / mask spoofing of the camera check by
- * asking the student to perform 1–2 randomly chosen face gestures
- * (e.g. "turn your head left", "raise your eyebrows") that a static image
- * cannot satisfy.
+ * asking the student to perform 1–2 randomly chosen hand gestures
+ * (e.g. "make a fist", "hold up two fingers") that a static image cannot
+ * satisfy. Hand gestures are large and unambiguous, so they detect far more
+ * reliably than subtle facial expressions.
  *
- * Runs entirely client-side via the shared MediaPipe Face Landmarker
+ * Runs entirely client-side via the shared MediaPipe Gesture Recognizer
  * (src/lib/model-cache.ts) — no server round-trip, no cost. Reuses the
  * camera stream already opened by the onboarding camera-check step
  * (proctorSignals.cameraStream) when available, falling back to its own
@@ -28,9 +29,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, ScanFace, ShieldCheck } from "lucide-react";
-import { getFaceLandmarker } from "@/lib/model-cache";
+import { getGestureRecognizer } from "@/lib/model-cache";
 import { proctorSignals } from "@/lib/proctor-signals";
-import { pickRandomChallenge, type Gesture } from "@/lib/liveness-gestures";
+import { pickRandomChallenge, gestureMatches, type Gesture } from "@/lib/liveness-gestures";
 
 const CHALLENGE_COUNT: 1 | 2 = Math.random() < 0.5 ? 1 : 2;
 const STEP_TIMEOUT_MS = 5500;
@@ -165,7 +166,7 @@ export default function LivenessCheck({ onPass, onInconclusive, onSkip }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, stepIndex, retriesRef.current]);
 
-  // ── MediaPipe detection loop ────────────────────────────────────────────────
+  // ── MediaPipe hand-gesture detection loop ───────────────────────────────────
   useEffect(() => {
     if (phase !== "loading" && phase !== "running") return;
     let cancelled = false;
@@ -175,15 +176,9 @@ export default function LivenessCheck({ onPass, onInconclusive, onSkip }: Props)
 
     async function loadAndRun() {
       try {
-        const faceLandmarker = await getFaceLandmarker();
+        const recognizer = await getGestureRecognizer();
         if (cancelled) return;
         setPhase((p) => (p === "loading" ? "running" : p));
-
-        function getHeadAngles(matrix: Float32Array | number[]) {
-          const pitch = Math.asin(-matrix[9]) * (180 / Math.PI);
-          const yaw = Math.atan2(matrix[8], matrix[10]) * (180 / Math.PI);
-          return { yaw, pitch };
-        }
 
         function run(timestamp: DOMHighResTimeStamp) {
           if (cancelled) return;
@@ -199,31 +194,19 @@ export default function LivenessCheck({ onPass, onInconclusive, onSkip }: Props)
           lastVideoTime = video.currentTime;
 
           try {
-            const result = faceLandmarker.detectForVideo(video, timestamp);
+            const result = recognizer.recognizeForVideo(video, timestamp);
             const gesture = challengeRef.current.steps[stepIndexRef.current];
-            if (
-              gesture &&
-              result.faceLandmarks.length === 1 &&
-              result.faceBlendshapes?.[0] &&
-              result.facialTransformationMatrixes?.[0]
-            ) {
-              const blendshapes: Record<string, number> = {};
-              for (const c of result.faceBlendshapes[0].categories) {
-                blendshapes[c.categoryName] = c.score;
-              }
-              const { yaw, pitch } = getHeadAngles(
-                result.facialTransformationMatrixes[0].data as unknown as Float32Array
-              );
-              const matches = gesture.check(blendshapes, yaw, pitch);
-              const now = performance.now();
-              if (matches) {
-                if (sustainSince === null) sustainSince = now;
-                if (now - sustainSince >= SUSTAIN_MS) {
-                  sustainSince = null;
-                  onGestureDetectedRef.current();
-                }
-              } else {
+            // result.gestures is one entry per detected hand; each is a ranked
+            // list of category candidates. We use the single top candidate of
+            // the first (and only — numHands: 1) hand.
+            const top = result.gestures?.[0]?.[0];
+            const matches = gesture && gestureMatches(gesture, top?.categoryName, top?.score);
+            const now = performance.now();
+            if (matches) {
+              if (sustainSince === null) sustainSince = now;
+              if (now - sustainSince >= SUSTAIN_MS) {
                 sustainSince = null;
+                onGestureDetectedRef.current();
               }
             } else {
               sustainSince = null;
@@ -278,7 +261,8 @@ export default function LivenessCheck({ onPass, onInconclusive, onSkip }: Props)
     <div className="flex flex-col h-full">
       <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">Liveness check</h2>
       <p className="text-[12px] text-muted-foreground mb-5">
-        Perform the gesture shown below to confirm you're a real person in front of the camera.
+        Show the hand gesture below to the camera to confirm you're a real person.
+        Keep your hand clearly in view.
       </p>
 
       <div className="relative mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-sm bg-[#1e293b]">

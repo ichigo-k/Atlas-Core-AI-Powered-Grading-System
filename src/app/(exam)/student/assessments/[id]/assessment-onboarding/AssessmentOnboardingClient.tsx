@@ -946,12 +946,64 @@ function StepLivenessCheck({
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Re-verify every device precondition at the moment of starting. The
+  // earlier onboarding steps only check once, so a student could grant camera
+  // /mic access and then disable it (or plug in an extra device) before
+  // reaching this point. Returns a human reason on the first failure.
+  async function runPreflight(): Promise<{ ok: true } | { ok: false; reason: string }> {
+    // Camera access + not a virtual camera.
+    let videoStream: MediaStream;
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    } catch {
+      return { ok: false, reason: "your camera is off or blocked. Go back to the Camera check, re-enable your camera, and try again." };
+    }
+    const vVirtual = findVirtualDevice(videoStream);
+    videoStream.getTracks().forEach((t) => t.stop());
+    if (vVirtual) {
+      return { ok: false, reason: `a virtual camera (“${vVirtual}”) is in use. Disable it and use a physical camera.` };
+    }
+
+    // Microphone access + not a virtual mic.
+    let audioStream: MediaStream;
+    try {
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch {
+      return { ok: false, reason: "your microphone is off or blocked. Go back to the Microphone check, re-enable your microphone, and try again." };
+    }
+    const aVirtual = findVirtualDevice(audioStream);
+    audioStream.getTracks().forEach((t) => t.stop());
+    if (aVirtual) {
+      return { ok: false, reason: `a virtual microphone (“${aVirtual}”) is in use. Disable it and use a physical microphone.` };
+    }
+
+    // Exactly one camera and one microphone.
+    const cams = await listRealCameras();
+    if (cams.length > 1) {
+      return { ok: false, reason: "more than one camera is connected. Disconnect all external cameras and turn off Bluetooth." };
+    }
+    const mics = await listRealMicrophones();
+    if (mics.length > 1) {
+      return { ok: false, reason: "more than one microphone is connected. Disconnect all external microphones/headsets and turn off Bluetooth." };
+    }
+
+    return { ok: true };
+  }
+
   // The exam is only started once liveness is confirmed and the student
-  // clicks "Start Exam" — this is where the proctor session is created,
-  // fullscreen is requested (needs a fresh user gesture), and we navigate.
+  // clicks "Start Exam" — this is where all device checks are re-run, the
+  // proctor session is created, fullscreen is requested (needs a fresh user
+  // gesture), and we navigate.
   async function handleStart() {
     setIsStarting(true);
     setError(null);
+
+    const preflight = await runPreflight();
+    if (!preflight.ok) {
+      setError(`Failed to start: ${preflight.reason}`);
+      setIsStarting(false);
+      return;
+    }
 
     const result = await createProctorSession(attemptId);
     if ("error" in result) {
