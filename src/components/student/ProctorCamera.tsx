@@ -101,7 +101,7 @@ const SIGNAL: Record<WarnKey, { warns: boolean; flagMs: number; warnMs?: number;
   // partially in a hand can easily drop out of a single tick. clearMs spans
   // roughly one missed tick so that doesn't wipe real progress.
   PHONE_DETECTED: { warns: false, flagMs: 900, clearMs: 900 },   // phone in view → flag
-  GAZE_AWAY: { warns: true, flagMs: 4500, warnMs: 1800, clearMs: 500 },   // warn early, flag only on a sustained head turn
+  GAZE_AWAY: { warns: true, flagMs: 3000, warnMs: 1500, clearMs: 500 },   // warn early, flag only on a sustained head turn
   MOUTH_MOVING: { warns: true, flagMs: Infinity }, // toast only
 }
 
