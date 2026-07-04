@@ -115,19 +115,19 @@ export default function BulkAssignDialog({
 						</p>
 					)}
 
-					<div className="grid gap-1 max-h-64 overflow-y-auto rounded-sm border border-border p-1">
+					<div className="grid gap-1 max-h-64 overflow-y-auto overflow-x-hidden rounded-sm border border-border p-1">
 						{allowUnassign && (
 							<button
 								type="button"
 								onClick={() => setValue(UNASSIGNED)}
-								className={`flex items-center justify-between px-3 py-2 rounded-sm text-sm text-left transition-colors ${
+								className={`flex w-full min-w-0 items-center justify-between gap-2 px-3 py-2 rounded-sm text-sm text-left transition-colors ${
 									value === UNASSIGNED
 										? "bg-[#002388]/10 text-[#002388] font-semibold"
 										: "text-slate-600 hover:bg-slate-50"
 								}`}
 							>
-								Unassigned
-								{value === UNASSIGNED && <Check className="h-3.5 w-3.5" />}
+								<span className="truncate">Unassigned</span>
+								{value === UNASSIGNED && <Check className="h-3.5 w-3.5 shrink-0" />}
 							</button>
 						)}
 						{filteredOptions.length === 0 ? (
@@ -143,7 +143,8 @@ export default function BulkAssignDialog({
 										key={opt.id}
 										type="button"
 										onClick={() => setValue(optValue)}
-										className={`flex items-center justify-between px-3 py-2 rounded-sm text-sm text-left transition-colors ${
+										title={opt.label}
+										className={`flex w-full min-w-0 items-center justify-between gap-2 px-3 py-2 rounded-sm text-sm text-left transition-colors ${
 											isSelected
 												? "bg-[#002388]/10 text-[#002388] font-semibold"
 												: "text-slate-600 hover:bg-slate-50"

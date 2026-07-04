@@ -170,8 +170,6 @@ export default function CoursesClient({ courses, classes, lecturers }: CoursesCl
       <AddEditCourseSheet
         open={addEditOpen}
         onOpenChange={handleCloseAddEdit}
-        classes={classes}
-        lecturers={lecturers}
       />
 
       <CourseDetailSheet

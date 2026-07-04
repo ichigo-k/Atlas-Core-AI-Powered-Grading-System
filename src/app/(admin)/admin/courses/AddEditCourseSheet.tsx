@@ -16,10 +16,10 @@ import {
 	createCourseAction,
 	updateCourseAssignmentsAction,
 } from "@/app/actions/admin-courses";
+import { AsyncMultiSelect, type AsyncOption } from "@/components/ui/async-multi-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MultiSelect } from "@/components/ui/multi-select";
 import {
 	Sheet,
 	SheetContent,
@@ -31,30 +31,22 @@ import {
 interface AddEditCourseSheetProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	classes: any[];
-	lecturers: any[];
 }
 
 export default function AddEditCourseSheet({
 	open,
 	onOpenChange,
-	classes,
-	lecturers,
 }: AddEditCourseSheetProps) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 	const submittingRef = useRef(false);
-	const [selectedLecturerIds, setSelectedLecturerIds] = useState<
-		(string | number)[]
-	>([]);
-	const [selectedClassIds, setSelectedClassIds] = useState<(string | number)[]>(
-		[],
-	);
+	const [selectedLecturers, setSelectedLecturers] = useState<AsyncOption[]>([]);
+	const [selectedClasses, setSelectedClasses] = useState<AsyncOption[]>([]);
 
 	useEffect(() => {
 		if (open) {
-			setSelectedLecturerIds([]);
-			setSelectedClassIds([]);
+			setSelectedLecturers([]);
+			setSelectedClasses([]);
 		}
 	}, [open]);
 
@@ -67,11 +59,11 @@ export default function AddEditCourseSheet({
 
 			if (result.success) {
 				const courseId = (result as any).courseId;
-				if (courseId && (selectedLecturerIds.length > 0 || selectedClassIds.length > 0)) {
+				if (courseId && (selectedLecturers.length > 0 || selectedClasses.length > 0)) {
 					const assignmentResult = await updateCourseAssignmentsAction(
 						courseId,
-						selectedLecturerIds as number[],
-						selectedClassIds as number[],
+						selectedLecturers.map((l) => Number(l.id)),
+						selectedClasses.map((c) => Number(c.id)),
 					);
 					if (!assignmentResult.success) {
 						toast.error(
@@ -94,19 +86,9 @@ export default function AddEditCourseSheet({
 		}
 	}
 
-	const lecturerOptions = lecturers.map((l: any) => ({
-		label: l.user.name || "Unnamed Lecturer",
-		value: l.id,
-	}));
-
-	const classOptions = classes.map((c: any) => ({
-		label: `${c.name} (L${c.level})`,
-		value: c.id,
-	}));
-
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="sm:max-w-[540px] p-0 border-l border-border">
+			<SheetContent className="w-full sm:max-w-2xl p-0 border-l border-border">
 				<div className="h-full flex flex-col">
 					<SheetHeader className="p-8 bg-slate-50/50 border-b border-slate-100">
 						<div className="flex items-center gap-4">
@@ -196,11 +178,12 @@ export default function AddEditCourseSheet({
 											<Users size={14} className="text-slate-400" />
 											Assigned Lecturers
 										</Label>
-										<MultiSelect
-											options={lecturerOptions}
-											selected={selectedLecturerIds}
-											onChange={setSelectedLecturerIds}
-											placeholder="Select lecturers to assign..."
+										<AsyncMultiSelect
+											searchUrl="/api/admin/lecturers/search"
+											selected={selectedLecturers}
+											onChange={setSelectedLecturers}
+											placeholder="Search lecturers by name or email..."
+											searchPlaceholder="Type to search lecturers..."
 										/>
 									</div>
 
@@ -209,11 +192,12 @@ export default function AddEditCourseSheet({
 											<GraduationCap size={14} className="text-slate-400" />
 											Assigned Classes
 										</Label>
-										<MultiSelect
-											options={classOptions}
-											selected={selectedClassIds}
-											onChange={setSelectedClassIds}
-											placeholder="Select classes to link..."
+										<AsyncMultiSelect
+											searchUrl="/api/admin/classes/search"
+											selected={selectedClasses}
+											onChange={setSelectedClasses}
+											placeholder="Search classes by name..."
+											searchPlaceholder="Type to search classes..."
 										/>
 									</div>
 								</div>
