@@ -24,6 +24,7 @@ interface OutgoingSignal {
 
 export function useLiveConnection(attemptId: number, enabled: boolean) {
 	const pcRef = useRef<RTCPeerConnection | null>(null);
+	const remoteStreamRef = useRef<MediaStream | null>(null);
 	const queueRef = useRef<OutgoingSignal[]>([]);
 	const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
 	const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -43,11 +44,15 @@ export function useLiveConnection(attemptId: number, enabled: boolean) {
 			pcRef.current = null;
 		}
 		pendingIceRef.current = [];
+		remoteStreamRef.current = null;
+		setStream(null);
 	}, []);
 
 	const startConnection = useCallback(async () => {
 		teardownPeer();
 		queueRef.current = [];
+		remoteStreamRef.current = new MediaStream();
+		setStream(remoteStreamRef.current);
 		setConnState("connecting");
 
 		const pc = new RTCPeerConnection({
@@ -59,7 +64,17 @@ export function useLiveConnection(attemptId: number, enabled: boolean) {
 		pc.addTransceiver("audio", { direction: "recvonly" });
 
 		pc.ontrack = (e) => {
-			if (e.streams[0]) setStream(e.streams[0]);
+			let remoteStream = remoteStreamRef.current;
+			if (!remoteStream) {
+				remoteStream = new MediaStream();
+				remoteStreamRef.current = remoteStream;
+				setStream(remoteStream);
+			}
+
+			if (!remoteStream.getTracks().some((track) => track.id === e.track.id)) {
+				remoteStream.addTrack(e.track);
+				setStream(new MediaStream(remoteStream.getTracks()));
+			}
 		};
 		pc.onicecandidate = (e) => {
 			if (e.candidate) queueRef.current.push({ type: "ice", payload: e.candidate.toJSON() });

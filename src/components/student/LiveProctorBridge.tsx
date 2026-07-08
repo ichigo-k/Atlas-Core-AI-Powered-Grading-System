@@ -78,8 +78,10 @@ export default function LiveProctorBridge({ attemptId }: Props) {
 
     // ── WebRTC: answer an incoming offer ────────────────────────────────────
     async function answerOffer(offer: RTCSessionDescriptionInit, waitedMs = 0) {
-      // Camera may not be ready yet on early polls — retry briefly.
-      if (!proctorSignals.cameraStream && !proctorSignals.micStream) {
+      // Camera may not be ready yet on early polls. Wait for video specifically;
+      // answering with mic only creates a connected but black lecturer tile.
+      const videoTracks = proctorSignals.cameraStream?.getVideoTracks() ?? []
+      if (videoTracks.length === 0) {
         if (waitedMs >= STREAM_RETRY_MAX_MS || stoppedRef.current) return
         setTimeout(() => { void answerOffer(offer, waitedMs + STREAM_RETRY_MS) }, STREAM_RETRY_MS)
         return
@@ -92,10 +94,12 @@ export default function LiveProctorBridge({ attemptId }: Props) {
         })
         pcRef.current = pc
 
-        for (const stream of [proctorSignals.cameraStream, proctorSignals.micStream]) {
-          if (!stream) continue
-          for (const track of stream.getTracks()) pc.addTrack(track, stream)
-        }
+        const tracks = [
+          ...videoTracks,
+          ...(proctorSignals.micStream?.getAudioTracks() ?? []),
+        ]
+        const outboundStream = new MediaStream(tracks)
+        for (const track of tracks) pc.addTrack(track, outboundStream)
 
         pc.onicecandidate = (e) => {
           if (e.candidate) {

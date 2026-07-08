@@ -37,6 +37,7 @@ export interface ParsedRow {
   correctOption?: number // 0-indexed
   // Subjective
   answerType?: "FILL_IN" | "PDF_UPLOAD" | "CODE"
+  rubricCriteria: Array<{ description: string; maxMarks: number; order: number }>
   // Validation
   error?: string
 }
@@ -73,6 +74,8 @@ async function downloadTemplate() {
     ["option_a … option_d", "OBJECTIVE only. At least option_a and option_b must be filled."],
     ["correct_option", "OBJECTIVE only. Enter A, B, C, or D (the letter of the correct answer)."],
     ["answer_type", "SUBJECTIVE only. Must be exactly one of:\n  FILL_IN     — student types a text answer\n  PDF_UPLOAD  — student uploads a PDF\n  CODE        — student writes code"],
+    ["rubric", "SUBJECTIVE only. Optional compact rubric using Description: marks; Description: marks.\nExample: Accuracy: 3; Clarity: 2"],
+    ["rubric_1_description / rubric_1_marks", "SUBJECTIVE only. Optional structured rubric columns. The template includes three criteria pairs; CSV imports can add more numbered pairs if needed."],
   ]
 
   rules.forEach(([col, rule], i) => {
@@ -115,6 +118,13 @@ async function downloadTemplate() {
     { key: "option_d",       header: "option_d",       width: 22 },
     { key: "correct_option", header: "correct_option", width: 16 },
     { key: "answer_type",    header: "answer_type",    width: 16 },
+    { key: "rubric",         header: "rubric",         width: 45 },
+    { key: "rubric_1_description", header: "rubric_1_description", width: 28 },
+    { key: "rubric_1_marks", header: "rubric_1_marks", width: 16 },
+    { key: "rubric_2_description", header: "rubric_2_description", width: 28 },
+    { key: "rubric_2_marks", header: "rubric_2_marks", width: 16 },
+    { key: "rubric_3_description", header: "rubric_3_description", width: 28 },
+    { key: "rubric_3_marks", header: "rubric_3_marks", width: 16 },
   ]
 
   ws.columns = COLS.map((c: any) => ({ key: c.key, width: c.width }))
@@ -168,6 +178,7 @@ async function downloadTemplate() {
       option_d: "",
       correct_option: "",
       answer_type: "FILL_IN",
+      rubric: "Accuracy: 3; Clarity: 2",
     },
     {
       type: "SUBJECTIVE",
@@ -179,6 +190,13 @@ async function downloadTemplate() {
       option_d: "",
       correct_option: "",
       answer_type: "CODE",
+      rubric: "",
+      rubric_1_description: "Correct algorithm",
+      rubric_1_marks: 5,
+      rubric_2_description: "Code quality",
+      rubric_2_marks: 2,
+      rubric_3_description: "Edge cases",
+      rubric_3_marks: 1,
     },
   ]
 
@@ -203,7 +221,10 @@ async function downloadTemplate() {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: isObj ? "FFFEF3C7" : "FFF5F3FF" } }
       }
       // Dim N/A cells
-      if ((isObj && col.key === "answer_type") || (!isObj && ["option_a","option_b","option_c","option_d","correct_option"].includes(col.key))) {
+      if (
+        (isObj && ["answer_type", "rubric", "rubric_1_description", "rubric_1_marks", "rubric_2_description", "rubric_2_marks", "rubric_3_description", "rubric_3_marks"].includes(col.key)) ||
+        (!isObj && ["option_a","option_b","option_c","option_d","correct_option"].includes(col.key))
+      ) {
         cell.font = { color: { argb: "FFCBD5E1" }, italic: true }
         cell.value = ""
       }
@@ -354,9 +375,9 @@ function buildRow(rowNum: number, headers: string[], cols: string[]): ParsedRow 
 
   const body = get("body")
   const marksRaw = get("marks")
-  const marks = parseInt(marksRaw) || 0
+  const marks = parseInt(marksRaw, 10) || 0
 
-  const row: ParsedRow = { rowNum, type, body, marks }
+  const row: ParsedRow = { rowNum, type, body, marks, rubricCriteria: [] }
 
   if (type === "OBJECTIVE") {
     row.optionA = get("option_a")
@@ -370,6 +391,7 @@ function buildRow(rowNum: number, headers: string[], cols: string[]): ParsedRow 
     const at = get("answer_type").toUpperCase()
     row.answerType =
       at === "PDF_UPLOAD" ? "PDF_UPLOAD" : at === "CODE" ? "CODE" : "FILL_IN"
+    row.rubricCriteria = parseRubricCriteria(headers, get)
   }
 
   // Validate
@@ -379,9 +401,53 @@ function buildRow(rowNum: number, headers: string[], cols: string[]): ParsedRow 
     const opts = [row.optionA, row.optionB, row.optionC, row.optionD].filter(Boolean)
     if (opts.length < 2) row.error = "Need at least 2 options (option_a, option_b)"
     else if (row.correctOption === undefined) row.error = "correct_option must be A, B, C, or D"
+  } else if (row.rubricCriteria.some((criterion) => criterion.maxMarks < 1)) {
+    row.error = "Rubric marks must be >= 1"
   }
 
   return row
+}
+
+function parseRubricCriteria(
+  headers: string[],
+  get: (key: string) => string
+): Array<{ description: string; maxMarks: number; order: number }> {
+  const criteria: Array<{ description: string; maxMarks: number; order: number }> = []
+
+  const compact = get("rubric")
+  if (compact) {
+    for (const part of compact.split(/[;\n]/)) {
+      const text = part.trim()
+      if (!text) continue
+      const match = text.match(/^(.+?)(?::|\(|-)\s*(\d+(?:\.\d+)?)\s*(?:marks?|pts?|points?)?\)?$/i)
+      if (!match) continue
+      criteria.push({
+        description: match[1].trim(),
+        maxMarks: Math.round(Number(match[2])),
+        order: criteria.length + 1,
+      })
+    }
+  }
+
+  const rubricIndexes = new Set<number>()
+  for (const header of headers) {
+    const match = header.match(/^rubric_(\d+)_(description|marks|max_marks)$/)
+    if (match) rubricIndexes.add(Number(match[1]))
+  }
+
+  for (const index of Array.from(rubricIndexes).sort((a, b) => a - b)) {
+    const description = get(`rubric_${index}_description`)
+    const marksRaw = get(`rubric_${index}_marks`) || get(`rubric_${index}_max_marks`)
+    const maxMarks = Math.round(Number(marksRaw))
+    if (!description && !marksRaw) continue
+    criteria.push({
+      description,
+      maxMarks: Number.isFinite(maxMarks) ? maxMarks : 0,
+      order: criteria.length + 1,
+    })
+  }
+
+  return criteria.filter((criterion) => criterion.description.trim())
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -442,7 +508,10 @@ export default function ExcelImportModal({
               options: [r.optionA, r.optionB, r.optionC, r.optionD].filter(Boolean),
               correctOption: r.correctOption,
             }
-          : { answerType: r.answerType }),
+          : {
+              answerType: r.answerType,
+              rubricCriteria: r.rubricCriteria,
+            }),
       }))
 
       const res = await fetch(`/api/lecturer/question-banks/${bankId}/items/bulk`, {
@@ -577,6 +646,7 @@ export default function ExcelImportModal({
                         <th className="px-3 py-2 text-left font-semibold text-slate-500">Type</th>
                         <th className="px-3 py-2 text-left font-semibold text-slate-500">Question</th>
                         <th className="px-3 py-2 text-left font-semibold text-slate-500">Marks</th>
+                        <th className="px-3 py-2 text-left font-semibold text-slate-500">Rubric</th>
                         <th className="px-3 py-2 text-left font-semibold text-slate-500">Status</th>
                       </tr>
                     </thead>
@@ -602,6 +672,9 @@ export default function ExcelImportModal({
                           </td>
                           <td className="px-3 py-2 text-slate-700 max-w-[200px] truncate">{row.body || "—"}</td>
                           <td className="px-3 py-2 text-slate-600">{row.marks || "—"}</td>
+                          <td className="px-3 py-2 text-slate-500">
+                            {row.rubricCriteria.length > 0 ? `${row.rubricCriteria.length} criteria` : "-"}
+                          </td>
                           <td className="px-3 py-2">
                             {row.error ? (
                               <span className="inline-flex items-center gap-1 text-red-600">

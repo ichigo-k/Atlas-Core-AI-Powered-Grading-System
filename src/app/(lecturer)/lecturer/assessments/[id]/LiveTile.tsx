@@ -48,7 +48,10 @@ export default function LiveTile({ student, spotlight, active, onToggleSpotlight
 	const [isFlagging, setIsFlagging] = useState(false);
 
 	useEffect(() => {
-		if (videoRef.current) videoRef.current.srcObject = stream;
+		const video = videoRef.current;
+		if (!video) return;
+		video.srcObject = stream;
+		if (stream) void video.play().catch(() => {});
 	}, [stream]);
 
 	// Keep the badge in sync when the roster refresh brings a newer count.
