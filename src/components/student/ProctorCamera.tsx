@@ -51,6 +51,8 @@ const OBJECT_INTERVAL_MS = 800
 //    to type is always fine — only a deep, sustained look into the lap flags.
 const YAW_FLAG = 24, PITCH_DOWN_FLAG = -46, PITCH_UP_FLAG = 22
 const YAW_WARN = 15, PITCH_DOWN_WARN = -35, PITCH_UP_WARN = 13
+// A strong head turn can make MediaPipe briefly lose the face profile.
+const TURNED_FACE_LOSS_GRACE_MS = 4000
 
 // ── Escalation timing ──────────────────────────────────────────────────────
 const WARN_SUSTAIN_MS = 600       // default continuous time before a soft toast
@@ -135,6 +137,10 @@ export default function ProctorCamera({ attemptId }: Props) {
 
   // Mouth-movement tracking (jawOpen oscillation over a rolling window).
   const mouth = useRef<{ phase: "open" | "closed"; cycles: number[] }>({ phase: "closed", cycles: [] })
+  const faceTracking = useRef<{ lastSeenAt: number; lastGazeSeverity: Severity }>({
+    lastSeenAt: -Infinity,
+    lastGazeSeverity: 0,
+  })
 
   const { recordViolation, syncCount, showFinalWarning } = useViolationStore()
 
@@ -326,11 +332,11 @@ export default function ProctorCamera({ attemptId }: Props) {
             const result = faceLandmarker.detectForVideo(video, timestamp)
             const faceCount = result.faceLandmarks.length
 
-            // Presence
-            escalate("PERSON_ABSENT", faceCount === 0 ? 2 : 0)
             escalate("MULTIPLE_PERSONS", faceCount > 1 ? 2 : 0)
 
-            // Gaze — two-tier: sharp WARN angles → toast, loose FLAG angles → flag
+            // A profile turn can make MediaPipe lose the face. If that loss
+            // follows a measured turn, preserve gaze-away rather than raising
+            // person-absent first.
             if (faceCount === 1 && result.facialTransformationMatrixes?.[0]) {
               const { yaw, pitch } = getHeadAngles(
                 result.facialTransformationMatrixes[0].data as unknown as Float32Array
@@ -339,8 +345,21 @@ export default function ProctorCamera({ attemptId }: Props) {
                 Math.abs(yaw) > YAW_FLAG || pitch < PITCH_DOWN_FLAG || pitch > PITCH_UP_FLAG
               const beyondWarn =
                 Math.abs(yaw) > YAW_WARN || pitch < PITCH_DOWN_WARN || pitch > PITCH_UP_WARN
-              escalate("GAZE_AWAY", beyondFlag ? 2 : beyondWarn ? 1 : 0)
+              const gazeSeverity: Severity = beyondFlag ? 2 : beyondWarn ? 1 : 0
+              faceTracking.current.lastSeenAt = timestamp
+              faceTracking.current.lastGazeSeverity = gazeSeverity
+              escalate("PERSON_ABSENT", 0)
+              escalate("GAZE_AWAY", gazeSeverity)
+            } else if (faceCount === 0) {
+              const followsHeadTurn =
+                faceTracking.current.lastGazeSeverity > 0 &&
+                timestamp - faceTracking.current.lastSeenAt <= TURNED_FACE_LOSS_GRACE_MS
+              escalate("PERSON_ABSENT", followsHeadTurn ? 0 : 2)
+              escalate("GAZE_AWAY", followsHeadTurn ? 2 : 0)
             } else {
+              // Multiple faces has its own violation and should not also count
+              // as either gaze-away or person-absent.
+              escalate("PERSON_ABSENT", 0)
               escalate("GAZE_AWAY", 0)
             }
 
