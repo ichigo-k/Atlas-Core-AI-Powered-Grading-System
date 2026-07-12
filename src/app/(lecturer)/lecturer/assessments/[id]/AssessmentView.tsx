@@ -403,6 +403,10 @@ export default function AssessmentView({
 	const [gradingStatus, setGradingStatus] = useState<
 		"NOT_GRADED" | "GRADING" | "GRADED"
 	>(resultsData?.gradingStatus ?? "NOT_GRADED");
+	const [gradingProgress, setGradingProgress] = useState({
+		graded: (resultsData?.submissions ?? []).filter((submission) => submission.status === "GRADED").length,
+		total: resultsData?.submissions.length ?? 0,
+	});
 	const [resultsReleased, setResultsReleased] = useState(
 		resultsData?.resultsReleased ?? false,
 	);
@@ -437,6 +441,9 @@ export default function AssessmentView({
 				if (!res.ok) throw new Error();
 				const json = await res.json();
 				consecutiveFailures = 0;
+				if (typeof json.gradedAttempts === "number" && typeof json.totalAttempts === "number") {
+					setGradingProgress({ graded: json.gradedAttempts, total: json.totalAttempts });
+				}
 				if (json.gradingStatus === "GRADED") {
 					setGradingStatus("GRADED");
 					if (intervalId) clearInterval(intervalId);
@@ -450,6 +457,7 @@ export default function AssessmentView({
 				}
 			}
 		}
+		void poll();
 		intervalId = setInterval(poll, 15_000);
 		const onVisibility = () => {
 			if (document.visibilityState === "visible") poll();
@@ -554,6 +562,7 @@ export default function AssessmentView({
 				toast.error("Failed to start grading. Please try again.");
 				return;
 			}
+			setGradingProgress({ graded: 0, total: resultsData?.submissions.length ?? 0 });
 			setGradingStatus("GRADING");
 			toast.success("Assessment sent to grader.");
 		});
@@ -922,7 +931,7 @@ export default function AssessmentView({
 						{gradingStatus === "GRADING" && (
 							<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-amber-200 bg-amber-50 text-[12px] font-semibold text-amber-700">
 								<span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-								Grading {gradedCount}/{submittedCount}
+								Grading {gradingProgress.graded}/{gradingProgress.total}
 							</span>
 						)}
 						{gradingStatus === "GRADED" && (

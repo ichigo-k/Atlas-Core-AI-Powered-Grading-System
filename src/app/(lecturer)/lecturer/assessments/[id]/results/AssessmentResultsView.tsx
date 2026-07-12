@@ -175,6 +175,10 @@ export default function AssessmentResultsView({
 	const [isReleasing, startReleasing] = useTransition();
 	const [isUnreleasing, startUnreleasing] = useTransition();
 	const [gradingStatus, setGradingStatus] = useState(data.gradingStatus);
+	const [gradingProgress, setGradingProgress] = useState({
+		graded: data.submissions.filter((submission) => submission.status === "GRADED").length,
+		total: data.submissions.length,
+	});
 	const [resultsReleased, setResultsReleased] = useState(data.resultsReleased);
 	const [pollingError, setPollingError] = useState<string | null>(null);
 	const [regradingAttemptId, setRegradingAttemptId] = useState<number | null>(
@@ -200,6 +204,9 @@ export default function AssessmentResultsView({
 				if (!res.ok) throw new Error(`Status ${res.status}`);
 				const json = await res.json();
 				consecutiveFailures = 0;
+				if (typeof json.gradedAttempts === "number" && typeof json.totalAttempts === "number") {
+					setGradingProgress({ graded: json.gradedAttempts, total: json.totalAttempts });
+				}
 				if (json.gradingStatus === "GRADED") {
 					setGradingStatus("GRADED");
 					if (intervalId) clearInterval(intervalId);
@@ -216,6 +223,7 @@ export default function AssessmentResultsView({
 			}
 		}
 
+		void poll();
 		intervalId = setInterval(poll, 15_000);
 
 		function handleVisibilityChange() {
@@ -418,6 +426,7 @@ export default function AssessmentResultsView({
 				toast.error("Failed to start grading. Please try again.");
 				return;
 			}
+			setGradingProgress({ graded: 0, total: data.submissions.length });
 			setGradingStatus("GRADING");
 			toast.success(
 				"Assessment sent to grader. Results will appear as they come in.",
@@ -632,7 +641,7 @@ export default function AssessmentResultsView({
 							)}
 							{gradingStatus === "GRADING" ? "Grading" : "Graded"}
 							<span className="font-medium opacity-70 ml-1">
-								{gradedCount}/{submittedCount}
+								{gradingStatus === "GRADING" ? gradingProgress.graded : gradedCount}/{gradingStatus === "GRADING" ? gradingProgress.total : submittedCount}
 							</span>
 						</div>
 					)}
