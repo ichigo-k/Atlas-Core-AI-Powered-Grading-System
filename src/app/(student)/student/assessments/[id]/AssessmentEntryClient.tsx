@@ -42,11 +42,12 @@ export default function AssessmentEntryClient({
   if (activeAttemptId !== null) {
     return (
       <button
-        onClick={() => router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${activeAttemptId}`)}
+        type="button"
+        onClick={() => router.push(`/student/assessments/${assessmentId}/assessment-onboarding?attemptId=${activeAttemptId}`)}
         className="w-full flex items-center justify-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
       >
         <RotateCcw size={14} strokeWidth={2} />
-        Resume Active Attempt
+        Continue Attempt
         <ArrowRight size={14} strokeWidth={2} />
       </button>
     )

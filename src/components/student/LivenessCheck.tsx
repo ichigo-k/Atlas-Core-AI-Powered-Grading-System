@@ -42,12 +42,13 @@ type StepPhase = "pending" | "active" | "done";
 type OverallPhase = "loading" | "running" | "passed" | "inconclusive" | "error";
 
 interface Props {
+  initialStream?: MediaStream | null;
   onPass: (result?: { inconclusive: boolean }) => void;
   onInconclusive?: () => void;
   onSkip?: () => void;
 }
 
-export default function LivenessCheck({ onPass, onInconclusive, onSkip }: Props) {
+export default function LivenessCheck({ initialStream, onPass, onInconclusive, onSkip }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const ownsStreamRef = useRef(false);
@@ -69,7 +70,17 @@ export default function LivenessCheck({ onPass, onInconclusive, onSkip }: Props)
   useEffect(() => {
     let cancelled = false;
 
-    async function acquire() {
+async function acquire() {
+      const handedOffStream = initialStream?.getVideoTracks().some(
+        (track) => track.readyState === "live",
+      )
+        ? initialStream
+        : null;
+      if (handedOffStream) {
+        streamRef.current = handedOffStream;
+        ownsStreamRef.current = true;
+        return true;
+      }
       if (proctorSignals.cameraStream) {
         streamRef.current = proctorSignals.cameraStream;
         ownsStreamRef.current = false;
@@ -108,7 +119,7 @@ export default function LivenessCheck({ onPass, onInconclusive, onSkip }: Props)
       // sibling proctoring component (e.g. ProctorCamera) still owns.
       if (ownsStreamRef.current) streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [initialStream]);
 
   // ── Advance to the next step, or finish if this was the last one ──────────
   const advanceStep = useCallback(() => {

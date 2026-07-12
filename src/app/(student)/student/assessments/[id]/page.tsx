@@ -13,7 +13,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { computeGrade, parseGradingScale } from "@/lib/grading-scale";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -111,23 +111,21 @@ export default async function AssessmentDetailPage({
       const updatedAttempts = await getStudentAttempts(studentId!, assessmentId);
       attempts.splice(0, attempts.length, ...updatedAttempts);
       activeAttempt = null;
-    } else {
-      redirect(
-        `/student/assessments/${assessmentId}/assessment-onboarding?attemptId=${activeAttempt.id}`,
-      );
     }
   }
 
   const now = new Date();
   const isUpcoming = now < assessment.startsAt;
   const isEnded = now > assessment.endsAt;
-  const isLocked = attempts.length >= assessment.maxAttempts;
-  const hasSubmitted = attempts.some(
+  const completedAttempts = attempts.filter(
     (a) => a.status === "SUBMITTED" || a.status === "TIMED_OUT",
   );
+  const completedAttemptCount = completedAttempts.length;
+  const attemptsLeft = Math.max(assessment.maxAttempts - completedAttemptCount, 0);
+  const isLocked = completedAttemptCount >= assessment.maxAttempts;
+  const hasSubmitted = completedAttemptCount > 0;
   const latestSubmitted =
-    attempts
-      .filter((a: any) => a.status === "SUBMITTED" || a.status === "TIMED_OUT")
+    completedAttempts
       .sort(
         (a, b) =>
           (b.submittedAt?.getTime() ?? 0) - (a.submittedAt?.getTime() ?? 0),
@@ -267,7 +265,7 @@ export default async function AssessmentDetailPage({
           <div className="space-y-0.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Attempts</span>
             <span className="block text-base font-bold text-[#1e293b] mt-0.5">
-              {attempts.length} / {assessment.maxAttempts}
+              {completedAttemptCount} / {assessment.maxAttempts}
             </span>
           </div>
           <div className="space-y-0.5">
@@ -490,7 +488,7 @@ export default async function AssessmentDetailPage({
                     Attempt {latestSubmitted.attemptNumber} submitted on {formatDate(latestSubmitted.submittedAt!)}.
                   </p>
                   <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide mt-2 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-sm inline-block">
-                    {assessment.maxAttempts - attempts.length} Attempt{assessment.maxAttempts - attempts.length !== 1 ? "s" : ""} Left
+                    {attemptsLeft} Attempt{attemptsLeft !== 1 ? "s" : ""} Left
                   </p>
                 </div>
               </div>
@@ -501,7 +499,7 @@ export default async function AssessmentDetailPage({
               passwordProtected={assessment.passwordProtected}
               proctoringEnabled={assessment.proctoringEnabled}
               isLocked={isLocked}
-              activeAttemptId={null}
+              activeAttemptId={activeAttempt?.id ?? null}
               assessmentType={assessment.type}
               durationMinutes={assessment.durationMinutes ?? null}
               startsAt={assessment.startsAt.toISOString()}

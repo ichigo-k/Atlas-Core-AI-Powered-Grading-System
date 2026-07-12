@@ -52,6 +52,33 @@ export function isInfraredCameraLabel(label: string | null | undefined): boolean
   return NON_RGB_CAMERA_PATTERNS.some((p) => lower.includes(p))
 }
 
+// Linux audio stacks commonly expose aliases for the same physical input and
+// output-monitor endpoints as `audioinput` devices. Neither represents an
+// additional microphone.
+const NON_MIC_AUDIO_INPUT_PATTERNS = [
+  "monitor of ", "output monitor", ".monitor", "playback monitor",
+]
+
+function isNonMicrophoneAudioInput(label: string): boolean {
+  const lower = label.trim().toLowerCase()
+  return lower === "default" || lower === "communications"
+    || NON_MIC_AUDIO_INPUT_PATTERNS.some((pattern) => lower.includes(pattern))
+}
+
+function isLinuxBrowser(): boolean {
+  if (typeof navigator === "undefined") return false
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
+  const platform = nav.userAgentData?.platform ?? navigator.platform ?? ""
+  return /linux/i.test(platform) && !/android/i.test(navigator.userAgent ?? "")
+}
+
+function normalizedLinuxAudioLabel(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s*\((?:hw|plughw):[^)]*\)\s*$/i, "")
+}
 /**
  * Enumerates connected input devices of one kind and returns the labels of the
  * "real" ones — excluding known virtual devices, the OS "default"/
@@ -70,6 +97,8 @@ async function listRealInputDevices(kind: "videoinput" | "audioinput"): Promise<
   }
   const devices = await navigator.mediaDevices.enumerateDevices()
   const seen = new Set<string>()
+  const seenGroups = new Set<string>()
+  const seenLinuxAudioLabels = new Set<string>()
   const labels: string[] = []
   for (const d of devices) {
     if (d.kind !== kind) continue
@@ -77,7 +106,21 @@ async function listRealInputDevices(kind: "videoinput" | "audioinput"): Promise<
     if (seen.has(d.deviceId)) continue
     seen.add(d.deviceId)
     if (isVirtualDeviceLabel(d.label)) continue
-    if (kind === "videoinput" && isInfraredCameraLabel(d.label)) continue
+if (kind === "videoinput" && isInfraredCameraLabel(d.label)) continue
+    if (kind === "audioinput") {
+      if (isNonMicrophoneAudioInput(d.label)) continue
+
+      // groupId ties aliases to the same physical hardware after permission.
+      if (d.groupId) {
+        if (seenGroups.has(d.groupId)) continue
+        seenGroups.add(d.groupId)
+      } else if (isLinuxBrowser() && d.label) {
+        // Some Linux backends omit groupId, so collapse exact aliases there.
+        const normalizedLabel = normalizedLinuxAudioLabel(d.label)
+        if (seenLinuxAudioLabels.has(normalizedLabel)) continue
+        seenLinuxAudioLabels.add(normalizedLabel)
+      }
+    }
     labels.push(d.label || (kind === "videoinput" ? "Unknown camera" : "Unknown microphone"))
   }
   return labels

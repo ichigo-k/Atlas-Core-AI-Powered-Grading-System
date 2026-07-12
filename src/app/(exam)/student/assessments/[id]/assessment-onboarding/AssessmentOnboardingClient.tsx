@@ -672,7 +672,7 @@ function StepCameraCheck({
   /** Advances to the liveness-check step. The exam itself is not started here —
    * the proctor session, fullscreen request, and navigation all happen at the
    * liveness step, so a spoofed camera can't skip straight into the exam. */
-  onProceed: () => void;
+  onProceed: (stream: MediaStream) => void;
 }) {
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
@@ -684,6 +684,7 @@ function StepCameraCheck({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const streamTransferredRef = useRef(false);
 
   const requestCamera = useCallback(async () => {
     setCameraState("requesting");
@@ -707,7 +708,9 @@ function StepCameraCheck({
   useEffect(() => {
     requestCamera();
     return () => {
-      streamRef.current?.getTracks().forEach((t: any) => t.stop());
+      if (!streamTransferredRef.current) {
+        streamRef.current?.getTracks().forEach((t: any) => t.stop());
+      }
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [requestCamera]);
@@ -974,7 +977,11 @@ function StepCameraCheck({
           </span>
         </label>
 
-        <button type="button" onClick={onProceed} disabled={!canProceed}
+        <button type="button" onClick={() => {
+          if (!streamRef.current) return;
+          streamTransferredRef.current = true;
+          onProceed(streamRef.current);
+        }} disabled={!canProceed}
           className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#001570] disabled:cursor-not-allowed disabled:opacity-30 animate-in fade-in">
           Continue<ArrowRight size={13} />
         </button>
@@ -1004,9 +1011,11 @@ function StepCameraCheck({
 function StepLivenessCheck({
   assessmentId,
   attemptId,
+  cameraStream,
 }: {
   assessmentId: number;
   attemptId: number;
+  cameraStream: MediaStream | null;
 }) {
   const router = useRouter();
   const [passed, setPassed] = useState(false);
@@ -1109,6 +1118,7 @@ function StepLivenessCheck({
   return (
     <div className="flex min-h-full flex-col">
       <LivenessCheck
+        initialStream={cameraStream}
         onPass={() => setPassed(true)}
         onInconclusive={() => {
           console.warn("[AssessmentOnboarding] Liveness check inconclusive", { assessmentId, attemptId });
@@ -1267,6 +1277,7 @@ export default function AssessmentOnboardingClient({
     attemptId ?? null,
   );
   const [generalNextPending, setGeneralNextPending] = useState(false);
+  const [livenessCameraStream, setLivenessCameraStream] = useState<MediaStream | null>(null);
   const [generalNextError, setGeneralNextError] = useState<string | null>(null);
 
   const hasInstructions = instructions.trim().length > 0;
@@ -1401,7 +1412,10 @@ export default function AssessmentOnboardingClient({
                   <StepCameraCheck
                     onBack={() => setStep(micStepIndex)}
                     onCancel={() => router.push(`/student/assessments`)}
-                    onProceed={() => setStep(livenessStepIndex)}
+                    onProceed={(stream) => {
+                      setLivenessCameraStream(stream);
+                      setStep(livenessStepIndex);
+                    }}
                   />
                 )}
               {step === livenessStepIndex &&
@@ -1410,6 +1424,7 @@ export default function AssessmentOnboardingClient({
                   <StepLivenessCheck
                     assessmentId={assessmentId}
                     attemptId={resolvedAttemptId}
+                    cameraStream={livenessCameraStream}
                   />
                 )}
             </div>
