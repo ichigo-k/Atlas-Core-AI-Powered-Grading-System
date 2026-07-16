@@ -175,9 +175,7 @@ export default function AssessmentResultsView({
 	const [isReleasing, startReleasing] = useTransition();
 	const [isUnreleasing, startUnreleasing] = useTransition();
 	const [gradingStatus, setGradingStatus] = useState(data.gradingStatus);
-	const submittedOnlyCount = data.submissions.filter(
-		(s) => s.status === "SUBMITTED" || s.status === "GRADED",
-	).length;
+	const submittedOnlyCount = data.submissions.length;
 	const [gradingProgress, setGradingProgress] = useState({
 		graded: data.submissions.filter((submission) => submission.status === "GRADED").length,
 		total: submittedOnlyCount,

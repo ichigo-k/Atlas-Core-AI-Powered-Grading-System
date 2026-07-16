@@ -37,17 +37,18 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
-    const [totalAttempts, gradedAttempts] = await Promise.all([
-      prisma.assessmentAttempt.count({
-        where: {
-          assessmentId,
-          status: { in: ["SUBMITTED", "TIMED_OUT"] },
-        },
-      }),
-      prisma.gradingResult.count({
-        where: { assessmentId },
-      }),
-    ])
+    // Count distinct students who submitted (not raw attempts — one student may have many)
+    const submittedAttempts = await prisma.assessmentAttempt.findMany({
+      where: { assessmentId, status: { in: ["SUBMITTED", "TIMED_OUT"] } },
+      select: { studentId: true, id: true },
+    })
+    const totalAttempts = new Set(submittedAttempts.map((a) => a.studentId)).size
+    const submittedAttemptIds = submittedAttempts.map((a) => a.id)
+
+    // Count how many of those attempts have a GradingResult (one per attempt)
+    const gradedAttempts = await prisma.gradingResult.count({
+      where: { attemptId: { in: submittedAttemptIds } },
+    })
 
     // Detect stale grading: if status is GRADING but no progress has been made
     // for longer than the threshold, auto-reset to NOT_GRADED so the lecturer
