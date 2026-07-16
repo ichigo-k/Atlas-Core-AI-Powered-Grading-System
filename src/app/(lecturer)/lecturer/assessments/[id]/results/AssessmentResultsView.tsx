@@ -175,9 +175,12 @@ export default function AssessmentResultsView({
 	const [isReleasing, startReleasing] = useTransition();
 	const [isUnreleasing, startUnreleasing] = useTransition();
 	const [gradingStatus, setGradingStatus] = useState(data.gradingStatus);
+	const submittedOnlyCount = data.submissions.filter(
+		(s) => s.status === "SUBMITTED" || s.status === "GRADED",
+	).length;
 	const [gradingProgress, setGradingProgress] = useState({
 		graded: data.submissions.filter((submission) => submission.status === "GRADED").length,
-		total: data.submissions.length,
+		total: submittedOnlyCount,
 	});
 	const [resultsReleased, setResultsReleased] = useState(data.resultsReleased);
 	const [pollingError, setPollingError] = useState<string | null>(null);
@@ -224,7 +227,7 @@ export default function AssessmentResultsView({
 		}
 
 		void poll();
-		intervalId = setInterval(poll, 15_000);
+		intervalId = setInterval(poll, 4_000);
 
 		function handleVisibilityChange() {
 			if (document.visibilityState === "visible") {
@@ -302,17 +305,17 @@ export default function AssessmentResultsView({
 		label: string;
 		count: number;
 	}> = [
-		{ key: "ALL", label: "All", count: data.enrolledStudents.length },
-		{ key: "SUBMITTED", label: "Submitted", count: submittedCount },
-		{ key: "NOT_SUBMITTED", label: "Not submitted", count: notSubmittedCount },
-		{ key: "GRADED", label: "Graded", count: gradedCount },
-		{
-			key: "FLAGGED",
-			label: "Flagged",
-			count: data.submissions.filter((s: any) => s.plagiarismFlagged === true)
-				.length,
-		},
-	];
+			{ key: "ALL", label: "All", count: data.enrolledStudents.length },
+			{ key: "SUBMITTED", label: "Submitted", count: submittedCount },
+			{ key: "NOT_SUBMITTED", label: "Not submitted", count: notSubmittedCount },
+			{ key: "GRADED", label: "Graded", count: gradedCount },
+			{
+				key: "FLAGGED",
+				label: "Flagged",
+				count: data.submissions.filter((s: any) => s.plagiarismFlagged === true)
+					.length,
+			},
+		];
 
 	const doughnutData = {
 		labels: ["Submitted", "Not Submitted"],
@@ -426,7 +429,7 @@ export default function AssessmentResultsView({
 				toast.error("Failed to start grading. Please try again.");
 				return;
 			}
-			setGradingProgress({ graded: 0, total: data.submissions.length });
+			setGradingProgress({ graded: 0, total: submittedOnlyCount });
 			setGradingStatus("GRADING");
 			toast.success(
 				"Assessment sent to grader. Results will appear as they come in.",
@@ -627,11 +630,10 @@ export default function AssessmentResultsView({
 					{/* Grading progress pill */}
 					{gradingStatus !== "NOT_GRADED" && (
 						<div
-							className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold ${
-								gradingStatus === "GRADED"
-									? "bg-green-50 border-green-200 text-green-700"
-									: "bg-amber-50 border-amber-200 text-amber-700"
-							}`}
+							className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold ${gradingStatus === "GRADED"
+								? "bg-green-50 border-green-200 text-green-700"
+								: "bg-amber-50 border-amber-200 text-amber-700"
+								}`}
 						>
 							{gradingStatus === "GRADING" && (
 								<span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
@@ -641,7 +643,7 @@ export default function AssessmentResultsView({
 							)}
 							{gradingStatus === "GRADING" ? "Grading" : "Graded"}
 							<span className="font-medium opacity-70 ml-1">
-								{gradingStatus === "GRADING" ? gradingProgress.graded : gradedCount}/{gradingStatus === "GRADING" ? gradingProgress.total : submittedCount}
+								{gradingStatus === "GRADING" ? gradingProgress.graded : gradedCount}/{gradingStatus === "GRADING" ? gradingProgress.total : submittedOnlyCount}
 							</span>
 						</div>
 					)}
@@ -872,11 +874,10 @@ export default function AssessmentResultsView({
 								key={filter.key}
 								type="button"
 								onClick={() => setResultsFilter(filter.key)}
-								className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.05em] transition-colors ${
-									active
-										? "border-primary bg-primary text-white"
-										: "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
-								}`}
+								className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.05em] transition-colors ${active
+									? "border-primary bg-primary text-white"
+									: "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
+									}`}
 							>
 								{filter.label}
 								<span className={active ? "text-white/80" : "text-slate-400"}>
