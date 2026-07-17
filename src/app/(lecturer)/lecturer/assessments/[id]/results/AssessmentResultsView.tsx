@@ -452,6 +452,24 @@ export default function AssessmentResultsView({
 		});
 	}
 
+	function handleRegradeAll() {
+		if (!window.confirm("Re-grade every submitted attempt? Released results will be hidden until you release the corrected results again.")) return;
+		startGrading(async () => {
+			const res = await fetch(
+				`/api/lecturer/assessments/${data.id}/regrade-all`,
+				{ method: "POST" },
+			);
+			if (!res.ok) {
+				toast.error("Failed to start the full re-grade. Please try again.");
+				return;
+			}
+			setResultsReleased(false);
+			setGradingProgress({ graded: 0, total: submittedOnlyCount });
+			setGradingStatus("GRADING");
+			toast.success("All submitted attempts were sent for re-grading.");
+		});
+	}
+
 	function handleCancelGrading() {
 		startCancellingGrading(async () => {
 			const res = await fetch(
@@ -726,6 +744,19 @@ export default function AssessmentResultsView({
 										Grade
 									</>
 								)}
+							</button>
+						)}
+
+					{gradingStatus === "GRADED" &&
+						data.status === "CLOSED" &&
+						submittedCount > 0 && (
+							<button
+								type="button"
+								onClick={handleRegradeAll}
+								disabled={isGrading}
+								className="inline-flex items-center gap-2 rounded-sm border border-amber-200 bg-white px-4 py-1.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
+							>
+								{isGrading ? "Starting…" : "Re-grade all"}
 							</button>
 						)}
 
