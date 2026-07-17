@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { toast } from "sonner";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import {
 	Sheet,
 	SheetContent,
@@ -172,6 +173,7 @@ export default function AssessmentResultsView({
 	const [search, setSearch] = useState("");
 	const [resultsFilter, setResultsFilter] = useState<ResultsFilter>("ALL");
 	const [isGrading, startGrading] = useTransition();
+	const [showRegradeAll, setShowRegradeAll] = useState(false);
 	const [isCancellingGrading, startCancellingGrading] = useTransition();
 	const [isReleasing, startReleasing] = useTransition();
 	const [isUnreleasing, startUnreleasing] = useTransition();
@@ -453,7 +455,6 @@ export default function AssessmentResultsView({
 	}
 
 	function handleRegradeAll() {
-		if (!window.confirm("Re-grade every submitted attempt? Released results will be hidden until you release the corrected results again.")) return;
 		startGrading(async () => {
 			const res = await fetch(
 				`/api/lecturer/assessments/${data.id}/regrade-all`,
@@ -467,6 +468,7 @@ export default function AssessmentResultsView({
 			setGradingProgress({ graded: 0, total: submittedOnlyCount });
 			setGradingStatus("GRADING");
 			toast.success("All submitted attempts were sent for re-grading.");
+			setShowRegradeAll(false);
 		});
 	}
 
@@ -593,6 +595,15 @@ export default function AssessmentResultsView({
 
 	return (
 		<div className="px-4 py-5 md:px-6 lg:px-8 max-w-[1280px] space-y-5 pb-12">
+			<ConfirmModal
+				open={showRegradeAll}
+				title="Re-grade all submissions?"
+				description="Every eligible student submission will be graded again. Released results will be hidden until you review and release the corrected results."
+				confirmText="Re-grade all"
+				isLoading={isGrading}
+				onConfirm={handleRegradeAll}
+				onCancel={() => setShowRegradeAll(false)}
+			/>
 			{/* Export Marks sheet */}
 			<Sheet open={showExportDialog} onOpenChange={setShowExportDialog}>
 				<SheetContent
@@ -752,7 +763,7 @@ export default function AssessmentResultsView({
 						submittedCount > 0 && (
 							<button
 								type="button"
-								onClick={handleRegradeAll}
+								onClick={() => setShowRegradeAll(true)}
 								disabled={isGrading}
 								className="inline-flex items-center gap-2 rounded-sm border border-amber-200 bg-white px-4 py-1.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
 							>

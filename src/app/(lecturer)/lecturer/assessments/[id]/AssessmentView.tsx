@@ -45,6 +45,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -392,6 +393,12 @@ export default function AssessmentView({
 	// Action bar state
 	const [showSettings, setShowSettings] = useState(false);
 	const [showClose, setShowClose] = useState(false);
+	const [showPublish, setShowPublish] = useState(false);
+	const [showReopen, setShowReopen] = useState(false);
+	const [showStartGrading, setShowStartGrading] = useState(false);
+	const [showRegradeAll, setShowRegradeAll] = useState(false);
+	const [showRelease, setShowRelease] = useState(false);
+	const [showHideResults, setShowHideResults] = useState(false);
 	const [isClosing, setIsClosing] = useState(false);
 	const [showDelete, setShowDelete] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -502,6 +509,7 @@ export default function AssessmentView({
 				return;
 			}
 			toast.success("Assessment published");
+			setShowPublish(false);
 			router.refresh();
 		});
 	}
@@ -547,6 +555,7 @@ export default function AssessmentView({
 				return;
 			}
 			toast.success("Assessment re-opened");
+			setShowReopen(false);
 			router.refresh();
 		});
 	}
@@ -584,11 +593,11 @@ export default function AssessmentView({
 			});
 			setGradingStatus("GRADING");
 			toast.success("Assessment sent to grader.");
+			setShowStartGrading(false);
 		});
 	}
 
 	function handleRegradeAll() {
-		if (!window.confirm("Re-grade every submitted attempt? Released results will be hidden until you release the corrected results again.")) return;
 		startGrading(async () => {
 			const res = await fetch(
 				`/api/lecturer/assessments/${assessment.id}/regrade-all`,
@@ -602,6 +611,7 @@ export default function AssessmentView({
 			setGradingProgress({ graded: 0, total: resultsData?.submissions.length ?? 0 });
 			setGradingStatus("GRADING");
 			toast.success("All submitted attempts were sent for re-grading.");
+			setShowRegradeAll(false);
 		});
 	}
 
@@ -637,6 +647,7 @@ export default function AssessmentView({
 				return;
 			}
 			setResultsReleased(true);
+			setShowRelease(false);
 			toast.success("Results released — students can now see their scores.");
 		});
 	}
@@ -652,6 +663,7 @@ export default function AssessmentView({
 				return;
 			}
 			setResultsReleased(false);
+			setShowHideResults(false);
 			toast.success(
 				"Results hidden — students can no longer see their scores.",
 			);
@@ -916,7 +928,7 @@ export default function AssessmentView({
 							<Edit2 size={12} /> Edit Assessment
 						</Link>
 						<button
-							onClick={handlePublish}
+							onClick={() => setShowPublish(true)}
 							disabled={isPublishing}
 							className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-[#bbf7d0] bg-[#dcfce7] text-[#166534] text-[12px] font-semibold hover:bg-[#bbf7d0] disabled:opacity-50 transition-colors"
 						>
@@ -953,15 +965,6 @@ export default function AssessmentView({
 								<span className="h-2 w-2 rounded-full bg-[#22c55e]" /> Graded
 							</span>
 						)}
-						{gradingStatus === "GRADED" && submittedCount > 0 && (
-							<button
-								onClick={handleRegradeAll}
-								disabled={isGrading}
-								className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-amber-200 bg-white px-3 text-[12px] font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
-							>
-								{isGrading ? "Starting…" : "Re-grade all"}
-							</button>
-						)}
 						{gradingStatus === "GRADING" && (
 							<button
 								onClick={handleCancelGrading}
@@ -975,7 +978,7 @@ export default function AssessmentView({
 						{/* Grade button */}
 						{gradingStatus === "NOT_GRADED" && submittedCount > 0 && (
 							<button
-								onClick={handleStartGrading}
+								onClick={() => setShowStartGrading(true)}
 								disabled={isGrading}
 								className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm bg-primary text-white text-[12px] font-semibold hover:bg-[#001570] disabled:opacity-50 transition-colors"
 							>
@@ -992,7 +995,7 @@ export default function AssessmentView({
 						{/* Release / Unrelease */}
 						{gradingStatus === "GRADED" && !resultsReleased && (
 							<button
-								onClick={handleReleaseResults}
+								onClick={() => setShowRelease(true)}
 								disabled={isReleasing}
 								className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm bg-[#16a34a] text-white text-[12px] font-semibold hover:bg-[#15803d] disabled:opacity-50 transition-colors"
 							>
@@ -1026,7 +1029,10 @@ export default function AssessmentView({
 							<MoreVertical size={14} />
 						</button>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end" className="w-44 rounded-sm">
+					<DropdownMenuContent align="end" className="w-64 rounded-md p-1.5">
+						<DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+							Assessment tools
+						</DropdownMenuLabel>
 						<DropdownMenuItem asChild className="text-[13px]">
 							<Link href={`/lecturer/assessments/${assessment.id}/simulate`}>
 								<Eye className="mr-2 h-4 w-4" /> Simulate
@@ -1045,13 +1051,53 @@ export default function AssessmentView({
 								<Settings className="mr-2 h-4 w-4" /> Edit settings
 							</DropdownMenuItem>
 						)}
+						<DropdownMenuSeparator />
+						<DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+							Availability
+						</DropdownMenuLabel>
+						{assessment.status === "DRAFT" && (
+							<DropdownMenuItem className="text-[13px]" onClick={() => setShowPublish(true)}>
+								<Send className="mr-2 h-4 w-4" /> Publish assessment
+							</DropdownMenuItem>
+						)}
+						{assessment.status === "PUBLISHED" && (
+							<DropdownMenuItem className="text-[13px] text-amber-700" onClick={() => setShowClose(true)}>
+								<Lock className="mr-2 h-4 w-4" /> Close assessment
+							</DropdownMenuItem>
+						)}
 						{assessment.status === "CLOSED" && (
 							<DropdownMenuItem
 								className="text-[13px]"
-								onClick={handleReopen}
+								onClick={() => {
+									if (new Date(assessment.endsAt) <= new Date()) {
+										toast.info("Choose a future closing time before re-opening.");
+										setShowSettings(true);
+									} else {
+										setShowReopen(true);
+									}
+								}}
 								disabled={isReopening}
 							>
-								<RefreshCw className="mr-2 h-4 w-4" /> Re-open assessment
+								<RefreshCw className="mr-2 h-4 w-4" />
+								{new Date(assessment.endsAt) <= new Date() ? "Set closing time to re-open" : "Re-open assessment"}
+							</DropdownMenuItem>
+						)}
+						{assessment.status === "CLOSED" && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+									Grading &amp; results
+								</DropdownMenuLabel>
+							</>
+						)}
+						{assessment.status === "CLOSED" && gradingStatus === "NOT_GRADED" && submittedCount > 0 && (
+							<DropdownMenuItem className="text-[13px]" onClick={() => setShowStartGrading(true)}>
+								<Send className="mr-2 h-4 w-4" /> Grade assessment
+							</DropdownMenuItem>
+						)}
+						{assessment.status === "CLOSED" && gradingStatus === "GRADED" && submittedCount > 0 && (
+							<DropdownMenuItem className="text-[13px] text-amber-700" onClick={() => setShowRegradeAll(true)}>
+								<RotateCcw className="mr-2 h-4 w-4" /> Re-grade all submissions
 							</DropdownMenuItem>
 						)}
 						{gradingStatus === "GRADED" && (
@@ -1062,16 +1108,24 @@ export default function AssessmentView({
 								<Download className="mr-2 h-4 w-4" /> Export marks
 							</DropdownMenuItem>
 						)}
+						{gradingStatus === "GRADED" && !resultsReleased && (
+							<DropdownMenuItem className="text-[13px]" onClick={() => setShowRelease(true)}>
+								<Eye className="mr-2 h-4 w-4" /> Release results
+							</DropdownMenuItem>
+						)}
 						{resultsReleased && (
 							<DropdownMenuItem
 								className="text-[13px]"
-								onClick={handleUnreleaseResults}
+								onClick={() => setShowHideResults(true)}
 								disabled={isUnreleasing}
 							>
 								<EyeOff className="mr-2 h-4 w-4" /> Hide results
 							</DropdownMenuItem>
 						)}
 						<DropdownMenuSeparator />
+						<DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-500">
+							Danger zone
+						</DropdownMenuLabel>
 						<DropdownMenuItem
 							className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 text-[13px]"
 							onClick={() => setShowDelete(true)}
@@ -1675,13 +1729,73 @@ export default function AssessmentView({
 				/>
 
 				<ConfirmModal
+					open={showPublish}
+					title="Publish assessment?"
+					description={`Students will be able to access "${assessment.title}" according to its configured opening and closing times.`}
+					confirmText="Publish assessment"
+					isLoading={isPublishing}
+					onConfirm={handlePublish}
+					onCancel={() => setShowPublish(false)}
+				/>
+
+				<ConfirmModal
 					open={showClose}
 					title="Close Assessment?"
-					description={`"${assessment.title}" is currently live. Closing it will end the assessment for all students immediately. This cannot be undone.`}
+					description={`"${assessment.title}" is currently live. Closing it ends student access immediately. You can re-open it later after choosing a future closing time.`}
 					confirmText="Close Assessment"
 					isLoading={isClosing}
 					onConfirm={handleClose}
 					onCancel={() => setShowClose(false)}
+				/>
+
+				<ConfirmModal
+					open={showReopen}
+					title="Re-open assessment?"
+					description={`Students will regain access now. The assessment will close automatically on ${format(new Date(assessment.endsAt), "MMM d, yyyy 'at' HH:mm")}.`}
+					confirmText="Re-open assessment"
+					isLoading={isReopening}
+					onConfirm={handleReopen}
+					onCancel={() => setShowReopen(false)}
+				/>
+
+				<ConfirmModal
+					open={showStartGrading}
+					title="Grade assessment?"
+					description={`Send ${submittedCount} submitted student assessment${submittedCount === 1 ? "" : "s"} to the grader now?`}
+					confirmText="Start grading"
+					isLoading={isGrading}
+					onConfirm={handleStartGrading}
+					onCancel={() => setShowStartGrading(false)}
+				/>
+
+				<ConfirmModal
+					open={showRegradeAll}
+					title="Re-grade all submissions?"
+					description="Every eligible student submission will be graded again. Any released results will be hidden until you review and release the corrected results."
+					confirmText="Re-grade all"
+					isLoading={isGrading}
+					onConfirm={handleRegradeAll}
+					onCancel={() => setShowRegradeAll(false)}
+				/>
+
+				<ConfirmModal
+					open={showRelease}
+					title="Release results?"
+					description="Students will immediately be able to view their scores and released feedback."
+					confirmText="Release results"
+					isLoading={isReleasing}
+					onConfirm={handleReleaseResults}
+					onCancel={() => setShowRelease(false)}
+				/>
+
+				<ConfirmModal
+					open={showHideResults}
+					title="Hide results?"
+					description="Students will no longer be able to view their scores. You can release them again later."
+					confirmText="Hide results"
+					isLoading={isUnreleasing}
+					onConfirm={handleUnreleaseResults}
+					onCancel={() => setShowHideResults(false)}
 				/>
 
 				<ConfirmModal

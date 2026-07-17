@@ -162,8 +162,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
   }
 
-  // CLOSED → PUBLISHED: re-open. No extra validation needed beyond ownership.
+  // CLOSED → PUBLISHED: re-open only with a future closing time.
   // PUBLISHED → CLOSED: always allowed.
+
+  if (current === "CLOSED" && body.status === "PUBLISHED" && assessment.endsAt <= new Date()) {
+    return NextResponse.json(
+      { error: "Set a future closing time before re-opening this assessment." },
+      { status: 409 }
+    )
+  }
 
   const updated = await prisma.assessment.update({
     where: { id: assessmentId },
