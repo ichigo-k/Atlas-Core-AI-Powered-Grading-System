@@ -172,12 +172,15 @@ export default function AssessmentResultsView({
 	const [search, setSearch] = useState("");
 	const [resultsFilter, setResultsFilter] = useState<ResultsFilter>("ALL");
 	const [isGrading, startGrading] = useTransition();
+	const [isCancellingGrading, startCancellingGrading] = useTransition();
 	const [isReleasing, startReleasing] = useTransition();
 	const [isUnreleasing, startUnreleasing] = useTransition();
 	const [gradingStatus, setGradingStatus] = useState(data.gradingStatus);
 	const submittedOnlyCount = data.submissions.length;
 	const [gradingProgress, setGradingProgress] = useState({
-		graded: data.submissions.filter((submission) => submission.status === "GRADED").length,
+		graded: data.submissions.filter(
+			(submission) => submission.status === "GRADED",
+		).length,
 		total: submittedOnlyCount,
 	});
 	const [resultsReleased, setResultsReleased] = useState(data.resultsReleased);
@@ -205,13 +208,27 @@ export default function AssessmentResultsView({
 				if (!res.ok) throw new Error(`Status ${res.status}`);
 				const json = await res.json();
 				consecutiveFailures = 0;
-				if (typeof json.gradedAttempts === "number" && typeof json.totalAttempts === "number") {
-					setGradingProgress({ graded: json.gradedAttempts, total: json.totalAttempts });
+				if (
+					typeof json.gradedAttempts === "number" &&
+					typeof json.totalAttempts === "number"
+				) {
+					setGradingProgress({
+						graded: json.gradedAttempts,
+						total: json.totalAttempts,
+					});
 				}
 				if (json.gradingStatus === "GRADED") {
 					setGradingStatus("GRADED");
 					if (intervalId) clearInterval(intervalId);
 					router.refresh();
+				} else if (json.gradingStatus === "NOT_GRADED") {
+					setGradingStatus("NOT_GRADED");
+					if (intervalId) clearInterval(intervalId);
+					if (json.isStale) {
+						toast.error(
+							"Grading stopped because no progress was detected. You can start it again.",
+						);
+					}
 				}
 			} catch {
 				consecutiveFailures++;
@@ -303,17 +320,17 @@ export default function AssessmentResultsView({
 		label: string;
 		count: number;
 	}> = [
-			{ key: "ALL", label: "All", count: data.enrolledStudents.length },
-			{ key: "SUBMITTED", label: "Submitted", count: submittedCount },
-			{ key: "NOT_SUBMITTED", label: "Not submitted", count: notSubmittedCount },
-			{ key: "GRADED", label: "Graded", count: gradedCount },
-			{
-				key: "FLAGGED",
-				label: "Flagged",
-				count: data.submissions.filter((s: any) => s.plagiarismFlagged === true)
-					.length,
-			},
-		];
+		{ key: "ALL", label: "All", count: data.enrolledStudents.length },
+		{ key: "SUBMITTED", label: "Submitted", count: submittedCount },
+		{ key: "NOT_SUBMITTED", label: "Not submitted", count: notSubmittedCount },
+		{ key: "GRADED", label: "Graded", count: gradedCount },
+		{
+			key: "FLAGGED",
+			label: "Flagged",
+			count: data.submissions.filter((s: any) => s.plagiarismFlagged === true)
+				.length,
+		},
+	];
 
 	const doughnutData = {
 		labels: ["Submitted", "Not Submitted"],
@@ -432,6 +449,22 @@ export default function AssessmentResultsView({
 			toast.success(
 				"Assessment sent to grader. Results will appear as they come in.",
 			);
+		});
+	}
+
+	function handleCancelGrading() {
+		startCancellingGrading(async () => {
+			const res = await fetch(
+				`/api/lecturer/assessments/${data.id}/cancel-grading`,
+				{ method: "POST" },
+			);
+			if (!res.ok) {
+				toast.error("Failed to cancel grading. Please try again.");
+				return;
+			}
+			setGradingStatus("NOT_GRADED");
+			setPollingError(null);
+			toast.success("Grading cancelled. You can start it again when ready.");
 		});
 	}
 
@@ -628,10 +661,11 @@ export default function AssessmentResultsView({
 					{/* Grading progress pill */}
 					{gradingStatus !== "NOT_GRADED" && (
 						<div
-							className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold ${gradingStatus === "GRADED"
-								? "bg-green-50 border-green-200 text-green-700"
-								: "bg-amber-50 border-amber-200 text-amber-700"
-								}`}
+							className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold ${
+								gradingStatus === "GRADED"
+									? "bg-green-50 border-green-200 text-green-700"
+									: "bg-amber-50 border-amber-200 text-amber-700"
+							}`}
 						>
 							{gradingStatus === "GRADING" && (
 								<span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
@@ -641,7 +675,13 @@ export default function AssessmentResultsView({
 							)}
 							{gradingStatus === "GRADING" ? "Grading" : "Graded"}
 							<span className="font-medium opacity-70 ml-1">
-								{gradingStatus === "GRADING" ? gradingProgress.graded : gradedCount}/{gradingStatus === "GRADING" ? gradingProgress.total : submittedOnlyCount}
+								{gradingStatus === "GRADING"
+									? gradingProgress.graded
+									: gradedCount}
+								/
+								{gradingStatus === "GRADING"
+									? gradingProgress.total
+									: submittedOnlyCount}
 							</span>
 						</div>
 					)}
@@ -657,21 +697,11 @@ export default function AssessmentResultsView({
 					{gradingStatus === "GRADING" && (
 						<button
 							type="button"
-							onClick={handleStartGrading}
-							disabled={isGrading}
-							className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50"
+							onClick={handleCancelGrading}
+							disabled={isCancellingGrading}
+							className="inline-flex items-center gap-2 rounded-sm border border-rose-200 bg-white px-4 py-1.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 transition-colors disabled:opacity-50"
 						>
-							{isGrading ? (
-								<>
-									<span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-									Starting…
-								</>
-							) : (
-								<>
-									<Send size={14} />
-									Grade
-								</>
-							)}
+							{isCancellingGrading ? "Cancelling..." : "Cancel grading"}
 						</button>
 					)}
 
@@ -872,10 +902,11 @@ export default function AssessmentResultsView({
 								key={filter.key}
 								type="button"
 								onClick={() => setResultsFilter(filter.key)}
-								className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.05em] transition-colors ${active
-									? "border-primary bg-primary text-white"
-									: "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
-									}`}
+								className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.05em] transition-colors ${
+									active
+										? "border-primary bg-primary text-white"
+										: "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
+								}`}
 							>
 								{filter.label}
 								<span className={active ? "text-white/80" : "text-slate-400"}>
@@ -937,7 +968,7 @@ export default function AssessmentResultsView({
 							) : (
 								rows.map((student: any) => {
 									const sub = submissionByStudent.get(student.id);
-									const scorePct =
+									const _scorePct =
 										sub?.score != null
 											? Math.round((sub.score / data.totalMarks) * 100)
 											: null;

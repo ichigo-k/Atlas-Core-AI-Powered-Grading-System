@@ -24,6 +24,7 @@ import { MessageSquare, X } from "lucide-react"
 import { useViolationStore } from "@/lib/violation-store"
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker"
 import { proctorSignals } from "@/lib/proctor-signals"
+import { getWebRtcIceServers } from "@/lib/webrtc"
 
 const POLL_INTERVAL_MS = 2000
 const STREAM_RETRY_MS = 500
@@ -89,9 +90,7 @@ export default function LiveProctorBridge({ attemptId }: Props) {
       try {
         // A new offer replaces any existing connection.
         closePc()
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        })
+        const pc = new RTCPeerConnection({ iceServers: getWebRtcIceServers() })
         pcRef.current = pc
 
         const tracks = [
@@ -196,7 +195,10 @@ export default function LiveProctorBridge({ attemptId }: Props) {
         // Signaling.
         for (const sig of (data.signals ?? []) as Array<LiveSignal & { id: number }>) {
           if (sig.type === "offer") {
-            void answerOffer(sig.payload as RTCSessionDescriptionInit)
+            // Offers and the ICE candidates following them must be applied in
+            // order. Fire-and-forget here used to let ICE run first and then be
+            // erased when answerOffer replaced the peer, producing black video.
+            await answerOffer(sig.payload as RTCSessionDescriptionInit)
           } else if (sig.type === "ice") {
             void handleIce(sig.payload as RTCIceCandidateInit)
           } else if (sig.type === "bye") {

@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getWebRtcIceServers } from "@/lib/webrtc";
 
 export type ConnState = "connecting" | "live" | "lost" | "ended";
 
@@ -55,9 +56,7 @@ export function useLiveConnection(attemptId: number, enabled: boolean) {
 		setStream(remoteStreamRef.current);
 		setConnState("connecting");
 
-		const pc = new RTCPeerConnection({
-			iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-		});
+		const pc = new RTCPeerConnection({ iceServers: getWebRtcIceServers() });
 		pcRef.current = pc;
 
 		pc.addTransceiver("video", { direction: "recvonly" });

@@ -39,8 +39,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
     }
 
+    const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_MS)
     const records = await prisma.proctorRecord.findMany({
-      where: { attempt: { assessmentId, status: 'IN_PROGRESS' } },
+      where: {
+        attempt: { assessmentId, status: 'IN_PROGRESS' },
+        lastSeenAt: { gte: onlineCutoff },
+      },
       orderBy: { flagCount: 'desc' },
       select: {
         attemptId: true,

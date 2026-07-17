@@ -340,6 +340,15 @@ function StepGeneralRules({
   const isSecured = assessmentType === "EXAM" || assessmentType === "QUIZ";
 
   const rules = [
+	...(proctoringEnabled
+		? [
+			{
+				icon: Camera,
+				title: "Live camera monitoring",
+				desc: "Your camera feed will be transmitted live to the lecturer during this assessment for invigilation.",
+			},
+		]
+		: []),
     ...(isSecured
       ? [
         {

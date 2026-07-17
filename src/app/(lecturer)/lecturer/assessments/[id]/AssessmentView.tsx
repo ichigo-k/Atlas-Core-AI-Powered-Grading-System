@@ -12,7 +12,6 @@ import {
 import { format } from "date-fns";
 import {
 	AlertTriangle,
-	ArrowLeft,
 	ArrowUpDown,
 	BookOpen,
 	Calendar,
@@ -224,11 +223,11 @@ function EditSettingsSheet({
 		startTransition(async () => {
 			const payload: Record<string, unknown> = {
 				endsAt,
-				maxAttempts: parseInt(maxAttempts) || 1,
+				maxAttempts: parseInt(maxAttempts, 10) || 1,
 				passwordProtected,
 				accessPassword: passwordProtected ? accessPassword : null,
 				durationMinutes: durationMinutes.trim()
-					? parseInt(durationMinutes)
+					? parseInt(durationMinutes, 10)
 					: null,
 			};
 			const res = await fetch(
@@ -404,7 +403,9 @@ export default function AssessmentView({
 		"NOT_GRADED" | "GRADING" | "GRADED"
 	>(resultsData?.gradingStatus ?? "NOT_GRADED");
 	const [gradingProgress, setGradingProgress] = useState({
-		graded: (resultsData?.submissions ?? []).filter((submission) => submission.status === "GRADED").length,
+		graded: (resultsData?.submissions ?? []).filter(
+			(submission) => submission.status === "GRADED",
+		).length,
 		total: resultsData?.submissions.length ?? 0,
 	});
 	const [resultsReleased, setResultsReleased] = useState(
@@ -420,6 +421,7 @@ export default function AssessmentView({
 	]);
 	const [isExporting, setIsExporting] = useState(false);
 	const [isGrading, startGrading] = useTransition();
+	const [isCancellingGrading, startCancellingGrading] = useTransition();
 	const [isReleasing, startReleasing] = useTransition();
 	const [isUnreleasing, startUnreleasing] = useTransition();
 	const [search, setSearch] = useState("");
@@ -441,13 +443,27 @@ export default function AssessmentView({
 				if (!res.ok) throw new Error();
 				const json = await res.json();
 				consecutiveFailures = 0;
-				if (typeof json.gradedAttempts === "number" && typeof json.totalAttempts === "number") {
-					setGradingProgress({ graded: json.gradedAttempts, total: json.totalAttempts });
+				if (
+					typeof json.gradedAttempts === "number" &&
+					typeof json.totalAttempts === "number"
+				) {
+					setGradingProgress({
+						graded: json.gradedAttempts,
+						total: json.totalAttempts,
+					});
 				}
 				if (json.gradingStatus === "GRADED") {
 					setGradingStatus("GRADED");
 					if (intervalId) clearInterval(intervalId);
 					router.refresh();
+				} else if (json.gradingStatus === "NOT_GRADED") {
+					setGradingStatus("NOT_GRADED");
+					if (intervalId) clearInterval(intervalId);
+					if (json.isStale) {
+						toast.error(
+							"Grading stopped because no progress was detected. You can start it again.",
+						);
+					}
 				}
 			} catch {
 				consecutiveFailures++;
@@ -562,9 +578,28 @@ export default function AssessmentView({
 				toast.error("Failed to start grading. Please try again.");
 				return;
 			}
-			setGradingProgress({ graded: 0, total: resultsData?.submissions.length ?? 0 });
+			setGradingProgress({
+				graded: 0,
+				total: resultsData?.submissions.length ?? 0,
+			});
 			setGradingStatus("GRADING");
 			toast.success("Assessment sent to grader.");
+		});
+	}
+
+	function handleCancelGrading() {
+		startCancellingGrading(async () => {
+			const res = await fetch(
+				`/api/lecturer/assessments/${assessment.id}/cancel-grading`,
+				{ method: "POST" },
+			);
+			if (!res.ok) {
+				toast.error("Failed to cancel grading. Please try again.");
+				return;
+			}
+			setGradingStatus("NOT_GRADED");
+			setPollingError(null);
+			toast.success("Grading cancelled. You can start it again when ready.");
 		});
 	}
 
@@ -853,14 +888,6 @@ export default function AssessmentView({
 	function ActionBar() {
 		return (
 			<div className="flex items-center gap-2 flex-wrap">
-				{/* Simulate — always available so lecturers can preview the exam */}
-				<Link
-					href={`/lecturer/assessments/${assessment.id}/simulate`}
-					className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] text-[12px] font-semibold hover:bg-[#e0e7ff] transition-colors"
-				>
-					<Eye size={12} /> Simulate
-				</Link>
-
 				{/* DRAFT actions */}
 				{assessment.status === "DRAFT" && (
 					<>
@@ -885,48 +912,17 @@ export default function AssessmentView({
 
 				{/* PUBLISHED actions */}
 				{assessment.status === "PUBLISHED" && (
-					<>
-						<button
-							onClick={() => setShowSettings(true)}
-							className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-border bg-white text-[12px] font-semibold text-muted-foreground hover:bg-[#f3f2f1] transition-colors"
-						>
-							<Settings size={12} /> Edit Settings
-						</button>
-						<button
-							onClick={() => setShowClose(true)}
-							className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-amber-200 bg-amber-50 text-amber-700 text-[12px] font-semibold hover:bg-amber-100 transition-colors"
-						>
-							Close Assessment
-						</button>
-					</>
+					<button
+						onClick={() => setShowClose(true)}
+						className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-amber-200 bg-amber-50 text-amber-700 text-[12px] font-semibold hover:bg-amber-100 transition-colors"
+					>
+						Close Assessment
+					</button>
 				)}
 
 				{/* CLOSED actions */}
 				{assessment.status === "CLOSED" && (
 					<>
-						<Link
-							href={`/lecturer/assessments/${assessment.id}/edit`}
-							className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm bg-primary text-white text-[12px] font-semibold hover:bg-[#001570] transition-colors"
-						>
-							<Edit2 size={12} /> Edit Assessment
-						</Link>
-						<button
-							onClick={handleReopen}
-							disabled={isReopening}
-							className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-border bg-white text-[12px] font-semibold text-muted-foreground hover:bg-[#f3f2f1] disabled:opacity-50 transition-colors"
-						>
-							<RefreshCw
-								size={12}
-								className={isReopening ? "animate-spin" : ""}
-							/>
-							{isReopening ? "Re-opening…" : "Re-open"}
-						</button>
-						<button
-							onClick={() => setShowSettings(true)}
-							className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-border bg-white text-[12px] font-semibold text-muted-foreground hover:bg-[#f3f2f1] transition-colors"
-						>
-							<Settings size={12} /> Edit Settings
-						</button>
 						{/* Grading status indicator */}
 						{gradingStatus === "GRADING" && (
 							<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-amber-200 bg-amber-50 text-[12px] font-semibold text-amber-700">
@@ -939,26 +935,33 @@ export default function AssessmentView({
 								<span className="h-2 w-2 rounded-full bg-[#22c55e]" /> Graded
 							</span>
 						)}
+						{gradingStatus === "GRADING" && (
+							<button
+								onClick={handleCancelGrading}
+								disabled={isCancellingGrading}
+								className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-rose-200 bg-white text-[12px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 transition-colors"
+							>
+								<X size={12} />{" "}
+								{isCancellingGrading ? "Cancelling..." : "Cancel grading"}
+							</button>
+						)}
 						{/* Grade button */}
-						{(gradingStatus === "NOT_GRADED" || gradingStatus === "GRADING") &&
-							submittedCount > 0 && (
-								<button
-									onClick={handleStartGrading}
-									disabled={isGrading}
-									className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm bg-primary text-white text-[12px] font-semibold hover:bg-[#001570] disabled:opacity-50 transition-colors"
-								>
-									{isGrading ? (
-										<span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-									) : (
-										<Send size={12} />
-									)}
-									{isGrading
-										? "Starting…"
-										: gradingStatus === "GRADING"
-											? "Retry Grade"
-											: "Grade Assessment"}
-								</button>
-							)}
+						{gradingStatus === "NOT_GRADED" && submittedCount > 0 && (
+							<button
+								onClick={handleStartGrading}
+								disabled={isGrading}
+								className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm bg-primary text-white text-[12px] font-semibold hover:bg-[#001570] disabled:opacity-50 transition-colors"
+							>
+								{isGrading ? (
+									<span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+								) : (
+									<Send size={12} />
+								)}
+								{isGrading
+									? "Starting…"
+									: "Grade Assessment"}
+							</button>
+						)}
 						{/* Release / Unrelease */}
 						{gradingStatus === "GRADED" && !resultsReleased && (
 							<button
@@ -975,29 +978,9 @@ export default function AssessmentView({
 							</button>
 						)}
 						{resultsReleased && (
-							<>
-								<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-[#bbf7d0] bg-[#dcfce7] text-[12px] font-semibold text-[#166534]">
-									<span className="h-2 w-2 rounded-full bg-[#22c55e]" />{" "}
-									Released
-								</span>
-								<button
-									onClick={handleUnreleaseResults}
-									disabled={isUnreleasing}
-									className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-border bg-white text-[12px] font-semibold text-muted-foreground hover:bg-red-50 hover:text-red-700 hover:border-red-200 disabled:opacity-50 transition-colors"
-								>
-									<EyeOff size={12} />
-									{isUnreleasing ? "Hiding…" : "Hide Results"}
-								</button>
-							</>
-						)}
-						{/* Export */}
-						{gradingStatus === "GRADED" && (
-							<button
-								onClick={() => setShowExportDialog(true)}
-								className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-border bg-white text-[12px] font-semibold text-muted-foreground hover:bg-[#f3f2f1] transition-colors"
-							>
-								<Download size={12} /> Export
-							</button>
+							<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-[#bbf7d0] bg-[#dcfce7] text-[12px] font-semibold text-[#166534]">
+								<span className="h-2 w-2 rounded-full bg-[#22c55e]" /> Released
+							</span>
 						)}
 					</>
 				)}
@@ -1017,6 +1000,51 @@ export default function AssessmentView({
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-44 rounded-sm">
+						<DropdownMenuItem asChild className="text-[13px]">
+							<Link href={`/lecturer/assessments/${assessment.id}/simulate`}>
+								<Eye className="mr-2 h-4 w-4" /> Simulate
+							</Link>
+						</DropdownMenuItem>
+						<DropdownMenuItem asChild className="text-[13px]">
+							<Link href={`/lecturer/assessments/${assessment.id}/edit`}>
+								<Edit2 className="mr-2 h-4 w-4" /> Edit assessment
+							</Link>
+						</DropdownMenuItem>
+						{assessment.status !== "DRAFT" && (
+							<DropdownMenuItem
+								className="text-[13px]"
+								onClick={() => setShowSettings(true)}
+							>
+								<Settings className="mr-2 h-4 w-4" /> Edit settings
+							</DropdownMenuItem>
+						)}
+						{assessment.status === "CLOSED" && (
+							<DropdownMenuItem
+								className="text-[13px]"
+								onClick={handleReopen}
+								disabled={isReopening}
+							>
+								<RefreshCw className="mr-2 h-4 w-4" /> Re-open assessment
+							</DropdownMenuItem>
+						)}
+						{gradingStatus === "GRADED" && (
+							<DropdownMenuItem
+								className="text-[13px]"
+								onClick={() => setShowExportDialog(true)}
+							>
+								<Download className="mr-2 h-4 w-4" /> Export marks
+							</DropdownMenuItem>
+						)}
+						{resultsReleased && (
+							<DropdownMenuItem
+								className="text-[13px]"
+								onClick={handleUnreleaseResults}
+								disabled={isUnreleasing}
+							>
+								<EyeOff className="mr-2 h-4 w-4" /> Hide results
+							</DropdownMenuItem>
+						)}
+						<DropdownMenuSeparator />
 						<DropdownMenuItem
 							className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 text-[13px]"
 							onClick={() => setShowDelete(true)}
