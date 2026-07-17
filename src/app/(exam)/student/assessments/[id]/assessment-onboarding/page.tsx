@@ -33,6 +33,7 @@ export default async function AssessmentOnboardingPage({
     where: { id: assessmentId },
     select: {
       id: true,
+      title: true,
       type: true,
       durationMinutes: true,
       passwordProtected: true,
@@ -41,6 +42,7 @@ export default async function AssessmentOnboardingPage({
       status: true,
       startsAt: true,
       endsAt: true,
+      course: { select: { code: true } },
     },
   });
   if (!assessment) redirect(`/student/assessments/${assessmentId}`);
@@ -96,6 +98,8 @@ export default async function AssessmentOnboardingPage({
   return (
     <AssessmentOnboardingClient
       assessmentId={assessmentId}
+      assessmentTitle={assessment.title}
+      courseCode={assessment.course.code}
       attemptId={validatedAttemptId}
       assessmentType={assessment.type}
       durationMinutes={assessment.durationMinutes}

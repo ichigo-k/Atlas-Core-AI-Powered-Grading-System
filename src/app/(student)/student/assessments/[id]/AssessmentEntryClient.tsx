@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
-import { Lock, PlayCircle, RotateCcw, AlertTriangle, ArrowRight } from "lucide-react"
+import { Lock, PlayCircle, RotateCcw, AlertTriangle, ArrowRight, Loader2 } from "lucide-react"
 import { createOrResumeAttempt } from "@/lib/assessment-actions"
 
 interface AssessmentEntryClientProps {
@@ -26,6 +26,7 @@ export default function AssessmentEntryClient({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+	const [isNavigating, setIsNavigating] = useState(false)
 
   if (isLocked) {
     return (
@@ -43,12 +44,16 @@ export default function AssessmentEntryClient({
     return (
       <button
         type="button"
-        onClick={() => router.push(`/student/assessments/${assessmentId}/assessment-onboarding?attemptId=${activeAttemptId}`)}
-        className="w-full flex items-center justify-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
+		disabled={isNavigating}
+		onClick={() => {
+			setIsNavigating(true)
+			router.push(`/student/assessments/${assessmentId}/assessment-onboarding?attemptId=${activeAttemptId}`)
+		}}
+		className="w-full flex items-center justify-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors disabled:cursor-wait disabled:opacity-70"
       >
-        <RotateCcw size={14} strokeWidth={2} />
-        Continue Attempt
-        <ArrowRight size={14} strokeWidth={2} />
+		{isNavigating ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} strokeWidth={2} />}
+		{isNavigating ? "Opening your attempt…" : "Continue Attempt"}
+		{!isNavigating && <ArrowRight size={14} strokeWidth={2} />}
       </button>
     )
   }
@@ -89,9 +94,9 @@ export default function AssessmentEntryClient({
         disabled={isPending}
         className="w-full flex items-center justify-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors disabled:opacity-60 disabled:cursor-not-allowed group"
       >
-        <PlayCircle size={14} strokeWidth={2} className="group-hover:scale-105 transition-transform" />
-        {isPending ? "Initializing Session..." : "Start New Attempt"}
-        <ArrowRight size={14} strokeWidth={2} className="group-hover:translate-x-0.5 transition-transform" />
+		{isPending ? <Loader2 size={14} className="animate-spin" /> : <PlayCircle size={14} strokeWidth={2} className="group-hover:scale-105 transition-transform" />}
+		{isPending ? "Creating secure session…" : "Start New Attempt"}
+		{!isPending && <ArrowRight size={14} strokeWidth={2} className="group-hover:translate-x-0.5 transition-transform" />}
       </button>
 
       {error && (

@@ -41,6 +41,8 @@ type FaceStatus = "checking" | "ok" | "absent" | "unknown";
 
 interface Props {
   assessmentId: number;
+  assessmentTitle: string;
+  courseCode: string;
   attemptId?: number | null;
   assessmentType: string;
   durationMinutes: number | null;
@@ -120,10 +122,23 @@ function Sidebar({
   steps: { label: string; icon: React.ElementType }[];
 }) {
   return (
-    <aside className="hidden md:flex w-48 shrink-0 flex-col gap-1 pt-1">
-      <div className="flex items-center gap-2 mb-5 px-1">
-        <ShieldCheck size={16} className="text-primary" strokeWidth={2} />
-        <span className="text-[13px] font-semibold text-[#1e293b]">Assessment Setup</span>
+	<aside className="hidden w-full shrink-0 flex-col md:flex">
+	  <div className="mb-6">
+		<div className="flex items-center gap-2.5">
+		  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#002388] text-white shadow-sm">
+			<ShieldCheck size={16} strokeWidth={2.2} />
+		  </div>
+		  <div>
+			<span className="block text-[13px] font-semibold text-[#172033]">Assessment setup</span>
+			<span className="text-[10px] font-medium text-slate-400">Complete every check</span>
+		  </div>
+		</div>
+		<div className="mt-4 flex items-center gap-2">
+		  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
+			<div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${((current + 1) / steps.length) * 100}%` }} />
+		  </div>
+		  <span className="text-[10px] font-semibold tabular-nums text-slate-500">{current + 1}/{steps.length}</span>
+		</div>
       </div>
 
       {steps.map((s, i) => {
@@ -132,31 +147,28 @@ function Sidebar({
         const Icon = s.icon;
 
         return (
-          <div
-            key={s.label}
-            className={`flex items-center gap-3 px-2.5 py-2 rounded-sm transition-all border ${active
-              ? "bg-primary/10 text-primary border-primary/20"
-              : "border-transparent text-slate-500"
-              }`}
-          >
+		  <div className="relative flex gap-3" key={s.label}>
+			{i < steps.length - 1 && <span className={`absolute left-[14px] top-8 h-[calc(100%-16px)] w-px ${done ? "bg-emerald-300" : "bg-slate-200"}`} />}
+			<div className={`mb-2 flex w-full items-center gap-3 rounded-lg border px-2.5 py-2.5 transition-all ${active ? "border-blue-200 bg-white shadow-sm" : "border-transparent"}`}>
             <div
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-[10px] font-bold transition-all ${done
-                ? "bg-primary text-white"
+			  className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${done
+				? "bg-emerald-500 text-white ring-4 ring-emerald-50"
                 : active
-                  ? "bg-primary/20 text-primary"
-                  : "bg-slate-100 text-slate-500 border border-slate-200"
+				  ? "bg-[#002388] text-white ring-4 ring-blue-50"
+				  : "border border-slate-200 bg-white text-slate-400"
                 }`}
             >
               {done ? <Check size={11} strokeWidth={3} /> : <Icon size={11} />}
             </div>
 
             <span
-              className={`text-sm transition-colors ${active ? "font-medium text-[#1a73e8]" : done ? "font-medium text-[#5f6368]" : "text-[#5f6368]"
+			  className={`text-[12px] transition-colors ${active ? "font-semibold text-[#172033]" : done ? "font-medium text-slate-600" : "text-slate-400"
                 }`}
             >
               {s.label}
             </span>
-          </div>
+			</div>
+		  </div>
         );
       })}
     </aside>
@@ -213,19 +225,21 @@ function StepImportantRules({
 
   return (
     <div className="flex min-h-full flex-col">
-      <h2 className="text-lg font-bold text-[#1e293b] mb-0.5">
+	  <h2 className="text-xl font-bold text-[#172033] mb-1">
         Before you begin
       </h2>
-      <p className="text-[12px] text-muted-foreground mb-5">
+	  <p className="text-[12px] text-muted-foreground mb-6">
         Read these rules carefully — they are strictly enforced.
       </p>
 
-      <div className="flex-1 space-y-4">
+	  <div className="grid flex-1 gap-3 sm:grid-cols-2">
         {rules.map((rule, _i) => (
-          <div key={rule.title} className="flex items-start gap-3">
-            <rule.icon size={15} className="mt-0.5 shrink-0 text-red-600" />
+		  <div key={rule.title} className="group flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/30">
+			<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#002388] transition-colors group-hover:bg-blue-100">
+			  <rule.icon size={15} />
+			</div>
             <div>
-              <p className="text-[12px] font-semibold text-red-700">{rule.title}</p>
+			  <p className="text-[12px] font-semibold text-[#172033]">{rule.title}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                 {rule.desc}
               </p>
@@ -234,12 +248,12 @@ function StepImportantRules({
         ))}
       </div>
 
-      <div className="pt-6 border-t border-border flex items-center gap-2">
+	  <div className="mt-7 flex flex-col-reverse items-stretch justify-between gap-3 border-t border-border pt-5 sm:flex-row sm:items-center">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-white px-4 py-2 text-[12px] font-semibold text-[#323130] hover:bg-slate-50 transition-colors"
+			className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-4 py-2.5 text-[12px] font-semibold text-[#323130] transition-colors hover:bg-slate-50"
           >
             Back
           </button>
@@ -247,7 +261,7 @@ function StepImportantRules({
         <button
           type="button"
           onClick={onNext}
-          className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#001570] transition-colors"
+		  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-[12px] font-semibold text-white shadow-sm shadow-blue-900/20 transition-all hover:-translate-y-px hover:bg-[#001570]"
         >
           I understand
           <ArrowRight size={13} />
@@ -1273,6 +1287,8 @@ function StepPassword({
 
 export default function AssessmentOnboardingClient({
   assessmentId,
+  assessmentTitle,
+  courseCode,
   attemptId,
   assessmentType,
   durationMinutes,
@@ -1330,9 +1346,10 @@ export default function AssessmentOnboardingClient({
   }
 
   return (
-    <div className="min-h-dvh bg-[#F8F9FA] flex flex-col">
+	<div className="min-h-dvh bg-[radial-gradient(circle_at_top_left,#eaf2ff_0,transparent_34%),#f6f8fb] flex flex-col">
       {/* Navbar */}
-      <header className="h-12 bg-primary dark:bg-[#002388] flex items-center justify-between px-4 sm:px-6 w-full shrink-0">
+	  <header className="relative h-14 overflow-hidden bg-primary dark:bg-[#002388] flex items-center justify-between px-4 sm:px-6 w-full shrink-0 shadow-sm">
+		<div className="pointer-events-none absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "linear-gradient(135deg, white 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
         <div className="flex items-center gap-2.5">
           <Image
             src="/logos/gctu-logo.png"
@@ -1351,7 +1368,7 @@ export default function AssessmentOnboardingClient({
         </div>
         <Link
           href="/student/assessments"
-          className="flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-sm text-[12px] font-semibold text-white transition-colors border border-white/10"
+		  className="relative flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/20"
         >
           Exit Setup
         </Link>
@@ -1361,16 +1378,26 @@ export default function AssessmentOnboardingClient({
       <MobileProgress current={step} steps={steps} />
 
       {/* Main setup area */}
-      <div className="flex-grow flex items-start md:items-center justify-center px-4 py-6 md:py-10">
-        <div className="w-full max-w-4xl bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+	  <div className="flex-grow flex items-start justify-center px-4 py-6 md:items-center md:py-10">
+		<div className="w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_70px_-32px_rgba(15,35,75,0.35)]">
+		  <div className="flex items-center justify-between border-b border-slate-100 bg-white px-5 py-3.5 sm:px-7">
+			<div className="min-w-0">
+			  <div className="flex items-center gap-2">
+				<span className="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#002388]">{assessmentType}</span>
+				<span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{courseCode}</span>
+			  </div>
+			  <p className="mt-1 truncate text-[13px] font-semibold text-[#172033]">{assessmentTitle}</p>
+			</div>
+			<div className="hidden items-center gap-2 text-[11px] font-medium text-emerald-700 sm:flex"><ShieldCheck size={14} /><span>Secure readiness check</span></div>
+		  </div>
           <div className="flex flex-col md:flex-row">
             {/* Desktop sidebar */}
-            <div className="md:w-56 md:border-r border-border md:p-6 hidden md:block shrink-0">
+			<div className="hidden shrink-0 border-border bg-slate-50/70 md:block md:w-72 md:border-r md:p-6">
               <Sidebar current={step} steps={steps} />
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-5 sm:p-8 min-h-[420px] flex flex-col min-w-0">
+			<div className="flex min-h-[480px] min-w-0 flex-1 flex-col p-5 sm:p-8 lg:p-10">
               {step === 0 && (
                 <StepImportantRules
                   assessmentType={assessmentType}

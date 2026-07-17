@@ -1,5 +1,5 @@
-import { StudentAssessmentSkeleton } from "@/components/ui/page-loaders";
+import { StudentAssessmentOverviewSkeleton } from "@/components/ui/student-page-loaders";
 
 export default function AssessmentLoading() {
-  return <StudentAssessmentSkeleton />;
+	return <StudentAssessmentOverviewSkeleton />;
 }
