@@ -42,7 +42,11 @@ export function getFaceLandmarker(): Promise<FaceLandmarkerType> {
         outputFaceBlendshapes: true,
         outputFacialTransformationMatrixes: true,
         runningMode: "VIDEO",
-        numFaces: 2,
+        // Headroom beyond the 2 needed to say "more than one person": if the
+        // student's own face is momentarily lost at an angle while two others
+        // are in frame, a cap of 2 could still only ever report 2. Detecting up
+        // to 4 keeps the count meaningful for the lecturer reviewing the log.
+        numFaces: 4,
       }).catch(async () => {
         // GPU unavailable — fall back to CPU silently
         return FaceLandmarker.createFromOptions(filesetResolver, {

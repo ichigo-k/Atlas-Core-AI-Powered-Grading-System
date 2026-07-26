@@ -43,43 +43,63 @@ export async function applyProctorFlag(
   const { attemptId, violationType, source, reason } = input
   const detectedAt = input.detectedAt ?? new Date().toISOString()
 
-  const record = await prisma.proctorRecord.findUnique({
-    where: { attemptId },
-    select: { id: true, flagCount: true, flagThreshold: true, proctoringLog: true },
-  })
-
-  if (!record) {
-    return { found: false }
-  }
-
-  const newFlagCount = record.flagCount + 1
-  const existingLog = Array.isArray(record.proctoringLog) ? record.proctoringLog : []
-  const newEntry: ProctoringLogEntry = {
+  // The entry is built WITHOUT flagCountAfter — the database fills that in from
+  // the post-increment value so it can never disagree with flagCount.
+  const partialEntry: Omit<ProctoringLogEntry, 'flagCountAfter'> = {
     violationType,
     source,
     confidence: null,
     detectedAt,
-    flagCountAfter: newFlagCount,
     ...(reason ? { reason } : {}),
   }
 
-  // Use atomic increment to avoid transaction contention under rapid firing
-  await prisma.proctorRecord.update({
-    where: { id: record.id },
-    data: {
-      flagCount: { increment: 1 },
-      proctoringLog: [...existingLog, newEntry as object],
-    },
-  })
+  // Increment the counter and append the log entry in ONE statement.
+  //
+  // The previous implementation read proctoringLog, then wrote back
+  // [...existingLog, newEntry]. Camera, audio, and focus flags fire
+  // independently and can overlap, so two concurrent flags would both read the
+  // same array and the second write would silently drop the first one's entry.
+  // Worse, flagCount was returned as `record.flagCount + 1` from that same
+  // stale read, so concurrent flags reported the SAME count to both clients and
+  // the `>= flagThreshold` termination check could be skipped entirely — a
+  // student could exceed the threshold without the attempt ever auto-submitting.
+  //
+  // Doing it as a single UPDATE makes both parts atomic: `||` appends to the
+  // jsonb array server-side, and every reference to "flagCount" inside SET sees
+  // the pre-update value, so flagCountAfter and the new count always agree.
+  // RETURNING gives back the post-update row.
+  const rows = await prisma.$queryRaw<Array<{ flagCount: number; flagThreshold: number }>>`
+    UPDATE "proctor_records"
+       SET "flagCount" = "flagCount" + 1,
+           "proctoringLog" = COALESCE("proctoringLog", '[]'::jsonb) || jsonb_build_array(
+             jsonb_set(
+               ${JSON.stringify(partialEntry)}::jsonb,
+               '{flagCountAfter}',
+               to_jsonb("flagCount" + 1)
+             )
+           ),
+           "updatedAt" = NOW()
+     WHERE "attemptId" = ${attemptId}
+    RETURNING "flagCount", "flagThreshold"
+  `
 
-  const isTerminating = newFlagCount >= record.flagThreshold
+  if (rows.length === 0) {
+    return { found: false }
+  }
+
+  const { flagCount: newFlagCount, flagThreshold } = rows[0]
+  const isTerminating = newFlagCount >= flagThreshold
 
   if (isTerminating) {
+    // Only submit on the transition into the terminated state. Flags can keep
+    // arriving after the threshold (in-flight requests, the camera loop's next
+    // tick), and without this guard each one would re-run submission on an
+    // already-submitted attempt.
     const attempt = await prisma.assessmentAttempt.findUnique({
       where: { id: attemptId },
-      select: { assessmentId: true },
+      select: { assessmentId: true, status: true },
     })
-    if (attempt) {
+    if (attempt && attempt.status === 'IN_PROGRESS') {
       try {
         await submitAttemptInternal(attemptId, attempt.assessmentId, 'PROCTOR_VIOLATION')
       } catch (err) {

@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getSession } from '@/lib/session'
+import { prisma } from '@/lib/prisma'
 import { applyProctorFlag } from '@/lib/proctor-flag'
+import { VIOLATION_REASONS } from '@/lib/violation-tracker'
 
 interface ClientEventBody {
   attemptId: number
@@ -32,6 +34,28 @@ export async function POST(request: NextRequest) {
     }
 
     const { attemptId, violationType, detectedAt } = body
+
+    if (!Number.isInteger(attemptId) || attemptId <= 0) {
+      return NextResponse.json({ error: 'Invalid attemptId' }, { status: 400 })
+    }
+
+    // Only accept known violation types — violationType is written straight
+    // into the proctoring log and rendered back to lecturers, so an unbounded
+    // client-supplied string does not belong in there.
+    if (!VIOLATION_REASONS.includes(violationType as never)) {
+      return NextResponse.json({ error: 'Invalid violationType' }, { status: 400 })
+    }
+
+    // Authorize — the attempt must belong to the caller. Without this any
+    // logged-in student could POST another student's attemptId and drive their
+    // flag count to the threshold, force-submitting someone else's exam.
+    const attempt = await prisma.assessmentAttempt.findUnique({
+      where: { id: attemptId },
+      select: { student: { select: { email: true } } },
+    })
+    if (!attempt || attempt.student.email !== session.user.email) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const result = await applyProctorFlag({
       attemptId,

@@ -23,6 +23,7 @@ import {
   Sun,
   SunDim,
   User,
+  Users,
   Volume2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -37,7 +38,16 @@ import LivenessCheck from "@/components/student/LivenessCheck";
 type CameraState = "idle" | "requesting" | "granted" | "denied" | "virtual";
 type MicState = "idle" | "requesting" | "granted" | "denied" | "virtual";
 type LightingStatus = "checking" | "ok" | "poor" | "unknown";
-type FaceStatus = "checking" | "ok" | "absent" | "unknown";
+type FaceStatus = "checking" | "ok" | "absent" | "multiple" | "unknown";
+
+// ── Camera-check face detection tuning ──────────────────────────────────────
+// Minimum BlazeFace confidence for a detection to count as a real face.
+const FACE_CONFIDENCE_MIN = 0.8;
+// How often the lighting/face checks re-run. Fast enough that a second person
+// entering the frame is caught while the student is still on this step.
+const FACE_POLL_INTERVAL_MS = 1200;
+// Consecutive single-face polls required to clear a "multiple people" block.
+const MULTI_FACE_CLEAR_POLLS = 3;
 
 interface Props {
   assessmentId: number;
@@ -49,6 +59,12 @@ interface Props {
   passwordProtected: boolean;
   proctoringEnabled: boolean;
   instructions: string;
+	requireTrustedNetwork: boolean;
+}
+
+function accessError(code: string) {
+  if (code === "NETWORK_NOT_APPROVED") return "Connect to the approved campus network and try again.";
+  return "Something went wrong. Please try again.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -793,22 +809,42 @@ function StepCameraCheck({
   // src/lib/model-cache.ts) — the model is loaded once for the whole
   // session (often already warmed by ModelPrefetcher right after login) and
   // reused here, rather than reloaded per-component.
-  const checkFace = useCallback(async (): Promise<"ok" | "absent" | "unknown"> => {
+  //
+  // Counts faces rather than just testing for presence: a second person sitting
+  // beside the student is the single most common way to cheat the setup step,
+  // and the check used to pass as long as at least one face was visible.
+  const checkFace = useCallback(async (): Promise<"ok" | "absent" | "multiple" | "unknown"> => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return "unknown";
     try {
       const model = await getBlazeFace();
       const predictions = await model.estimateFaces(video, false);
-      return predictions.length > 0 ? "ok" : "absent";
+      // Drop low-confidence boxes. BlazeFace will happily report a face-ish
+      // patch of background at ~0.6, and a false "multiple people" block is
+      // far more damaging than a slightly late one.
+      const confident = predictions.filter((p) => {
+        const prob = (p as { probability?: number | number[] }).probability;
+        const score = Array.isArray(prob) ? prob[0] : prob;
+        return typeof score !== "number" || score >= FACE_CONFIDENCE_MIN;
+      });
+      if (confident.length === 0) return "absent";
+      return confident.length > 1 ? "multiple" : "ok";
     } catch {
       return "unknown";
     }
   }, []);
 
+  // Consecutive single-face readings observed since the last "multiple" hit,
+  // and whether we are currently holding the block.
+  const cleanStreakRef = useRef(0);
+  const multiBlockedRef = useRef(false);
+
   useEffect(() => {
     if (cameraState !== "granted") return;
 
     let firstRun = true;
+    cleanStreakRef.current = 0;
+    multiBlockedRef.current = false;
 
     const run = async () => {
       if (firstRun) {
@@ -820,11 +856,40 @@ function StepCameraCheck({
       setLightingStatus(lighting === "unknown" ? "checking" : lighting);
 
       const face = await checkFace();
-      if (face !== "unknown") setFaceStatus(face);
+      if (face === "unknown") return;
+
+      // A second person leaving the frame for one poll must not instantly clear
+      // the block — otherwise someone can sit beside the student, duck out for a
+      // second while they click Continue, and come straight back. Once multiple
+      // people have been seen, the frame has to read as a single face for
+      // several consecutive polls before the check passes again.
+      if (face === "multiple") {
+        cleanStreakRef.current = 0;
+        multiBlockedRef.current = true;
+        setFaceStatus("multiple");
+        return;
+      }
+
+      if (multiBlockedRef.current) {
+        // "absent" tells us nothing about whether the other person left, so it
+        // never counts toward clearing the block.
+        if (face !== "ok") {
+          setFaceStatus("multiple");
+          return;
+        }
+        cleanStreakRef.current += 1;
+        if (cleanStreakRef.current < MULTI_FACE_CLEAR_POLLS) {
+          setFaceStatus("multiple");
+          return;
+        }
+        multiBlockedRef.current = false;
+      }
+
+      setFaceStatus(face);
     };
 
     run();
-    pollingRef.current = setInterval(run, 3000);
+    pollingRef.current = setInterval(run, FACE_POLL_INTERVAL_MS);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
@@ -873,13 +938,14 @@ function StepCameraCheck({
               </div>
               <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${faceStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
                 : faceOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
-                  : faceStatus === "absent" ? "border-red-500/40 bg-red-950/80 text-red-300"
+                  : faceStatus === "absent" || faceStatus === "multiple" ? "border-red-500/40 bg-red-950/80 text-red-300"
                     : "border-slate-500/40 bg-slate-900/80 text-slate-200"
                 }`}>
                 {faceStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Detecting face…</>
                   : faceOk ? <><User size={11} /> Face detected</>
-                    : faceStatus === "absent" ? <><User size={11} /> No face detected</>
-                      : <><Loader2 size={11} className="animate-spin" /> Detecting face…</>}
+                    : faceStatus === "multiple" ? <><Users size={11} /> More than one person</>
+                      : faceStatus === "absent" ? <><User size={11} /> No face detected</>
+                        : <><Loader2 size={11} className="animate-spin" /> Detecting face…</>}
               </div>
             </div>
           </>
@@ -945,6 +1011,19 @@ function StepCameraCheck({
               <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Face not detected</p>
               <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
                 Position your face clearly in front of the camera before starting.
+              </p>
+            </div>
+          </div>
+        )}
+        {faceStatus === "multiple" && (
+          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+            <Users size={14} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">More than one person detected</p>
+              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
+                You must be alone to take this exam. Ask anyone else to leave the
+                room and stay out of the camera's view — the check will clear
+                automatically once you are the only person visible.
               </p>
             </div>
           </div>
@@ -1015,6 +1094,7 @@ function StepCameraCheck({
               : cameraState === "denied" ? "Camera access is required to proceed."
               : !singleCamera ? "Disconnect all external cameras (and turn off Bluetooth) to proceed."
               : lightingStatus === "poor" ? "Improve your lighting to continue."
+                : faceStatus === "multiple" ? "You must be alone in view of the camera to proceed."
                 : faceStatus === "absent" ? "Position your face in front of the camera."
                   : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"
                     : !agreed ? "Check the agreement box above to continue."
@@ -1204,7 +1284,7 @@ function StepPassword({
         } else if (result.error === "SERVER_ERROR") {
           setError("A server error occurred. Please try again.");
         } else {
-          setError("Something went wrong. Please try again.");
+		  setError(accessError(result.error));
         }
         return;
       }
@@ -1295,6 +1375,7 @@ export default function AssessmentOnboardingClient({
   passwordProtected,
   proctoringEnabled,
   instructions,
+	requireTrustedNetwork,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -1330,7 +1411,7 @@ export default function AssessmentOnboardingClient({
       const result = await createOrResumeAttempt(assessmentId);
       setGeneralNextPending(false);
       if ("error" in result) {
-        setGeneralNextError("Could not start attempt. Please try again.");
+		setGeneralNextError(accessError(result.error));
         return;
       }
       currentAttemptId = result.attemptId;

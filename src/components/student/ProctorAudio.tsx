@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useViolationStore } from "@/lib/violation-store"
-import { addViolation } from "@/lib/violation-tracker"
+import { addViolation, tryAcquireFlagSlot } from "@/lib/violation-tracker"
 import { proctorSignals } from "@/lib/proctor-signals"
 import { findVirtualDevice } from "@/lib/device-integrity"
 
@@ -51,6 +51,33 @@ const NOISE_WARN_COOLDOWN_MS = 15000 // don't nag about a noisy room too often
 const RECOGNIZED_WORDS_WINDOW_MS = 2500  // how long a heard word "counts" for the current tick
 const MIN_TRANSCRIPT_CHARS = 3           // ignore 1–2 char hallucinated fragments
 
+// ── Speech-recognition dead-man's switch ───────────────────────────────────
+// SpeechRecognition existing is NOT the same as it working. In Chrome it needs
+// a live connection to Google's speech service, so it goes silent on a flaky
+// network, when the OS denies it audio, or when the student simply isn't
+// speaking English (lang is fixed below). Previously any of those meant
+// lastWordsAtRef never updated, wordsRecent was permanently false, and audio
+// could never flag at all — the detector looked alive but was inert.
+//
+// So we prove it works before trusting it: if we observe this many consecutive
+// ticks of clear, flag-level voice without the recognizer ever having produced
+// a single word, we conclude it is not functioning and permanently fall back to
+// the RMS gate. Once it HAS produced a word we know it works and never demote
+// it — silent-but-voice-like audio is then genuine whispering, which is meant
+// to stay in the toast-only tier.
+const SPEECH_DEADMAN_SAMPLES = 15  // ~6s of clear talking with zero transcription
+const RECOGNITION_RESTART_DELAY_MS = 400  // backoff so onend can't hot-loop start()
+
+// ── Ambient noise calibration ───────────────────────────────────────────────
+// Absolute RMS thresholds can't work across devices: a laptop's built-in mic in
+// a quiet room and a hot USB mic in a lab differ by more than the entire gap
+// between our warn and flag levels. We sample the room before enforcing
+// anything and scale the thresholds off the measured floor, keeping the
+// constants above as a lower bound so a deliberately noisy calibration can't
+// raise the bar indefinitely.
+const CALIBRATION_MS = 2500
+const CALIBRATION_CEILING = 2   // floor can lift thresholds by at most this factor
+
 interface Props {
   attemptId: number
 }
@@ -67,6 +94,15 @@ export default function ProctorAudio({ attemptId }: Props) {
   const noiseSamplesRef = useRef(0)          // consecutive sustained-noise ticks
   const lastBgNoiseAtRef = useRef(-Infinity)
   const lastWordsAtRef = useRef(-Infinity)  // performance.now() of the last recognized word(s)
+
+  // "unknown" → recognizer started but has never returned a word yet.
+  // "working" → it has returned at least one word, so we trust its silence.
+  // "unusable" → it errored fatally, or failed the dead-man's switch below.
+  const recognitionStateRef = useRef<"unknown" | "working" | "unusable">("unknown")
+  const noWordsStreakRef = useRef(0)
+
+  // Measured ambient noise floor and the thresholds derived from it.
+  const noiseFloorRef = useRef<number | null>(null)
 
   // Reset when the student dismisses the overlay (acts as the re-flag cooldown).
   useEffect(() => {
@@ -105,6 +141,13 @@ export default function ProctorAudio({ attemptId }: Props) {
     let stream: MediaStream | null = null
     let audioCtx: AudioContext | null = null
     let recognition: any = null
+    let restartTimer: ReturnType<typeof setTimeout> | null = null
+
+    // Per-session detector state — recalibrate and re-prove the recognizer on
+    // every (re)mount rather than inheriting stale values from a previous run.
+    noiseFloorRef.current = null
+    recognitionStateRef.current = "unknown"
+    noWordsStreakRef.current = 0
 
     // Speech-to-text runs independently of the analyser loop — it just stamps
     // lastWordsAtRef whenever it hears actual words. Restarts itself on "end"
@@ -116,18 +159,46 @@ export default function ProctorAudio({ attemptId }: Props) {
         recognition = new SpeechRecognitionCtor()
         recognition.continuous = true
         recognition.interimResults = true
-        recognition.lang = "en-US"
+        // Follow the page/browser language rather than pinning to en-US. A
+        // student speaking anything else would otherwise produce no transcript,
+        // which used to mean their talking could never be flagged — and now
+        // (with the dead-man's switch) would drop them to the blunter RMS gate.
+        // Matching their actual language keeps the accurate detector in play.
+        recognition.lang =
+          document.documentElement.lang || navigator.language || "en-US"
         recognition.onresult = (event: any) => {
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0]?.transcript?.trim() ?? ""
             if (transcript.length >= MIN_TRANSCRIPT_CHARS) {
               lastWordsAtRef.current = performance.now()
+              // Proof of life — from here on, silence really does mean silence.
+              recognitionStateRef.current = "working"
+              noWordsStreakRef.current = 0
             }
           }
         }
-        recognition.onerror = () => {}
+        recognition.onerror = (event: any) => {
+          // These are terminal for the session: the service will not start
+          // producing results later, so stop pretending it might and hand the
+          // flag decision back to the RMS gate immediately.
+          if (
+            event?.error === "not-allowed" ||
+            event?.error === "service-not-allowed" ||
+            event?.error === "audio-capture"
+          ) {
+            recognitionStateRef.current = "unusable"
+          }
+        }
         recognition.onend = () => {
-          if (!cancelled) { try { recognition.start() } catch { /* already running */ } }
+          // The browser ends recognition after each silence gap, so restarting
+          // is normal — but restart on a timer, never synchronously. A failing
+          // recognizer fires end immediately after start, and an unbounded
+          // start-in-onend loop spins the main thread for the whole exam.
+          if (cancelled) return
+          restartTimer = setTimeout(() => {
+            if (cancelled) return
+            try { recognition.start() } catch { /* already running */ }
+          }, RECOGNITION_RESTART_DELAY_MS)
         }
         recognition.start()
       } catch {
@@ -135,7 +206,26 @@ export default function ProctorAudio({ attemptId }: Props) {
       }
     }
 
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+    // Capture RAW audio. The browser defaults (autoGainControl,
+    // noiseSuppression, echoCancellation all ON) are tuned to make a voice call
+    // sound good, which is precisely wrong for measurement:
+    //  - autoGainControl continuously renormalises level, so the same speech
+    //    reads at wildly different RMS depending on what came before it — fixed
+    //    thresholds stop meaning anything.
+    //  - noiseSuppression is designed to strip everything that isn't the
+    //    nearest speaker, which is exactly the second voice we want to catch.
+    //  - echoCancellation subtracts the output signal and can take part of a
+    //    room voice with it.
+    // These are best-effort hints; a browser that ignores them still works,
+    // just with the noisier behaviour calibration below is there to absorb.
+    navigator.mediaDevices.getUserMedia({
+      audio: {
+        autoGainControl: false,
+        noiseSuppression: false,
+        echoCancellation: false,
+      },
+      video: false,
+    })
       .then((s) => {
         if (cancelled) { s.getTracks().forEach((t: any) => t.stop()); return }
         const virtual = findVirtualDevice(s)
@@ -203,6 +293,11 @@ export default function ProctorAudio({ attemptId }: Props) {
         }
 
         async function flag() {
+          // Respect the cross-source cooldown — a student who turns away while
+          // talking should not be charged for both GAZE_AWAY and
+          // TALKING_DETECTED from the same moment. Leaving the sample counters
+          // intact means the next tick retries rather than losing the streak.
+          if (!tryAcquireFlagSlot(attemptId)) return
           flaggedRef.current = true
           warnSamplesRef.current = 0
           flagSamplesRef.current = 0
@@ -214,19 +309,55 @@ export default function ProctorAudio({ attemptId }: Props) {
           if (willAutoSubmit) showFinalWarning()
         }
 
+        // Ambient samples collected during the calibration window.
+        const calibrationSamples: number[] = []
+        const startedAt = performance.now()
+
         intervalId = setInterval(() => {
           if (cancelled) return
           const rms = getRMS()
           // Always publish the level so the camera can do "mouth moving but silent".
           proctorSignals.audioRms = rms
 
+          const now = performance.now()
+
+          // ── Calibration window: listen, don't judge ────────────────────────
+          if (noiseFloorRef.current === null) {
+            // Only sample the ROOM. Without this, a student could simply talk
+            // through the calibration window to raise their own noise floor and
+            // walk the thresholds up for the rest of the exam.
+            if (!isVoiceLike()) calibrationSamples.push(rms)
+            if (now - startedAt < CALIBRATION_MS) return
+            // Median rather than mean so one cough or door slam during setup
+            // can't inflate the floor for the whole exam. If every sample was
+            // voice-shaped we have no clean reading at all — fall back to the
+            // tuned constants rather than trusting a polluted measurement.
+            const sorted = [...calibrationSamples].sort((a, b) => a - b)
+            noiseFloorRef.current = sorted.length
+              ? sorted[Math.floor(sorted.length / 2)]
+              : 0
+            return
+          }
+
+          // Thresholds scale with the room, but only upward and only up to
+          // CALIBRATION_CEILING — a student can't whisper their way under the
+          // limit by running a fan, and a quiet room never gets a lower bar
+          // than the tuned constants.
+          const scale = Math.min(
+            CALIBRATION_CEILING,
+            Math.max(1, noiseFloorRef.current / VOICE_WARN_RMS),
+          )
+          const voiceWarnRms = VOICE_WARN_RMS * scale
+          const voiceFlagRms = VOICE_FLAG_RMS * scale
+          const noiseWarnRms = NOISE_WARN_RMS * scale
+          const noiseToastRms = NOISE_TOAST_RMS * scale
+
           const vs = useViolationStore.getState()
           // Ignore while our own overlay is up (flaggedRef), while submitting, or
           // while ANY other violation overlay is showing.
           if (flaggedRef.current || vs.submitting || vs.activeEvent) return
 
-          const now = performance.now()
-          const voice = rms >= VOICE_WARN_RMS && isVoiceLike()
+          const voice = rms >= voiceWarnRms && isVoiceLike()
 
           // Not voice-shaped (bang, dropped object, fan, chatter across the room)
           // — toast tiers only, never flags.
@@ -235,7 +366,7 @@ export default function ProctorAudio({ attemptId }: Props) {
             flagSamplesRef.current = 0
 
             // Sudden loud burst — instant toast.
-            if (rms >= NOISE_TOAST_RMS && now - lastNoiseAtRef.current >= NOISE_COOLDOWN_MS) {
+            if (rms >= noiseToastRms && now - lastNoiseAtRef.current >= NOISE_COOLDOWN_MS) {
               lastNoiseAtRef.current = now
               noiseSamplesRef.current = 0
               toast.warning("Loud noise detected.", {
@@ -246,7 +377,7 @@ export default function ProctorAudio({ attemptId }: Props) {
             }
 
             // Sustained moderate background noise — nudge them to a quieter place.
-            if (rms >= NOISE_WARN_RMS) {
+            if (rms >= noiseWarnRms) {
               noiseSamplesRef.current += 1
             } else {
               noiseSamplesRef.current = 0
@@ -270,12 +401,27 @@ export default function ProctorAudio({ attemptId }: Props) {
 
           // Only recognized words (from SpeechRecognition) count toward a flag.
           // Voice-like sound with no recognized words — whispering, humming,
-          // murmuring to yourself — stays in the toast-only tier forever. When
-          // SpeechRecognition isn't supported, recognition is null and we fall
-          // back to the old RMS-only gate so flagging still works.
-          const wordsRecent = recognition
+          // murmuring to yourself — stays in the toast-only tier forever.
+          //
+          // But that leniency is only safe while the recognizer is actually
+          // transcribing. If it is absent, errored, or has failed the dead-man's
+          // switch, we fall back to the RMS gate so talking still flags.
+          const speechUsable = recognition !== null && recognitionStateRef.current !== "unusable"
+
+          // Dead-man's switch: clear, flag-level, voice-shaped audio that the
+          // recognizer has never once transcribed means it isn't working.
+          if (speechUsable && recognitionStateRef.current === "unknown") {
+            if (rms >= voiceFlagRms) {
+              noWordsStreakRef.current += 1
+              if (noWordsStreakRef.current >= SPEECH_DEADMAN_SAMPLES) {
+                recognitionStateRef.current = "unusable"
+              }
+            }
+          }
+
+          const wordsRecent = speechUsable && recognitionStateRef.current !== "unusable"
             ? now - lastWordsAtRef.current <= RECOGNIZED_WORDS_WINDOW_MS
-            : rms >= VOICE_FLAG_RMS
+            : rms >= voiceFlagRms
 
           if (wordsRecent) {
             flagSamplesRef.current += 1
@@ -303,6 +449,7 @@ export default function ProctorAudio({ attemptId }: Props) {
       proctorSignals.audioRms = 0
       proctorSignals.micStream = null
       if (intervalId) clearInterval(intervalId)
+      if (restartTimer) clearTimeout(restartTimer)
       stream?.getTracks().forEach((t: any) => t.stop())
       audioCtx?.close()
       if (recognition) {
