@@ -4,7 +4,6 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import {
-  validateLocationConstraint,
   validatePasswordProtection,
   validateDateRange,
   isCourseOwnedByLecturer,
@@ -87,9 +86,10 @@ export async function POST(request: NextRequest) {
 
 
 
-  // Validate location
-  const locationErr = validateLocationConstraint(body.isLocationBound, body.location)
-  if (locationErr) return NextResponse.json({ error: locationErr }, { status: 400 })
+  if (body.requireTrustedNetwork) {
+    const network = await prisma.trustedNetwork.findFirst({ where: { id: body.trustedNetworkId ?? -1, enabled: true }, select: { id: true } })
+    if (!network) return NextResponse.json({ error: "Select an active approved network" }, { status: 400 })
+  }
 
   // Validate password
   const passwordErr = validatePasswordProtection(body.passwordProtected, body.accessPassword)
@@ -126,6 +126,8 @@ export async function POST(request: NextRequest) {
           shuffleOptions: body.shuffleOptions,
           isLocationBound: body.isLocationBound,
           location: body.isLocationBound ? body.location : null,
+          requireTrustedNetwork: body.requireTrustedNetwork,
+          trustedNetworkId: body.requireTrustedNetwork ? body.trustedNetworkId : null,
           proctoringEnabled: body.proctoringEnabled ?? false,
         },
       })

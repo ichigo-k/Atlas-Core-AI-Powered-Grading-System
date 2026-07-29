@@ -76,6 +76,7 @@ export type AssessmentDetail = {
   shuffleOptions: boolean
   isLocationBound: boolean
   location: string | null
+  requireTrustedNetwork: boolean
   proctoringEnabled: boolean
   sections: {
     id: number
@@ -109,6 +110,8 @@ export type AttemptRow = {
   score: number | null
   grade: string | null  // computed from score on read, not stored in DB
   startedAt: Date
+  /** When the exam clock started (first view of the questions). Null = not yet. */
+  timerStartedAt: Date | null
   submittedAt: Date | null
   questionOrder: unknown
   tabSwitchLog: unknown
@@ -121,6 +124,8 @@ export type ActiveAttempt = {
   attemptNumber: number
   status: string
   startedAt: Date
+  /** When the exam clock started (first view of the questions). Null = not yet. */
+  timerStartedAt: Date | null
   submittedAt: Date | null
   questionOrder: unknown
   tabSwitchLog: unknown
@@ -377,6 +382,7 @@ export async function getAssessmentWithQuestions(assessmentId: number, studentId
       shuffleOptions: true,
       isLocationBound: true,
       location: true,
+	  requireTrustedNetwork: true,
       proctoringEnabled: true,
       course: { select: { title: true, code: true } },
       sections: {
@@ -429,6 +435,7 @@ export async function getAssessmentWithQuestions(assessmentId: number, studentId
     shuffleOptions: assessment.shuffleOptions,
     isLocationBound: assessment.isLocationBound,
     location: assessment.location,
+	requireTrustedNetwork: assessment.requireTrustedNetwork,
     proctoringEnabled: assessment.proctoringEnabled,
     sections: assessment.sections,
   }
@@ -453,6 +460,7 @@ export async function getStudentAttempts(studentId: number, assessmentId: number
       status: true,
       score: true,
       startedAt: true,
+      timerStartedAt: true,
       submittedAt: true,
       questionOrder: true,
       tabSwitchLog: true,
@@ -543,6 +551,7 @@ export async function getActiveAttempt(attemptId: number, studentId: number): Pr
       attemptNumber: true,
       status: true,
       startedAt: true,
+      timerStartedAt: true,
       submittedAt: true,
       questionOrder: true,
       tabSwitchLog: true,

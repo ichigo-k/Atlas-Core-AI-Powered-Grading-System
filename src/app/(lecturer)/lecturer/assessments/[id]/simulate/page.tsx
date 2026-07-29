@@ -39,6 +39,7 @@ export default async function SimulatePage({
     attemptNumber: 1,
     status: "IN_PROGRESS",
     startedAt: new Date().toISOString(),
+    timerStartedAt: new Date().toISOString(),
     submittedAt: null,
     questionOrder: [],
     tabSwitchLog: [],
@@ -63,6 +64,7 @@ export default async function SimulatePage({
     shuffleOptions: assessment.shuffleOptions,
     isLocationBound: assessment.isLocationBound,
     location: assessment.location,
+	requireTrustedNetwork: assessment.requireTrustedNetwork,
     proctoringEnabled: assessment.proctoringEnabled,
     sections: assessment.sections,
   };

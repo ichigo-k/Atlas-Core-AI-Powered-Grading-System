@@ -22,6 +22,7 @@ import {
   getStudentAttempts,
 } from "@/lib/student-queries";
 import { submitAttemptInternal } from "@/lib/assessment-actions";
+import { hasAttemptExpired } from "@/lib/student-utils";
 import AssessmentEntryClient from "./AssessmentEntryClient";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -94,14 +95,10 @@ export default async function AssessmentDetailPage({
   let activeAttempt =
     attempts.find((a: any) => a.status === "IN_PROGRESS") ?? null;
   if (activeAttempt) {
-    let expired = false;
     const now = new Date();
-    if (assessment.durationMinutes) {
-      const expiryTime = new Date(activeAttempt.startedAt.getTime() + assessment.durationMinutes * 60 * 1000);
-      if (now > expiryTime) {
-        expired = true;
-      }
-    }
+    // Not expired while the clock has not started — the student created the
+    // attempt in onboarding but never reached the questions.
+    let expired = hasAttemptExpired(activeAttempt, assessment.durationMinutes, now);
     if (now > assessment.endsAt || assessment.status === "CLOSED") {
       expired = true;
     }
@@ -504,6 +501,7 @@ export default async function AssessmentDetailPage({
               durationMinutes={assessment.durationMinutes ?? null}
               startsAt={assessment.startsAt.toISOString()}
               endsAt={assessment.endsAt.toISOString()}
+			  requireTrustedNetwork={assessment.requireTrustedNetwork}
             />
           </div>
         )}

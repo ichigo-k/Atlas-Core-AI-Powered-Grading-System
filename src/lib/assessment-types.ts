@@ -61,6 +61,8 @@ export interface CreateAssessmentPayload {
   shuffleOptions: boolean
   isLocationBound: boolean
   location?: string | null
+  requireTrustedNetwork: boolean
+  trustedNetworkId?: number | null
   totalMarks: number
   status: "DRAFT" | "PUBLISHED"
   proctoringEnabled: boolean
@@ -165,9 +167,11 @@ export interface ClassAssignmentState {
 
 export interface Step2State {
   selectedClasses: ClassAssignmentState[]
-  isLocationBound: boolean
-  location: string
+  requireTrustedNetwork: boolean
+  trustedNetworkId: number | null
 }
+
+export interface TrustedNetworkOption { id: number; name: string; description: string | null }
 
 export interface QuestionFormState {
   id: string // local uuid for React key

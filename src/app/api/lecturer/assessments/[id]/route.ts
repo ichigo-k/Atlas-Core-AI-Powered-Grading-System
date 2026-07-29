@@ -4,7 +4,6 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import {
-  validateLocationConstraint,
   validatePasswordProtection,
   validateDateRange,
   canDeleteAssessment,
@@ -239,8 +238,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const dateErr = validateDateRange(body.startsAt, body.endsAt)
   if (dateErr) return NextResponse.json({ error: dateErr }, { status: 400 })
 
-  const locationErr = validateLocationConstraint(body.isLocationBound, body.location)
-  if (locationErr) return NextResponse.json({ error: locationErr }, { status: 400 })
+  if (body.requireTrustedNetwork) {
+    const network = await prisma.trustedNetwork.findFirst({ where: { id: body.trustedNetworkId ?? -1, enabled: true }, select: { id: true } })
+    if (!network) return NextResponse.json({ error: "Select an active approved network" }, { status: 400 })
+  }
   const passwordErr = validatePasswordProtection(body.passwordProtected, body.accessPassword)
   if (passwordErr) return NextResponse.json({ error: passwordErr }, { status: 400 })
 
@@ -267,6 +268,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           shuffleOptions: body.shuffleOptions,
           isLocationBound: body.isLocationBound,
           location: body.isLocationBound ? body.location : null,
+          requireTrustedNetwork: body.requireTrustedNetwork,
+          trustedNetworkId: body.requireTrustedNetwork ? body.trustedNetworkId : null,
           proctoringEnabled: body.proctoringEnabled ?? false,
         },
       })

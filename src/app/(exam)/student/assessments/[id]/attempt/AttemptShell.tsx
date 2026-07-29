@@ -822,7 +822,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af] mb-1.5 flex items-center gap-1.5">
               <Clock size={10} />Time Remaining
             </p>
-            <CountdownTimer startedAt={attempt.startedAt} durationMinutes={assessment.durationMinutes} onExpire={handleExpire} />
+            <CountdownTimer startedAt={attempt.timerStartedAt ?? attempt.startedAt} durationMinutes={assessment.durationMinutes} onExpire={handleExpire} />
           </div>
         )}
 
@@ -1009,7 +1009,7 @@ export default function AttemptShell({ attempt, assessment, assessmentId, procto
               {assessment.durationMinutes != null && (
                 <div className="flex lg:hidden items-center gap-1 text-[12px] font-semibold text-[#374151] bg-[#f3f4f6] px-2.5 py-1 rounded-full">
                   <Clock size={12} className="text-[#6b7280]" />
-                  <CountdownTimer startedAt={attempt.startedAt} durationMinutes={assessment.durationMinutes} onExpire={handleExpire} compact />
+                  <CountdownTimer startedAt={attempt.timerStartedAt ?? attempt.startedAt} durationMinutes={assessment.durationMinutes} onExpire={handleExpire} compact />
                 </div>
               )}
 

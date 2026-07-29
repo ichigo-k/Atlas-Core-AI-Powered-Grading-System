@@ -1,5 +1,5 @@
-import { AdminRouteSkeleton } from "@/components/ui/page-loaders";
+import { PortalDashboardLoader } from "@/components/ui/portal-route-loaders";
 
 export default function AdminLoading() {
-  return <AdminRouteSkeleton />;
+  return <PortalDashboardLoader portal="admin" />;
 }

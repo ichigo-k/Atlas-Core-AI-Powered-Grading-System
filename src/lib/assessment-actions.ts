@@ -2,7 +2,9 @@
 
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { computeHash, shuffleWithSeed } from "@/lib/student-utils";
+import { computeHash, hasAttemptExpired, shuffleWithSeed } from "@/lib/student-utils";
+import { headers } from "next/headers";
+import { ipMatchesCidr, requestIp } from "@/lib/access-control";
 
 export type AttemptResult = { attemptId: number } | { error: string };
 export type SubmitResult = { success: true } | { error: string };
@@ -52,9 +54,16 @@ export async function createOrResumeAttempt(
 				endsAt: true,
 				status: true,
 				durationMinutes: true,
+				requireTrustedNetwork: true,
+				trustedNetwork: { select: { enabled: true, cidrs: true } },
 			},
 		});
 		if (!assessment) return { error: "NOT_FOUND" };
+
+		if (assessment.requireTrustedNetwork) {
+			const ip = requestIp(await headers());
+			if (!assessment.trustedNetwork?.enabled || !ip || !assessment.trustedNetwork.cidrs.some((cidr) => ipMatchesCidr(ip, cidr))) return { error: "NETWORK_NOT_APPROVED" };
+		}
 
 		// Enforce assessment window — server-side time check
 		const now = new Date();
@@ -71,18 +80,13 @@ export async function createOrResumeAttempt(
 		// Resume an in-progress attempt if one exists (no password check needed for resume)
 		const existing = await prisma.assessmentAttempt.findFirst({
 			where: { assessmentId, studentId, status: "IN_PROGRESS" },
-			select: { id: true, startedAt: true },
+			select: { id: true, startedAt: true, timerStartedAt: true },
 		});
 		if (existing) {
-			let expired = false;
-			if (assessment.durationMinutes) {
-				const expiryTime = new Date(
-					existing.startedAt.getTime() + assessment.durationMinutes * 60 * 1000,
-				);
-				if (now > expiryTime) {
-					expired = true;
-				}
-			}
+			// An attempt whose clock has not started yet (student is still in
+			// onboarding) can never be expired by duration — only by the
+			// assessment window, which was already checked above.
+			const expired = hasAttemptExpired(existing, assessment.durationMinutes, now);
 
 			if (expired) {
 				await submitAttemptInternal(existing.id, assessmentId, "TIMED_OUT");

@@ -209,6 +209,20 @@ model SystemSettings {
   @@map("system_settings")
 }
 
+model TrustedNetwork {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  cidrs       String[]
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assessments Assessment[]
+
+  @@map("trusted_networks")
+}
+
 model Assessment {
   id                Int              @id @default(autoincrement())
   title             String
@@ -230,6 +244,9 @@ model Assessment {
   shuffleOptions    Boolean          @default(false)
   isLocationBound   Boolean          @default(false)
   location          String?
+  requireTrustedNetwork Boolean      @default(false)
+  trustedNetworkId Int?
+  trustedNetwork   TrustedNetwork?   @relation(fields: [trustedNetworkId], references: [id], onDelete: SetNull)
   gradingStatus     GradingStatus    @default(NOT_GRADED)
   resultsReleased   Boolean          @default(false)
   proctoringEnabled Boolean          @default(false)
@@ -372,6 +389,12 @@ model AssessmentAttempt {
   studentId     Int
   student       User          @relation(fields: [studentId], references: [id])
   startedAt     DateTime      @default(now())
+  // When the exam clock actually started — stamped the first time the student
+  // opens the attempt page and sees questions, NOT when the attempt row is
+  // created (that happens during onboarding, before the device checks). Null
+  // until then, so time spent in onboarding is never charged against the
+  // duration. All expiry maths uses `timerStartedAt ?? startedAt`.
+  timerStartedAt DateTime?
   submittedAt   DateTime?
   status        AttemptStatus @default(IN_PROGRESS)
   score         Float?
