@@ -4,8 +4,12 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 
 // ── Session lifetimes (seconds) ────────────────────────────────────────────
-const IDLE_TIMEOUT = 2 * 60 * 60; // 2 hours of inactivity ends the session
-const ABSOLUTE_MAX = 5 * 60 * 60; // 5 h hard cap regardless of activity
+const IDLE_TIMEOUT = 5 * 60 * 60; // 5 hours of inactivity ends the session
+// Hard cap regardless of activity. Must stay comfortably above IDLE_TIMEOUT —
+// if the two are equal the idle window can never be reached, because the
+// absolute cap always expires the session first and the sliding window becomes
+// dead code.
+const ABSOLUTE_MAX = 8 * 60 * 60; // 8 h hard cap regardless of activity
 const ABSOLUTE_MAX_KEEP = 30 * 24 * 60 * 60; // "keep me logged in" cap (30 days)
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -57,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 	],
 	session: {
 		strategy: "jwt",
-		// Idle timeout (the "access token"): 2 hours of inactivity ends the session.
+		// Idle timeout (the "access token"): 5 hours of inactivity ends the session.
 		// It's a sliding window — each request within the window resets it.
 		maxAge: IDLE_TIMEOUT,
 		// Re-issue (slide) the cookie at most this often while the user is active.
@@ -73,7 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 				token.role = u.role;
 				token.mustChangePassword = u.mustChangePassword;
 				// Absolute cap (the "refresh token"): hard expiry regardless of activity.
-				// "Keep me logged in" extends the cap; otherwise 5 hours.
+				// "Keep me logged in" extends the cap; otherwise 8 hours.
 				token.absoluteExp =
 					nowSec + (u.keepLoggedIn ? ABSOLUTE_MAX_KEEP : ABSOLUTE_MAX);
 			}
