@@ -1743,39 +1743,63 @@ export default function AssessmentView({
 													onClick={(e) => e.stopPropagation()}
 												>
 													{sub ? (
-														<div className="flex items-center justify-end gap-2">
-															<button
-																onClick={() =>
-																	setResetStudent({
-																		id: student.id,
-																		name: student.name,
-																	})
-																}
-																className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 transition-colors"
-															>
-																Reset
-															</button>
-															<button
-																onClick={() => handleRegrade(sub.attemptId)}
-																disabled={regradingAttemptId === sub.attemptId}
-																className="text-[11px] font-semibold text-muted-foreground hover:text-[#1e293b] disabled:opacity-50 transition-colors"
-															>
-																{regradingAttemptId === sub.attemptId ? (
-																	<span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent inline-block" />
-																) : (
-																	"Re-grade"
-																)}
-															</button>
-															<button
-																onClick={() =>
-																	router.push(
-																		`/lecturer/assessments/${resultsData.id}/results/attempts/${sub.attemptId}`,
-																	)
-																}
-																className="inline-flex items-center gap-1 h-7 px-2.5 rounded-sm bg-primary text-white text-[11px] font-semibold hover:bg-[#001570] transition-colors"
-															>
-																Review <ChevronRight size={12} />
-															</button>
+														<div className="flex justify-end">
+															<DropdownMenu>
+																<DropdownMenuTrigger asChild>
+																	<button
+																		type="button"
+																		aria-label={`Actions for ${student.name}`}
+																		className="flex h-8 w-8 items-center justify-center rounded-sm border border-transparent text-muted-foreground hover:border-border hover:bg-[#f3f2f1] hover:text-[#1e293b] transition-colors"
+																	>
+																		{regradingAttemptId === sub.attemptId ? (
+																			<span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+																		) : (
+																			<MoreVertical size={15} />
+																		)}
+																	</button>
+																</DropdownMenuTrigger>
+																<DropdownMenuContent
+																	align="end"
+																	className="w-40 rounded-md p-1"
+																>
+																	<DropdownMenuItem
+																		className="text-[13px]"
+																		onClick={() =>
+																			router.push(
+																				`/lecturer/assessments/${resultsData.id}/results/attempts/${sub.attemptId}`,
+																			)
+																		}
+																	>
+																		<Eye className="mr-2 h-4 w-4" /> Review
+																		attempt
+																	</DropdownMenuItem>
+																	<DropdownMenuItem
+																		className="text-[13px]"
+																		disabled={
+																			regradingAttemptId === sub.attemptId
+																		}
+																		onClick={() => handleRegrade(sub.attemptId)}
+																	>
+																		<RefreshCw className="mr-2 h-4 w-4" />
+																		{regradingAttemptId === sub.attemptId
+																			? "Re-grading…"
+																			: "Re-grade"}
+																	</DropdownMenuItem>
+																	<DropdownMenuSeparator />
+																	<DropdownMenuItem
+																		className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 text-[13px]"
+																		onClick={() =>
+																			setResetStudent({
+																				id: student.id,
+																				name: student.name,
+																			})
+																		}
+																	>
+																		<RotateCcw className="mr-2 h-4 w-4" /> Reset
+																		student
+																	</DropdownMenuItem>
+																</DropdownMenuContent>
+															</DropdownMenu>
 														</div>
 													) : (
 														<span className="text-muted-foreground/30">—</span>
