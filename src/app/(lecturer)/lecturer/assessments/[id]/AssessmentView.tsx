@@ -402,6 +402,13 @@ export default function AssessmentView({
 	const [isClosing, setIsClosing] = useState(false);
 	const [showDelete, setShowDelete] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [showResetAll, setShowResetAll] = useState(false);
+	const [isResettingAll, setIsResettingAll] = useState(false);
+	const [resetStudent, setResetStudent] = useState<{
+		id: number;
+		name: string;
+	} | null>(null);
+	const [isResettingStudent, setIsResettingStudent] = useState(false);
 	const [isPublishing, startPublishing] = useTransition();
 	const [isReopening, startReopening] = useTransition();
 
@@ -577,6 +584,53 @@ export default function AssessmentView({
 		}
 	}
 
+	async function handleResetAll() {
+		setIsResettingAll(true);
+		try {
+			const res = await fetch(
+				`/api/lecturer/assessments/${assessment.id}/reset`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({}),
+				},
+			);
+			if (!res.ok) throw new Error();
+			const data = await res.json().catch(() => ({ removed: 0 }));
+			toast.success(
+				`Test reset — cleared ${data.removed ?? 0} attempt${data.removed === 1 ? "" : "s"}. Students can retake it.`,
+			);
+			setShowResetAll(false);
+			router.refresh();
+		} catch {
+			toast.error("Failed to reset the test.");
+		} finally {
+			setIsResettingAll(false);
+		}
+	}
+
+	async function handleResetStudent(studentId: number) {
+		setIsResettingStudent(true);
+		try {
+			const res = await fetch(
+				`/api/lecturer/assessments/${assessment.id}/reset`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ studentId }),
+				},
+			);
+			if (!res.ok) throw new Error();
+			toast.success("Student reset — they can retake the assessment.");
+			setResetStudent(null);
+			router.refresh();
+		} catch {
+			toast.error("Failed to reset this student.");
+		} finally {
+			setIsResettingStudent(false);
+		}
+	}
+
 	function handleStartGrading() {
 		startGrading(async () => {
 			const res = await fetch(
@@ -608,7 +662,10 @@ export default function AssessmentView({
 				return;
 			}
 			setResultsReleased(false);
-			setGradingProgress({ graded: 0, total: resultsData?.submissions.length ?? 0 });
+			setGradingProgress({
+				graded: 0,
+				total: resultsData?.submissions.length ?? 0,
+			});
 			setGradingStatus("GRADING");
 			toast.success("All submitted attempts were sent for re-grading.");
 			setShowRegradeAll(false);
@@ -987,9 +1044,7 @@ export default function AssessmentView({
 								) : (
 									<Send size={12} />
 								)}
-								{isGrading
-									? "Starting…"
-									: "Grade Assessment"}
+								{isGrading ? "Starting…" : "Grade Assessment"}
 							</button>
 						)}
 						{/* Release / Unrelease */}
@@ -1056,12 +1111,18 @@ export default function AssessmentView({
 							Availability
 						</DropdownMenuLabel>
 						{assessment.status === "DRAFT" && (
-							<DropdownMenuItem className="text-[13px]" onClick={() => setShowPublish(true)}>
+							<DropdownMenuItem
+								className="text-[13px]"
+								onClick={() => setShowPublish(true)}
+							>
 								<Send className="mr-2 h-4 w-4" /> Publish assessment
 							</DropdownMenuItem>
 						)}
 						{assessment.status === "PUBLISHED" && (
-							<DropdownMenuItem className="text-[13px] text-amber-700" onClick={() => setShowClose(true)}>
+							<DropdownMenuItem
+								className="text-[13px] text-amber-700"
+								onClick={() => setShowClose(true)}
+							>
 								<Lock className="mr-2 h-4 w-4" /> Close assessment
 							</DropdownMenuItem>
 						)}
@@ -1070,7 +1131,9 @@ export default function AssessmentView({
 								className="text-[13px]"
 								onClick={() => {
 									if (new Date(assessment.endsAt) <= new Date()) {
-										toast.info("Choose a future closing time before re-opening.");
+										toast.info(
+											"Choose a future closing time before re-opening.",
+										);
 										setShowSettings(true);
 									} else {
 										setShowReopen(true);
@@ -1079,7 +1142,9 @@ export default function AssessmentView({
 								disabled={isReopening}
 							>
 								<RefreshCw className="mr-2 h-4 w-4" />
-								{new Date(assessment.endsAt) <= new Date() ? "Set closing time to re-open" : "Re-open assessment"}
+								{new Date(assessment.endsAt) <= new Date()
+									? "Set closing time to re-open"
+									: "Re-open assessment"}
 							</DropdownMenuItem>
 						)}
 						{assessment.status === "CLOSED" && (
@@ -1090,16 +1155,27 @@ export default function AssessmentView({
 								</DropdownMenuLabel>
 							</>
 						)}
-						{assessment.status === "CLOSED" && gradingStatus === "NOT_GRADED" && submittedCount > 0 && (
-							<DropdownMenuItem className="text-[13px]" onClick={() => setShowStartGrading(true)}>
-								<Send className="mr-2 h-4 w-4" /> Grade assessment
-							</DropdownMenuItem>
-						)}
-						{assessment.status === "CLOSED" && gradingStatus === "GRADED" && submittedCount > 0 && (
-							<DropdownMenuItem className="text-[13px] text-amber-700" onClick={() => setShowRegradeAll(true)}>
-								<RotateCcw className="mr-2 h-4 w-4" /> Re-grade all submissions
-							</DropdownMenuItem>
-						)}
+						{assessment.status === "CLOSED" &&
+							gradingStatus === "NOT_GRADED" &&
+							submittedCount > 0 && (
+								<DropdownMenuItem
+									className="text-[13px]"
+									onClick={() => setShowStartGrading(true)}
+								>
+									<Send className="mr-2 h-4 w-4" /> Grade assessment
+								</DropdownMenuItem>
+							)}
+						{assessment.status === "CLOSED" &&
+							gradingStatus === "GRADED" &&
+							submittedCount > 0 && (
+								<DropdownMenuItem
+									className="text-[13px] text-amber-700"
+									onClick={() => setShowRegradeAll(true)}
+								>
+									<RotateCcw className="mr-2 h-4 w-4" /> Re-grade all
+									submissions
+								</DropdownMenuItem>
+							)}
 						{gradingStatus === "GRADED" && (
 							<DropdownMenuItem
 								className="text-[13px]"
@@ -1109,7 +1185,10 @@ export default function AssessmentView({
 							</DropdownMenuItem>
 						)}
 						{gradingStatus === "GRADED" && !resultsReleased && (
-							<DropdownMenuItem className="text-[13px]" onClick={() => setShowRelease(true)}>
+							<DropdownMenuItem
+								className="text-[13px]"
+								onClick={() => setShowRelease(true)}
+							>
 								<Eye className="mr-2 h-4 w-4" /> Release results
 							</DropdownMenuItem>
 						)}
@@ -1126,6 +1205,15 @@ export default function AssessmentView({
 						<DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-500">
 							Danger zone
 						</DropdownMenuLabel>
+						{assessment.status !== "DRAFT" && (
+							<DropdownMenuItem
+								className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 text-[13px]"
+								onClick={() => setShowResetAll(true)}
+							>
+								<RotateCcw className="mr-2 h-4 w-4" /> Reset test (clear all
+								attempts)
+							</DropdownMenuItem>
+						)}
 						<DropdownMenuItem
 							className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 text-[13px]"
 							onClick={() => setShowDelete(true)}
@@ -1657,6 +1745,17 @@ export default function AssessmentView({
 													{sub ? (
 														<div className="flex items-center justify-end gap-2">
 															<button
+																onClick={() =>
+																	setResetStudent({
+																		id: student.id,
+																		name: student.name,
+																	})
+																}
+																className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 transition-colors"
+															>
+																Reset
+															</button>
+															<button
 																onClick={() => handleRegrade(sub.attemptId)}
 																disabled={regradingAttemptId === sub.attemptId}
 																className="text-[11px] font-semibold text-muted-foreground hover:text-[#1e293b] disabled:opacity-50 transition-colors"
@@ -1796,6 +1895,34 @@ export default function AssessmentView({
 					isLoading={isUnreleasing}
 					onConfirm={handleUnreleaseResults}
 					onCancel={() => setShowHideResults(false)}
+				/>
+
+				<ConfirmModal
+					open={showResetAll}
+					title="Reset test?"
+					description={`This permanently clears every attempt and submission for "${assessment.title}". All students — including those who used up their attempts — can take it again from scratch. Grades and released results are cleared too. This cannot be undone.`}
+					confirmText="Reset test"
+					isDestructive
+					isLoading={isResettingAll}
+					onConfirm={handleResetAll}
+					onCancel={() => setShowResetAll(false)}
+				/>
+
+				<ConfirmModal
+					open={resetStudent !== null}
+					title="Reset this student?"
+					description={
+						resetStudent
+							? `This permanently clears ${resetStudent.name}'s attempt(s) for "${assessment.title}". They will be able to retake it even if they had exhausted their attempts. This cannot be undone.`
+							: ""
+					}
+					confirmText="Reset student"
+					isDestructive
+					isLoading={isResettingStudent}
+					onConfirm={() => {
+						if (resetStudent) handleResetStudent(resetStudent.id);
+					}}
+					onCancel={() => setResetStudent(null)}
 				/>
 
 				<ConfirmModal
