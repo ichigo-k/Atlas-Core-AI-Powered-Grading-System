@@ -27,15 +27,9 @@ import { toast } from "sonner"
 import { useViolationStore } from "@/lib/violation-store"
 import { addViolation, tryAcquireFlagSlot, type ViolationReason } from "@/lib/violation-tracker"
 import { proctorSignals } from "@/lib/proctor-signals"
-import { findVirtualDevice } from "@/lib/device-integrity"
 import type { FlagType } from "@/components/student/FlagOverlay"
 import { getFaceLandmarker, getCocoSsd } from "@/lib/model-cache"
-import { Video, VideoOff, ShieldAlert } from "lucide-react"
-
-// Virtual devices are re-flagged on this cadence for as long as they remain
-// in use — the onboarding check only catches a spoofed device at setup time;
-// this keeps re-punishing it if the student swapped afterward.
-const VIRTUAL_DEVICE_REFLAG_MS = 15000
+import { Video, VideoOff } from "lucide-react"
 
 const OBJECT_INTERVAL_MS = 800
 
@@ -140,7 +134,6 @@ export default function ProctorCamera({ attemptId }: Props) {
   const streamRef = useRef<MediaStream | null>(null)
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
-  const [virtualDevice, setVirtualDevice] = useState<string | null>(null)
 
   // Per-signal escalation state: how long it's been continuously present, and
   // when we last warned / flagged it (for cooldowns).
@@ -258,20 +251,13 @@ export default function ProctorCamera({ attemptId }: Props) {
   }, [])
 
   // ── Start camera ──────────────────────────────────────────────────────────
+  // Virtual cameras (OBS and friends) are allowed, so the stream is used as-is.
+  // The microphone is still screened for virtual devices — see ProctorAudio.
   useEffect(() => {
     let cancelled = false
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
       .then((stream) => {
         if (cancelled) { stream.getTracks().forEach((t: any) => t.stop()); return }
-        const virtual = findVirtualDevice(stream)
-        if (virtual) {
-          // Onboarding already screens for this, but a student can swap their
-          // OS default device after passing it and before this stream is
-          // acquired — so the exam camera itself has to check again.
-          stream.getTracks().forEach((t: any) => t.stop())
-          setVirtualDevice(virtual)
-          return
-        }
         streamRef.current = stream
         proctorSignals.cameraStream = stream
         setCameraReady(true)
@@ -283,29 +269,6 @@ export default function ProctorCamera({ attemptId }: Props) {
       proctorSignals.cameraStream = null
     }
   }, [])
-
-  // ── Virtual camera re-flagging ─────────────────────────────────────────────
-  // A hard, unambiguous signal — flag immediately, then keep re-flagging on a
-  // cadence for as long as the virtual device stays in use (there's no "clear"
-  // state to escalate() the way per-frame face signals have).
-  useEffect(() => {
-    if (!virtualDevice) return
-    let cancelled = false
-    async function flagVirtual() {
-      const s = useViolationStore.getState()
-      if (s.submitting || s.activeEvent) return
-      const optimistic = useViolationStore.getState().count + 1
-      recordViolation({ type: "VIRTUAL_DEVICE_DETECTED", flagCountAfter: optimistic, source: "CAMERA" })
-      const { count: serverCount, willAutoSubmit } = await addViolation(attemptId, "VIRTUAL_DEVICE_DETECTED" as ViolationReason)
-      if (cancelled) return
-      syncCount(serverCount)
-      if (willAutoSubmit) showFinalWarning()
-    }
-    void flagVirtual()
-    const id = setInterval(() => { void flagVirtual() }, VIRTUAL_DEVICE_REFLAG_MS)
-    return () => { cancelled = true; clearInterval(id) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [virtualDevice, attemptId])
 
   // ── Attach stream after video element renders ─────────────────────────────
   useEffect(() => {
@@ -539,11 +502,6 @@ export default function ProctorCamera({ attemptId }: Props) {
             className="h-full w-full object-cover"
             style={{ transform: "scaleX(-1)" }}
           />
-        ) : virtualDevice ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-3 text-center text-red-400">
-            <ShieldAlert size={18} />
-            <span className="text-[10px] font-semibold">Virtual camera blocked</span>
-          </div>
         ) : cameraError ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-white/40">
             <VideoOff size={18} />

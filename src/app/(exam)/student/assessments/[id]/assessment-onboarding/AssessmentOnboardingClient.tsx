@@ -33,7 +33,8 @@ import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
 import { findVirtualDevice, listRealCameras, hasMultipleMonitors, isMobileDevice, findWirelessAudio, findWirelessMicrophone } from "@/lib/device-integrity";
 import { getBlazeFace } from "@/lib/model-cache";
 
-type CameraState = "idle" | "requesting" | "granted" | "denied" | "virtual";
+// No "virtual" state — virtual cameras are allowed.
+type CameraState = "idle" | "requesting" | "granted" | "denied";
 type MicState = "idle" | "requesting" | "granted" | "denied" | "virtual";
 type LightingStatus = "checking" | "ok" | "poor" | "unknown";
 type FaceStatus = "checking" | "ok" | "absent" | "multiple" | "unknown";
@@ -693,7 +694,6 @@ function StepCameraCheck({
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
   const [agreed, setAgreed] = useState(false);
-  const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
   const [extraCameras, setExtraCameras] = useState<string[]>([]);
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -702,18 +702,12 @@ function StepCameraCheck({
   const streamRef = useRef<MediaStream | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Virtual cameras (OBS, ManyCam, Snap Camera, …) are deliberately allowed —
+  // only the NUMBER of connected cameras is enforced, below.
   const requestCamera = useCallback(async () => {
     setCameraState("requesting");
-    setVirtualLabel(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      const virtual = findVirtualDevice(stream);
-      if (virtual) {
-        stream.getTracks().forEach((t) => t.stop());
-        setVirtualLabel(virtual);
-        setCameraState("virtual");
-        return;
-      }
       streamRef.current = stream;
       setCameraState("granted");
     } catch {
@@ -875,18 +869,15 @@ function StepCameraCheck({
   // access and then disable it (or plug in an extra device) before reaching
   // this point. Returns a human reason on the first failure.
   async function runPreflight(): Promise<{ ok: true } | { ok: false; reason: string }> {
-    // Camera access + not a virtual camera.
+    // Camera access. Virtual cameras are allowed, so the only camera rule here
+    // is the device count, checked further down.
     let videoStream: MediaStream;
     try {
       videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     } catch {
       return { ok: false, reason: "your camera is off or blocked. Re-enable your camera and try again." };
     }
-    const vVirtual = findVirtualDevice(videoStream);
     videoStream.getTracks().forEach((t) => t.stop());
-    if (vVirtual) {
-      return { ok: false, reason: `a virtual camera (“${vVirtual}”) is in use. Disable it and use a physical camera.` };
-    }
 
     // Microphone access + not a virtual or wireless mic.
     let audioStream: MediaStream;
@@ -1015,11 +1006,6 @@ function StepCameraCheck({
               </div>
             </div>
           </>
-        ) : cameraState === "virtual" ? (
-          <div className="flex flex-col items-center gap-2 text-slate-400">
-            <CameraOff size={28} />
-            <span className="text-[12px] font-semibold">Virtual camera detected</span>
-          </div>
         ) : cameraState === "denied" ? (
           <div className="flex flex-col items-center gap-2 text-slate-400">
             <CameraOff size={28} />
@@ -1034,20 +1020,6 @@ function StepCameraCheck({
       </div>
 
       <div className="mb-4 space-y-2.5">
-        {cameraState === "virtual" && (
-          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
-            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
-            <div>
-              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">Virtual camera not allowed</p>
-              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
-                “{virtualLabel}” is a virtual camera and can't be used for a proctored
-                exam. Close it and use your device's built-in or a physical webcam,
-                then{" "}
-                <button type="button" onClick={requestCamera} className="underline">try again</button>.
-              </p>
-            </div>
-          </div>
-        )}
         {cameraState === "denied" && (
           <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
@@ -1163,8 +1135,7 @@ function StepCameraCheck({
 
         {!canProceed && (
           <p className="text-[11px] text-muted-foreground">
-            {cameraState === "virtual" ? "A physical camera is required to proceed."
-              : cameraState === "denied" ? "Camera access is required to proceed."
+            {cameraState === "denied" ? "Camera access is required to proceed."
               : !singleCamera ? "Disconnect all external cameras (and turn off Bluetooth) to proceed."
               : lightingStatus === "poor" ? "Improve your lighting to continue."
                 : faceStatus === "multiple" ? "You must be alone in view of the camera to proceed."
