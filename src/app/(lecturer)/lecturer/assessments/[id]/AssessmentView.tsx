@@ -488,7 +488,7 @@ export default function AssessmentView({
 			}
 		}
 		void poll();
-		intervalId = setInterval(poll, 3_000);
+		intervalId = setInterval(poll, 6_000);
 		const onVisibility = () => {
 			if (document.visibilityState === "visible") poll();
 		};

@@ -244,7 +244,7 @@ export default function AssessmentResultsView({
 		}
 
 		void poll();
-		intervalId = setInterval(poll, 4_000);
+		intervalId = setInterval(poll, 8_000);
 
 		function handleVisibilityChange() {
 			if (document.visibilityState === "visible") {

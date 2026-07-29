@@ -12,7 +12,7 @@ interface Props {
 }
 
 const PAGE_SIZE = 8;
-const ROSTER_INTERVAL_MS = 4000;
+const ROSTER_INTERVAL_MS = 8000;
 
 export default function LiveViewTab({ assessmentId, isRunning }: Props) {
 	const [students, setStudents] = useState<LiveStudent[]>([]);
@@ -71,7 +71,10 @@ export default function LiveViewTab({ assessmentId, isRunning }: Props) {
 	// Drop the spotlight if that student is no longer on the visible page
 	// (paged away, finished, or left the roster) — their tile would unmount.
 	useEffect(() => {
-		if (spotlightId != null && !pageStudents.some((s) => s.attemptId === spotlightId)) {
+		if (
+			spotlightId != null &&
+			!pageStudents.some((s) => s.attemptId === spotlightId)
+		) {
 			setSpotlightId(null);
 		}
 	}, [pageStudents, spotlightId]);
@@ -92,7 +95,9 @@ export default function LiveViewTab({ assessmentId, isRunning }: Props) {
 						<span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
 							<span
 								className={`h-1.5 w-1.5 rounded-full ${
-									students.length > 0 ? "bg-green-500 animate-pulse" : "bg-slate-300"
+									students.length > 0
+										? "bg-green-500 animate-pulse"
+										: "bg-slate-300"
 								}`}
 							/>
 							{students.length} student{students.length !== 1 ? "s" : ""} live
