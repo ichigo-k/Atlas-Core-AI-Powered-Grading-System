@@ -10,6 +10,7 @@ import {
 	School,
 	Settings,
 	Users,
+	Wifi,
 	X,
 } from "lucide-react";
 import Image from "next/image";
@@ -25,6 +26,7 @@ const navItems = [
 	{ label: "Courses", href: "/admin/courses", Icon: BookOpen },
 	{ label: "Faculties", href: "/admin/faculties", Icon: Building2 },
 	{ label: "Programs", href: "/admin/programs", Icon: School },
+	{ label: "Trusted Networks", href: "/admin/trusted-networks", Icon: Wifi },
 	{ label: "Settings", href: "/admin/settings", Icon: Settings },
 ];
 

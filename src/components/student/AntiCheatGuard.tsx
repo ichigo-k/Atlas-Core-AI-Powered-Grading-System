@@ -223,15 +223,64 @@ export default function AntiCheatGuard({ isSecured, attemptId, onSubmit }: AntiC
   }, [count, terminated, showFinalWarning])
 
   // ── Devtools detection ─────────────────────────────────────────────────────
+  // The old check was `outerWidth - innerWidth > 160`, which only ever catches
+  // devtools docked to the SIDE. Docked to the bottom (the default in Chrome)
+  // it shrinks innerHeight instead and went completely undetected.
+  //
+  // An absolute height threshold doesn't work either — normal browser chrome
+  // (tabs, address bar, bookmarks) already accounts for 100-200px and varies
+  // per browser and per user. So we baseline the viewport once at exam start
+  // and watch for a sustained SHRINK from it in either axis, which is what
+  // opening a docked devtools panel actually looks like.
   useEffect(() => {
     if (!isSecured) return
+
+    // Ignore the reflow that follows entering fullscreen — take the baseline
+    // once the layout has settled.
+    let baseline: { w: number; h: number } | null = null
+    const baselineTimer = setTimeout(() => {
+      baseline = { w: window.innerWidth, h: window.innerHeight }
+    }, 2000)
+
+    const DOCK_SHRINK_PX = 120
+    // Devtools must stay open this long before it counts as a violation, so a
+    // transient resize (rotating a tablet, the OS keyboard appearing) doesn't
+    // punish anyone.
+    const SUSTAIN_TICKS = 10
+    let openTicks = 0
+
     const id = setInterval(() => {
-      const detected = window.outerWidth - window.innerWidth > 160
+      let detected = false
+      if (baseline) {
+        // Genuine window resizes move the baseline with them; devtools opening
+        // shrinks the viewport while the window itself stays put, so only treat
+        // a shrink as suspicious and re-baseline on growth.
+        const shrankW = baseline.w - window.innerWidth
+        const shrankH = baseline.h - window.innerHeight
+        detected = shrankW > DOCK_SHRINK_PX || shrankH > DOCK_SHRINK_PX
+        if (!detected) baseline = { w: window.innerWidth, h: window.innerHeight }
+      }
+
       const el = document.getElementById("anti-cheat-devtools-overlay")
       if (el) el.style.display = detected ? "flex" : "none"
+
+      if (!detected) { openTicks = 0; return }
+
+      openTicks += 1
+      if (openTicks !== SUSTAIN_TICKS) return  // flag once per continuous run
+
+      if (useViolationStore.getState().submitting) return
+      if (!tryAcquireFlagSlot(attemptId)) return
+      const optimistic = useViolationStore.getState().count + 1
+      recordViolation({ type: "TAB_SWITCH", flagCountAfter: optimistic, source: "CLIENT" })
+      addViolation(attemptId, "TAB_SWITCH").then(({ count: serverCount, willAutoSubmit }) => {
+        syncCount(serverCount)
+        if (willAutoSubmit) showFinalWarning()
+      })
     }, 1000)
-    return () => clearInterval(id)
-  }, [isSecured])
+
+    return () => { clearTimeout(baselineTimer); clearInterval(id) }
+  }, [isSecured, attemptId, recordViolation, syncCount, showFinalWarning])
 
   if (!isSecured) return null
 

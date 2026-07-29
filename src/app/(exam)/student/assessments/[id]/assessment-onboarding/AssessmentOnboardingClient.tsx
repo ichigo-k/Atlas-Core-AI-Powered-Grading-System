@@ -18,11 +18,11 @@ import {
   MicOff,
   Monitor,
   PlayCircle,
-  ScanFace,
   ShieldCheck,
   Sun,
   SunDim,
   User,
+  Users,
   Volume2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -30,14 +30,22 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createOrResumeAttempt } from "@/lib/assessment-actions";
 import { createProctorSession } from "@/lib/proctor-session-actions";
 import { MAX_VIOLATIONS } from "@/lib/violation-tracker";
-import { findVirtualDevice, listRealCameras, listRealMicrophones, hasMultipleMonitors, isMobileDevice, findWirelessAudio, findWirelessMicrophone } from "@/lib/device-integrity";
+import { findVirtualDevice, listRealCameras, hasMultipleMonitors, isMobileDevice, findWirelessAudio, findWirelessMicrophone } from "@/lib/device-integrity";
 import { getBlazeFace } from "@/lib/model-cache";
-import LivenessCheck from "@/components/student/LivenessCheck";
 
 type CameraState = "idle" | "requesting" | "granted" | "denied" | "virtual";
 type MicState = "idle" | "requesting" | "granted" | "denied" | "virtual";
 type LightingStatus = "checking" | "ok" | "poor" | "unknown";
-type FaceStatus = "checking" | "ok" | "absent" | "unknown";
+type FaceStatus = "checking" | "ok" | "absent" | "multiple" | "unknown";
+
+// ── Camera-check face detection tuning ──────────────────────────────────────
+// Minimum BlazeFace confidence for a detection to count as a real face.
+const FACE_CONFIDENCE_MIN = 0.8;
+// How often the lighting/face checks re-run. Fast enough that a second person
+// entering the frame is caught while the student is still on this step.
+const FACE_POLL_INTERVAL_MS = 1200;
+// Consecutive single-face polls required to clear a "multiple people" block.
+const MULTI_FACE_CLEAR_POLLS = 3;
 
 interface Props {
   assessmentId: number;
@@ -49,6 +57,12 @@ interface Props {
   passwordProtected: boolean;
   proctoringEnabled: boolean;
   instructions: string;
+	requireTrustedNetwork: boolean;
+}
+
+function accessError(code: string) {
+  if (code === "NETWORK_NOT_APPROVED") return "Connect to the approved campus network and try again.";
+  return "Something went wrong. Please try again.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,7 +77,6 @@ function buildSteps(passwordProtected: boolean, proctoringEnabled: boolean, hasI
     ...(passwordProtected ? [{ label: "Password", icon: LockKeyhole }] : []),
     { label: "Microphone", icon: Mic },
     ...(proctoringEnabled ? [{ label: "Camera check", icon: Camera }] : []),
-    ...(proctoringEnabled ? [{ label: "Liveness check", icon: ScanFace }] : []),
   ];
 }
 
@@ -454,7 +467,6 @@ function StepMicCheck({
   const streamRef = useRef<MediaStream | null>(null);
 
   const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
-  const [extraMics, setExtraMics] = useState<string[]>([]);
   const [wirelessMic, setWirelessMic] = useState<string | null>(null);
   const [multiMonitor, setMultiMonitor] = useState(false);
 
@@ -489,18 +501,17 @@ function StepMicCheck({
     };
   }, [requestMic]);
 
-  // Detect additional (external / Bluetooth) microphones once mic permission
-  // is granted, and re-check on devicechange so plugging one in afterward is
-  // still caught.
+  // Watch for a Bluetooth/wireless microphone once mic permission is granted,
+  // and re-check on devicechange so connecting one afterward is still caught.
+  // The NUMBER of connected microphones is deliberately not checked — plenty of
+  // legitimate machines enumerate several built-in/virtual-ish audio inputs.
   useEffect(() => {
     if (micState !== "granted") return;
     let cancelled = false;
 
     const scan = async () => {
-      const mics = await listRealMicrophones();
       const wireless = await findWirelessMicrophone();
       if (cancelled) return;
-      setExtraMics(mics);
       // Keep any wireless device already found on the active track; also flag
       // one surfaced by enumeration (e.g. connected after the initial grant).
       setWirelessMic((prev) => prev ?? wireless);
@@ -532,8 +543,7 @@ function StepMicCheck({
     };
   }, []);
 
-  const singleMic = extraMics.length <= 1;
-  const canContinue = micState === "granted" && singleMic && !wirelessMic && !multiMonitor;
+  const canContinue = micState === "granted" && !wirelessMic && !multiMonitor;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -593,28 +603,11 @@ function StepMicCheck({
                 <button type="button" onClick={requestMic} className="underline font-semibold">try again</button>.
               </p>
             )}
-            {micState === "granted" && singleMic && !wirelessMic && (
+            {micState === "granted" && !wirelessMic && (
               <p className="text-[11px] text-emerald-700/80 mt-0.5">Ready. You may proceed.</p>
             )}
           </div>
         </div>
-
-        {/* Multiple microphones — hard block */}
-        {micState === "granted" && !singleMic && (
-          <div className="flex items-start gap-3 rounded-sm border border-red-200 bg-red-50 p-4">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-red-600" />
-            <div>
-              <p className="text-[12px] font-bold text-red-700 mb-1">Multiple microphones detected</p>
-              <p className="text-[11px] text-red-700/90 leading-relaxed">
-                {extraMics.length} microphones are connected to this computer. You cannot
-                start the exam with an external or Bluetooth microphone attached.
-                Disconnect all external microphones and headsets, turn off Bluetooth,
-                then{" "}
-                <button type="button" onClick={requestMic} className="underline font-semibold">re-check</button>.
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* Bluetooth / wireless mic — hard block (catches AirPods/Buds on mobile
             where the device count collapses to one) */}
@@ -670,10 +663,9 @@ function StepMicCheck({
           <p className="text-[11px] text-muted-foreground ml-1">
             {micState === "virtual" ? "A physical microphone is required to proceed."
               : micState === "denied" ? "Microphone access is required to proceed."
-                : !singleMic ? "Disconnect all external microphones (and turn off Bluetooth) to proceed."
-                  : wirelessMic ? "Disconnect the Bluetooth/wireless audio device to proceed."
-                    : multiMonitor ? "Disconnect all extra monitors to proceed."
-                      : "Waiting for microphone…"}
+                : wirelessMic ? "Disconnect the Bluetooth/wireless audio device to proceed."
+                  : multiMonitor ? "Disconnect all extra monitors to proceed."
+                    : "Waiting for microphone…"}
           </p>
         )}
       </div>
@@ -686,28 +678,29 @@ function StepMicCheck({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function StepCameraCheck({
+  assessmentId,
+  attemptId,
   onBack,
   onCancel,
-  onProceed,
 }: {
+  assessmentId: number;
+  attemptId: number;
   onBack?: () => void;
   onCancel?: () => void;
-  /** Advances to the liveness-check step. The exam itself is not started here —
-   * the proctor session, fullscreen request, and navigation all happen at the
-   * liveness step, so a spoofed camera can't skip straight into the exam. */
-  onProceed: (stream: MediaStream) => void;
 }) {
+  const router = useRouter();
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>("unknown");
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("unknown");
   const [agreed, setAgreed] = useState(false);
   const [virtualLabel, setVirtualLabel] = useState<string | null>(null);
   const [extraCameras, setExtraCameras] = useState<string[]>([]);
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const streamTransferredRef = useRef(false);
 
   const requestCamera = useCallback(async () => {
     setCameraState("requesting");
@@ -731,9 +724,7 @@ function StepCameraCheck({
   useEffect(() => {
     requestCamera();
     return () => {
-      if (!streamTransferredRef.current) {
-        streamRef.current?.getTracks().forEach((t: any) => t.stop());
-      }
+      streamRef.current?.getTracks().forEach((t: any) => t.stop());
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [requestCamera]);
@@ -793,22 +784,42 @@ function StepCameraCheck({
   // src/lib/model-cache.ts) — the model is loaded once for the whole
   // session (often already warmed by ModelPrefetcher right after login) and
   // reused here, rather than reloaded per-component.
-  const checkFace = useCallback(async (): Promise<"ok" | "absent" | "unknown"> => {
+  //
+  // Counts faces rather than just testing for presence: a second person sitting
+  // beside the student is the single most common way to cheat the setup step,
+  // and the check used to pass as long as at least one face was visible.
+  const checkFace = useCallback(async (): Promise<"ok" | "absent" | "multiple" | "unknown"> => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return "unknown";
     try {
       const model = await getBlazeFace();
       const predictions = await model.estimateFaces(video, false);
-      return predictions.length > 0 ? "ok" : "absent";
+      // Drop low-confidence boxes. BlazeFace will happily report a face-ish
+      // patch of background at ~0.6, and a false "multiple people" block is
+      // far more damaging than a slightly late one.
+      const confident = predictions.filter((p) => {
+        const prob = (p as { probability?: number | number[] }).probability;
+        const score = Array.isArray(prob) ? prob[0] : prob;
+        return typeof score !== "number" || score >= FACE_CONFIDENCE_MIN;
+      });
+      if (confident.length === 0) return "absent";
+      return confident.length > 1 ? "multiple" : "ok";
     } catch {
       return "unknown";
     }
   }, []);
 
+  // Consecutive single-face readings observed since the last "multiple" hit,
+  // and whether we are currently holding the block.
+  const cleanStreakRef = useRef(0);
+  const multiBlockedRef = useRef(false);
+
   useEffect(() => {
     if (cameraState !== "granted") return;
 
     let firstRun = true;
+    cleanStreakRef.current = 0;
+    multiBlockedRef.current = false;
 
     const run = async () => {
       if (firstRun) {
@@ -820,15 +831,135 @@ function StepCameraCheck({
       setLightingStatus(lighting === "unknown" ? "checking" : lighting);
 
       const face = await checkFace();
-      if (face !== "unknown") setFaceStatus(face);
+      if (face === "unknown") return;
+
+      // A second person leaving the frame for one poll must not instantly clear
+      // the block — otherwise someone can sit beside the student, duck out for a
+      // second while they click Start Exam, and come straight back. Once multiple
+      // people have been seen, the frame has to read as a single face for
+      // several consecutive polls before the check passes again.
+      if (face === "multiple") {
+        cleanStreakRef.current = 0;
+        multiBlockedRef.current = true;
+        setFaceStatus("multiple");
+        return;
+      }
+
+      if (multiBlockedRef.current) {
+        // "absent" tells us nothing about whether the other person left, so it
+        // never counts toward clearing the block.
+        if (face !== "ok") {
+          setFaceStatus("multiple");
+          return;
+        }
+        cleanStreakRef.current += 1;
+        if (cleanStreakRef.current < MULTI_FACE_CLEAR_POLLS) {
+          setFaceStatus("multiple");
+          return;
+        }
+        multiBlockedRef.current = false;
+      }
+
+      setFaceStatus(face);
     };
 
     run();
-    pollingRef.current = setInterval(run, 3000);
+    pollingRef.current = setInterval(run, FACE_POLL_INTERVAL_MS);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [cameraState, checkLighting, checkFace]);
+
+  // Re-verify every device precondition at the moment of starting. The earlier
+  // onboarding steps only check once, so a student could grant camera/mic
+  // access and then disable it (or plug in an extra device) before reaching
+  // this point. Returns a human reason on the first failure.
+  async function runPreflight(): Promise<{ ok: true } | { ok: false; reason: string }> {
+    // Camera access + not a virtual camera.
+    let videoStream: MediaStream;
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    } catch {
+      return { ok: false, reason: "your camera is off or blocked. Re-enable your camera and try again." };
+    }
+    const vVirtual = findVirtualDevice(videoStream);
+    videoStream.getTracks().forEach((t) => t.stop());
+    if (vVirtual) {
+      return { ok: false, reason: `a virtual camera (“${vVirtual}”) is in use. Disable it and use a physical camera.` };
+    }
+
+    // Microphone access + not a virtual or wireless mic.
+    let audioStream: MediaStream;
+    try {
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch {
+      return { ok: false, reason: "your microphone is off or blocked. Go back to the Microphone check, re-enable your microphone, and try again." };
+    }
+    const aVirtual = findVirtualDevice(audioStream);
+    const aWireless = findWirelessAudio(audioStream);
+    audioStream.getTracks().forEach((t) => t.stop());
+    if (aVirtual) {
+      return { ok: false, reason: `a virtual microphone (“${aVirtual}”) is in use. Disable it and use a physical microphone.` };
+    }
+    const wirelessMicLabel = aWireless ?? (await findWirelessMicrophone());
+    if (wirelessMicLabel) {
+      return { ok: false, reason: `a Bluetooth/wireless audio device (“${wirelessMicLabel}”) is connected. Disconnect it, turn off Bluetooth, and use your device's built-in microphone.` };
+    }
+
+    // Exactly one camera (phones/tablets are exempt — they legitimately have
+    // multiple built-in cameras). Microphones are NOT counted; only virtual and
+    // wireless mics are blocked, both checked above.
+    const cams = await listRealCameras();
+    if (!isMobileDevice() && cams.length > 1) {
+      return { ok: false, reason: "more than one camera is connected. Disconnect all external cameras and turn off Bluetooth." };
+    }
+
+    // Single display only.
+    if (hasMultipleMonitors()) {
+      return { ok: false, reason: "more than one monitor is connected. Disconnect all extra monitors and use a single screen." };
+    }
+
+    return { ok: true };
+  }
+
+  // The exam is only started once the checks pass and the student clicks
+  // "Start Exam" — this is where all device checks are re-run, the proctor
+  // session is created, fullscreen is requested (needs a fresh user gesture),
+  // and we navigate.
+  async function handleStart() {
+    if (!streamRef.current) return;
+    setIsStarting(true);
+    setStartError(null);
+
+    const preflight = await runPreflight();
+    if (!preflight.ok) {
+      setStartError(`Failed to start: ${preflight.reason}`);
+      setIsStarting(false);
+      return;
+    }
+
+    const result = await createProctorSession(attemptId);
+    if ("error" in result) {
+      const messages: Record<string, string> = {
+        UNAUTHORIZED: "You are not authorised to start this exam.",
+        ATTEMPT_NOT_FOUND: "Your exam attempt could not be found.",
+        ATTEMPT_NOT_IN_PROGRESS: "This attempt is no longer active.",
+        DB_ERROR: "A server error occurred. Please try again.",
+      };
+      setStartError(messages[result.error] ?? "An unexpected error occurred.");
+      setIsStarting(false);
+      return;
+    }
+
+    try {
+      if (!document.fullscreenElement)
+        await document.documentElement.requestFullscreen();
+    } catch (err) {
+      console.warn("[AssessmentOnboarding] Fullscreen request failed:", err);
+    }
+
+    router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${attemptId}`);
+  }
 
   const lightingOk = lightingStatus === "ok";
   const faceOk = faceStatus === "ok";
@@ -873,13 +1004,14 @@ function StepCameraCheck({
               </div>
               <div className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${faceStatus === "checking" ? "border-slate-500/40 bg-slate-900/80 text-slate-200"
                 : faceOk ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-300"
-                  : faceStatus === "absent" ? "border-red-500/40 bg-red-950/80 text-red-300"
+                  : faceStatus === "absent" || faceStatus === "multiple" ? "border-red-500/40 bg-red-950/80 text-red-300"
                     : "border-slate-500/40 bg-slate-900/80 text-slate-200"
                 }`}>
                 {faceStatus === "checking" ? <><Loader2 size={11} className="animate-spin" /> Detecting face…</>
                   : faceOk ? <><User size={11} /> Face detected</>
-                    : faceStatus === "absent" ? <><User size={11} /> No face detected</>
-                      : <><Loader2 size={11} className="animate-spin" /> Detecting face…</>}
+                    : faceStatus === "multiple" ? <><Users size={11} /> More than one person</>
+                      : faceStatus === "absent" ? <><User size={11} /> No face detected</>
+                        : <><Loader2 size={11} className="animate-spin" /> Detecting face…</>}
               </div>
             </div>
           </>
@@ -949,6 +1081,19 @@ function StepCameraCheck({
             </div>
           </div>
         )}
+        {faceStatus === "multiple" && (
+          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+            <Users size={14} className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="text-[12px] font-bold text-red-700 uppercase tracking-wider">More than one person detected</p>
+              <p className="mt-0.5 text-[11px] text-red-700/80 font-semibold leading-relaxed">
+                You must be alone to take this exam. Ask anyone else to leave the
+                room and stay out of the camera's view — the check will clear
+                automatically once you are the only person visible.
+              </p>
+            </div>
+          </div>
+        )}
         {!singleCamera && (
           <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
@@ -1000,13 +1145,20 @@ function StepCameraCheck({
           </span>
         </label>
 
-        <button type="button" onClick={() => {
-          if (!streamRef.current) return;
-          streamTransferredRef.current = true;
-          onProceed(streamRef.current);
-        }} disabled={!canProceed}
+        {startError && (
+          <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
+            <p className="text-[11px] font-semibold text-red-700">{startError}</p>
+          </div>
+        )}
+
+        <button type="button" onClick={handleStart} disabled={!canProceed || isStarting}
           className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#001570] disabled:cursor-not-allowed disabled:opacity-30 animate-in fade-in">
-          Continue<ArrowRight size={13} />
+          {isStarting ? (
+            <><Loader2 size={13} className="animate-spin" />Starting…</>
+          ) : (
+            <><PlayCircle size={13} />Start Exam<ArrowRight size={13} /></>
+          )}
         </button>
 
         {!canProceed && (
@@ -1015,6 +1167,7 @@ function StepCameraCheck({
               : cameraState === "denied" ? "Camera access is required to proceed."
               : !singleCamera ? "Disconnect all external cameras (and turn off Bluetooth) to proceed."
               : lightingStatus === "poor" ? "Improve your lighting to continue."
+                : faceStatus === "multiple" ? "You must be alone in view of the camera to proceed."
                 : faceStatus === "absent" ? "Position your face in front of the camera."
                   : lightingStatus === "checking" || faceStatus === "checking" ? "Running checks…"
                     : !agreed ? "Check the agreement box above to continue."
@@ -1022,154 +1175,6 @@ function StepCameraCheck({
           </p>
         )}
       </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Liveness check step — shown after Camera check, right before entering the
-// exam. Gates the actual exam-page navigation (see root's handleLivenessDone).
-// ─────────────────────────────────────────────────────────────────────────────
-
-function StepLivenessCheck({
-  assessmentId,
-  attemptId,
-  cameraStream,
-}: {
-  assessmentId: number;
-  attemptId: number;
-  cameraStream: MediaStream | null;
-}) {
-  const router = useRouter();
-  const [passed, setPassed] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Re-verify every device precondition at the moment of starting. The
-  // earlier onboarding steps only check once, so a student could grant camera
-  // /mic access and then disable it (or plug in an extra device) before
-  // reaching this point. Returns a human reason on the first failure.
-  async function runPreflight(): Promise<{ ok: true } | { ok: false; reason: string }> {
-    // Camera access + not a virtual camera.
-    let videoStream: MediaStream;
-    try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-    } catch {
-      return { ok: false, reason: "your camera is off or blocked. Go back to the Camera check, re-enable your camera, and try again." };
-    }
-    const vVirtual = findVirtualDevice(videoStream);
-    videoStream.getTracks().forEach((t) => t.stop());
-    if (vVirtual) {
-      return { ok: false, reason: `a virtual camera (“${vVirtual}”) is in use. Disable it and use a physical camera.` };
-    }
-
-    // Microphone access + not a virtual or wireless mic.
-    let audioStream: MediaStream;
-    try {
-      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    } catch {
-      return { ok: false, reason: "your microphone is off or blocked. Go back to the Microphone check, re-enable your microphone, and try again." };
-    }
-    const aVirtual = findVirtualDevice(audioStream);
-    const aWireless = findWirelessAudio(audioStream);
-    audioStream.getTracks().forEach((t) => t.stop());
-    if (aVirtual) {
-      return { ok: false, reason: `a virtual microphone (“${aVirtual}”) is in use. Disable it and use a physical microphone.` };
-    }
-    const wirelessMicLabel = aWireless ?? (await findWirelessMicrophone());
-    if (wirelessMicLabel) {
-      return { ok: false, reason: `a Bluetooth/wireless audio device (“${wirelessMicLabel}”) is connected. Disconnect it, turn off Bluetooth, and use your device's built-in microphone.` };
-    }
-
-    // Exactly one camera and one microphone (phones/tablets are exempt from the
-    // camera count — they legitimately have multiple built-in cameras).
-    const cams = await listRealCameras();
-    if (!isMobileDevice() && cams.length > 1) {
-      return { ok: false, reason: "more than one camera is connected. Disconnect all external cameras and turn off Bluetooth." };
-    }
-    const mics = await listRealMicrophones();
-    if (mics.length > 1) {
-      return { ok: false, reason: "more than one microphone is connected. Disconnect all external microphones/headsets and turn off Bluetooth." };
-    }
-
-    // Single display only.
-    if (hasMultipleMonitors()) {
-      return { ok: false, reason: "more than one monitor is connected. Disconnect all extra monitors and use a single screen." };
-    }
-
-    return { ok: true };
-  }
-
-  // The exam is only started once liveness is confirmed and the student
-  // clicks "Start Exam" — this is where all device checks are re-run, the
-  // proctor session is created, fullscreen is requested (needs a fresh user
-  // gesture), and we navigate.
-  async function handleStart() {
-    setIsStarting(true);
-    setError(null);
-
-    const preflight = await runPreflight();
-    if (!preflight.ok) {
-      setError(`Failed to start: ${preflight.reason}`);
-      setIsStarting(false);
-      return;
-    }
-
-    const result = await createProctorSession(attemptId);
-    if ("error" in result) {
-      const messages: Record<string, string> = {
-        UNAUTHORIZED: "You are not authorised to start this exam.",
-        ATTEMPT_NOT_FOUND: "Your exam attempt could not be found.",
-        ATTEMPT_NOT_IN_PROGRESS: "This attempt is no longer active.",
-        DB_ERROR: "A server error occurred. Please try again.",
-      };
-      setError(messages[result.error] ?? "An unexpected error occurred.");
-      setIsStarting(false);
-      return;
-    }
-
-    try {
-      if (!document.fullscreenElement)
-        await document.documentElement.requestFullscreen();
-    } catch (err) {
-      console.warn("[AssessmentOnboarding] Fullscreen request failed:", err);
-    }
-
-    router.push(`/student/assessments/${assessmentId}/attempt?attemptId=${attemptId}`);
-  }
-
-  return (
-    <div className="flex min-h-full flex-col">
-      <LivenessCheck
-        initialStream={cameraStream}
-        onPass={() => setPassed(true)}
-        onInconclusive={() => {
-          console.warn("[AssessmentOnboarding] Liveness check inconclusive", { assessmentId, attemptId });
-        }}
-      />
-
-      {passed && (
-        <div className="mt-auto space-y-3 pt-4 border-t border-border">
-          {error && (
-            <div className="flex items-start gap-2.5 rounded-sm border border-red-100 bg-red-50 p-3">
-              <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
-              <p className="text-[11px] font-semibold text-red-700">{error}</p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={handleStart}
-            disabled={isStarting}
-            className="flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#001570] disabled:cursor-not-allowed disabled:opacity-40 animate-in fade-in"
-          >
-            {isStarting ? (
-              <><Loader2 size={13} className="animate-spin" />Starting…</>
-            ) : (
-              <><PlayCircle size={13} />Start Exam<ArrowRight size={13} /></>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -1204,7 +1209,7 @@ function StepPassword({
         } else if (result.error === "SERVER_ERROR") {
           setError("A server error occurred. Please try again.");
         } else {
-          setError("Something went wrong. Please try again.");
+		  setError(accessError(result.error));
         }
         return;
       }
@@ -1295,6 +1300,7 @@ export default function AssessmentOnboardingClient({
   passwordProtected,
   proctoringEnabled,
   instructions,
+	requireTrustedNetwork,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -1302,7 +1308,6 @@ export default function AssessmentOnboardingClient({
     attemptId ?? null,
   );
   const [generalNextPending, setGeneralNextPending] = useState(false);
-  const [livenessCameraStream, setLivenessCameraStream] = useState<MediaStream | null>(null);
   const [generalNextError, setGeneralNextError] = useState<string | null>(null);
 
   const hasInstructions = instructions.trim().length > 0;
@@ -1312,7 +1317,6 @@ export default function AssessmentOnboardingClient({
   const passwordStepIndex = passwordProtected ? generalRulesStepIndex + 1 : -1;
   const micStepIndex = passwordProtected ? passwordStepIndex + 1 : generalRulesStepIndex + 1;
   const proctorStepIndex = proctoringEnabled ? micStepIndex + 1 : -1;
-  const livenessStepIndex = proctoringEnabled ? proctorStepIndex + 1 : -1;
   const resolvedAttemptId = createdAttemptId;
 
   async function handleGeneralRulesNext() {
@@ -1330,7 +1334,7 @@ export default function AssessmentOnboardingClient({
       const result = await createOrResumeAttempt(assessmentId);
       setGeneralNextPending(false);
       if ("error" in result) {
-        setGeneralNextError("Could not start attempt. Please try again.");
+		setGeneralNextError(accessError(result.error));
         return;
       }
       currentAttemptId = result.attemptId;
@@ -1446,21 +1450,10 @@ export default function AssessmentOnboardingClient({
                 proctoringEnabled &&
                 resolvedAttemptId != null && (
                   <StepCameraCheck
-                    onBack={() => setStep(micStepIndex)}
-                    onCancel={() => router.push(`/student/assessments`)}
-                    onProceed={(stream) => {
-                      setLivenessCameraStream(stream);
-                      setStep(livenessStepIndex);
-                    }}
-                  />
-                )}
-              {step === livenessStepIndex &&
-                proctoringEnabled &&
-                resolvedAttemptId != null && (
-                  <StepLivenessCheck
                     assessmentId={assessmentId}
                     attemptId={resolvedAttemptId}
-                    cameraStream={livenessCameraStream}
+                    onBack={() => setStep(micStepIndex)}
+                    onCancel={() => router.push(`/student/assessments`)}
                   />
                 )}
             </div>

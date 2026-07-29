@@ -25,7 +25,7 @@ import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { useViolationStore } from "@/lib/violation-store"
-import { addViolation, type ViolationReason } from "@/lib/violation-tracker"
+import { addViolation, tryAcquireFlagSlot, type ViolationReason } from "@/lib/violation-tracker"
 import { proctorSignals } from "@/lib/proctor-signals"
 import { findVirtualDevice } from "@/lib/device-integrity"
 import type { FlagType } from "@/components/student/FlagOverlay"
@@ -66,7 +66,7 @@ const MOUTH_WINDOW_MS = 3000
 const MOUTH_CYCLES_FOR_WARN = 3   // open→close cycles within the window
 
 type CameraViolationType = Extract<FlagType,
-  "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "GAZE_AWAY" | "PHONE_DETECTED">
+  "PERSON_ABSENT" | "MULTIPLE_PERSONS" | "GAZE_AWAY" | "PHONE_DETECTED" | "SUSPICIOUS_OBJECT">
 
 // Keys that can raise a soft toast (superset — includes toast-only signals).
 type WarnKey = CameraViolationType | "MOUTH_MOVING"
@@ -76,7 +76,7 @@ type Severity = 0 | 1 | 2
 
 // Types that may hard-flag. MOUTH_MOVING is toast-only.
 const HARD_FLAG_TYPES = new Set<WarnKey>([
-  "PERSON_ABSENT", "MULTIPLE_PERSONS", "PHONE_DETECTED", "GAZE_AWAY",
+  "PERSON_ABSENT", "MULTIPLE_PERSONS", "PHONE_DETECTED", "GAZE_AWAY", "SUSPICIOUS_OBJECT",
 ])
 
 // Per-signal behaviour:
@@ -104,6 +104,10 @@ const SIGNAL: Record<WarnKey, { warns: boolean; flagMs: number; warnMs?: number;
   // roughly one missed tick so that doesn't wipe real progress.
   PHONE_DETECTED: { warns: false, flagMs: 900, clearMs: 900 },   // phone in view → flag
   GAZE_AWAY: { warns: true, flagMs: 3000, warnMs: 1500, clearMs: 500 },   // warn early, flag only on a sustained head turn
+  // A laptop, TV or book in frame is a real concern but far more ambiguous than
+  // a phone (COCO-SSD calls plenty of desk clutter a "book"), so this one gets
+  // a toast first and needs to persist for several detection ticks to flag.
+  SUSPICIOUS_OBJECT: { warns: true, flagMs: 4000, warnMs: 1200, clearMs: 900 },
   MOUTH_MOVING: { warns: true, flagMs: Infinity }, // toast only
 }
 
@@ -112,10 +116,22 @@ const WARN_MESSAGES: Record<WarnKey, string> = {
   PERSON_ABSENT: "Stay in view of the camera.",
   MULTIPLE_PERSONS: "Another person was detected nearby.",
   PHONE_DETECTED: "Phones are not allowed during the exam.",
+  SUSPICIOUS_OBJECT: "Remove other devices and books from view of the camera.",
   MOUTH_MOVING: "You appear to be talking — this may be flagged.",
 }
 
 const PHONE_CLASSES = ["cell phone"]
+// Other COCO-SSD classes that have no business at a proctored exam desk. A
+// second laptop or screen is a way to keep notes or an AI assistant open that
+// never steals focus from the exam window, and a book defeats a closed-book
+// exam outright.
+const SUSPICIOUS_CLASSES = ["laptop", "tv", "book"]
+
+// COCO-SSD returns anything above ~0.5 by default, which is loose enough to
+// call a dark rectangle a phone. Require real confidence before acting, and
+// require more of it for the ambiguous classes than for a phone.
+const PHONE_SCORE_MIN = 0.6
+const SUSPICIOUS_SCORE_MIN = 0.7
 
 interface Props { attemptId: number }
 
@@ -155,17 +171,28 @@ export default function ProctorCamera({ attemptId }: Props) {
   }
 
   // ── Hard flag (overlay + count) ───────────────────────────────────────────
-  async function hardFlag(type: CameraViolationType) {
+  // Returns false when the flag was suppressed, so the caller can leave its
+  // re-flag cooldown unset and try again on the next tick rather than going
+  // quiet for REFLAG_COOLDOWN_MS over a flag that never actually landed.
+  function hardFlag(type: CameraViolationType): boolean {
     const s = useViolationStore.getState()
     // Ignore incoming flags while a violation overlay is already showing — the
     // student is dealing with one violation at a time (avoids stacking the count
     // behind the overlay). Detection keeps running; the feed is never paused.
-    if (s.submitting || s.activeEvent) return
+    if (s.submitting || s.activeEvent) return false
+    // Honour the cross-source cooldown. Camera, audio and focus detectors run
+    // independently, and one moment (turning away to talk to someone) can trip
+    // several at once — without this the student is charged 2-3 violations for
+    // a single act, which is the opposite of fair.
+    if (!tryAcquireFlagSlot(attemptId)) return false
+
     const optimistic = useViolationStore.getState().count + 1
     recordViolation({ type, flagCountAfter: optimistic, source: "CAMERA" })
-    const { count: serverCount, willAutoSubmit } = await addViolation(attemptId, type as ViolationReason)
-    syncCount(serverCount)
-    if (willAutoSubmit) showFinalWarning()
+    void addViolation(attemptId, type as ViolationReason).then(({ count: serverCount, willAutoSubmit }) => {
+      syncCount(serverCount)
+      if (willAutoSubmit) showFinalWarning()
+    })
+    return true
   }
 
   // ── Escalation state machine ──────────────────────────────────────────────
@@ -206,9 +233,9 @@ export default function ProctorCamera({ attemptId }: Props) {
       elapsed >= cfg.flagMs &&
       now - st.lastFlagAt >= REFLAG_COOLDOWN_MS
     ) {
-      st.lastFlagAt = now
+      // Only start the re-flag cooldown if the flag actually landed.
+      if (hardFlag(type as CameraViolationType)) st.lastFlagAt = now
       escalation.current.set(type, st)
-      void hardFlag(type as CameraViolationType)
       return
     }
 
@@ -420,9 +447,21 @@ export default function ProctorCamera({ attemptId }: Props) {
         if (video.readyState < 2) return
         try {
           const predictions = await cocoSsd.detect(video)
-          const classes = predictions.map((p: any) => p.class.toLowerCase())
-          // Phone → hard flag (severity 2).
-          escalate("PHONE_DETECTED", classes.some((c: any) => PHONE_CLASSES.includes(c)) ? 2 : 0)
+          const seen = predictions.map((p) => ({
+            cls: p.class.toLowerCase(),
+            score: p.score ?? 0,
+          }))
+          // Phone → hard flag (severity 2), no warning tier.
+          const phone = seen.some((p) => PHONE_CLASSES.includes(p.cls) && p.score >= PHONE_SCORE_MIN)
+          escalate("PHONE_DETECTED", phone ? 2 : 0)
+
+          // Other banned objects → warn first, flag if they stay in frame.
+          // Suppressed while a phone is already being tracked so one object
+          // never trips two separate violations.
+          const suspicious = seen.some(
+            (p) => SUSPICIOUS_CLASSES.includes(p.cls) && p.score >= SUSPICIOUS_SCORE_MIN,
+          )
+          escalate("SUSPICIOUS_OBJECT", suspicious && !phone ? 2 : 0)
         } catch { /* ignore */ }
       }
       const id = setInterval(run, OBJECT_INTERVAL_MS)

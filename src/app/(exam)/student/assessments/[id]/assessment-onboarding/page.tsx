@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { expireAbandonedAttempts, submitAttemptInternal } from "@/lib/assessment-actions";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { hasAttemptExpired } from "@/lib/student-utils";
 import AssessmentOnboardingClient from "./AssessmentOnboardingClient";
 
 export default async function AssessmentOnboardingPage({
@@ -38,6 +39,7 @@ export default async function AssessmentOnboardingPage({
       durationMinutes: true,
       passwordProtected: true,
       proctoringEnabled: true,
+	  requireTrustedNetwork: true,
       instructions: true,
       status: true,
       startsAt: true,
@@ -67,6 +69,7 @@ export default async function AssessmentOnboardingPage({
         status: true,
         assessmentId: true,
         startedAt: true,
+        timerStartedAt: true,
       },
     });
 
@@ -79,13 +82,10 @@ export default async function AssessmentOnboardingPage({
       redirect(`/student/assessments/${assessmentId}`);
     }
 
-    let expired = false;
-    if (assessment.durationMinutes) {
-      const expiryTime = new Date(attempt.startedAt.getTime() + assessment.durationMinutes * 60 * 1000);
-      if (now > expiryTime) {
-        expired = true;
-      }
-    }
+    // Only meaningful for a student re-entering onboarding on an attempt whose
+    // clock is already running; while `timerStartedAt` is null the duration has
+    // not started, so onboarding itself can never time them out.
+    const expired = hasAttemptExpired(attempt, assessment.durationMinutes, now);
 
     if (expired) {
       await submitAttemptInternal(attempt.id, assessmentId, "TIMED_OUT");
@@ -106,6 +106,7 @@ export default async function AssessmentOnboardingPage({
       passwordProtected={assessment.passwordProtected}
       proctoringEnabled={assessment.proctoringEnabled}
       instructions={assessment.instructions}
+	  requireTrustedNetwork={assessment.requireTrustedNetwork}
     />
   );
 }

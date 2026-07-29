@@ -18,6 +18,7 @@ import type {
   Step4State,
   CreateAssessmentPayload,
   AnswerTypeEnum,
+	TrustedNetworkOption,
 } from "@/lib/assessment-types"
 import { validatePublishConditions } from "@/lib/assessment-validation"
 import { sectionUnitMarks } from "@/lib/assessment-marks"
@@ -41,7 +42,7 @@ function initStep1(): Step1State {
 }
 
 function initStep2(): Step2State {
-  return { selectedClasses: [], isLocationBound: false, location: "" }
+  return { selectedClasses: [], requireTrustedNetwork: false, trustedNetworkId: null }
 }
 
 function initStep3(): Step3State {
@@ -87,7 +88,6 @@ function validateStep1(s: Step1State): Partial<Record<keyof Step1State, string>>
 function validateStep2(s: Step2State): { classes?: string; location?: string } {
   const errors: { classes?: string; location?: string } = {}
   if (s.selectedClasses.length === 0) errors.classes = "At least one class must be selected"
-  if (s.isLocationBound && !s.location.trim()) errors.location = "Location is required"
   return errors
 }
 
@@ -118,8 +118,10 @@ function buildPayload(
     shuffleQuestions: s1.shuffleQuestions,
     shuffleOptions: s1.shuffleOptions,
     proctoringEnabled: s1.proctoringEnabled,
-    isLocationBound: s2.isLocationBound,
-    location: s2.isLocationBound ? s2.location : null,
+    isLocationBound: false,
+    location: null,
+    requireTrustedNetwork: s2.requireTrustedNetwork,
+    trustedNetworkId: s2.requireTrustedNetwork ? s2.trustedNetworkId : null,
     totalMarks: Number(s4.totalMarks),
     status,
     classes: s2.selectedClasses.map((c: any) => ({ classId: c.classId })),
@@ -166,6 +168,7 @@ export interface AssessmentFormProps {
   initialStep2?: Step2State
   initialStep3?: Step3State
   initialStep4?: Step4State
+	trustedNetworks?: TrustedNetworkOption[]
 }
 
 export default function AssessmentForm({
@@ -175,6 +178,7 @@ export default function AssessmentForm({
   initialStep2,
   initialStep3,
   initialStep4,
+	trustedNetworks = [],
 }: AssessmentFormProps) {
   const router = useRouter()
   const isEditing = !!assessmentId
@@ -360,6 +364,7 @@ export default function AssessmentForm({
               onChange={(u) => setStep2((prev) => ({ ...prev, ...u }))}
               selectedCourse={selectedCourse}
               errors={step2Errors}
+			  trustedNetworks={trustedNetworks}
             />
           )}
           {step === 2 && (

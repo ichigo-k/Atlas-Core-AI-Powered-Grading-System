@@ -15,6 +15,7 @@ interface AssessmentEntryClientProps {
   durationMinutes: number | null
   startsAt: string
   endsAt: string
+  requireTrustedNetwork: boolean
 }
 
 export default function AssessmentEntryClient({
@@ -22,6 +23,7 @@ export default function AssessmentEntryClient({
   passwordProtected,
   isLocked,
   activeAttemptId,
+	requireTrustedNetwork,
 }: AssessmentEntryClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -77,6 +79,7 @@ export default function AssessmentEntryClient({
           UNAUTHORIZED: "YOU ARE NOT AUTHORISED TO TAKE THIS ASSESSMENT.",
           NOT_FOUND: "ASSESSMENT NOT FOUND.",
           SERVER_ERROR: "A SERVER ERROR OCCURRED. PLEASE TRY AGAIN.",
+		  NETWORK_NOT_APPROVED: "CONNECT TO THE APPROVED CAMPUS NETWORK AND TRY AGAIN.",
         }
         setError(messages[result.error] ?? "FAILED TO START ASSESSMENT. PLEASE TRY AGAIN.")
         return
@@ -88,6 +91,7 @@ export default function AssessmentEntryClient({
 
   return (
     <div className="space-y-3">
+	  {requireTrustedNetwork && <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-[11px] font-medium text-blue-900">Access check: an approved campus network is required.</div>}
       <button
         type="button"
         onClick={handleStartClick}

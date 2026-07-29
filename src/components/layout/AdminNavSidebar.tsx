@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   History,
+  Wifi,
   type LucideIcon,
 } from "lucide-react";
 
@@ -55,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: "System",
     items: [
+      { label: "Trusted Networks", href: "/admin/trusted-networks", Icon: Wifi, exact: false },
       { label: "Settings", href: "/admin/settings", Icon: Settings, exact: false },
     ],
   },

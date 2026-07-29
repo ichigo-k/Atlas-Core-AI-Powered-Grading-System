@@ -22,6 +22,8 @@ export type SerializedActiveAttempt = {
   attemptNumber: number;
   status: string;
   startedAt: string;
+  /** When the exam clock started (first view of the questions). */
+  timerStartedAt: string | null;
   submittedAt: string | null;
   questionOrder: unknown;
   tabSwitchLog: unknown;
@@ -42,10 +44,14 @@ export type SerializedAssessmentDetail = Omit<
   endsAt: string;
 };
 
-function serializeAttempt(attempt: ActiveAttempt): SerializedActiveAttempt {
+function serializeAttempt(
+  attempt: ActiveAttempt,
+  timerStartedAt: Date,
+): SerializedActiveAttempt {
   return {
     ...attempt,
     startedAt: attempt.startedAt.toISOString(),
+    timerStartedAt: timerStartedAt.toISOString(),
     submittedAt: attempt.submittedAt ? attempt.submittedAt.toISOString() : null,
   };
 }
@@ -104,11 +110,36 @@ export default async function AttemptPage({
     redirect(`/student/assessments/${assessmentId}`);
   }
 
+  // ── Start the exam clock ────────────────────────────────────────────────────
+  // This page is the first moment the student can actually see questions, so
+  // this is where the duration starts counting. The attempt row itself was
+  // created back in onboarding (rules → password → mic/camera checks), and that
+  // time must not be charged against them. The write is guarded on
+  // `timerStartedAt: null` so a reload, a second tab, or a resume later in the
+  // exam can never restart or extend the clock.
+  const now = new Date();
+  let timerStartedAt = attempt.timerStartedAt;
+  if (!timerStartedAt) {
+    const claimed = await prisma.assessmentAttempt.updateMany({
+      where: { id: attempt.id, timerStartedAt: null },
+      data: { timerStartedAt: now },
+    });
+    if (claimed.count > 0) {
+      timerStartedAt = now;
+    } else {
+      // Another request stamped it first — use the value it wrote.
+      const fresh = await prisma.assessmentAttempt.findUnique({
+        where: { id: attempt.id },
+        select: { timerStartedAt: true },
+      });
+      timerStartedAt = fresh?.timerStartedAt ?? now;
+    }
+  }
+
   // Check attempt expiration
   let expired = false;
-  const now = new Date();
   if (assessment.durationMinutes) {
-    const expiryTime = new Date(attempt.startedAt.getTime() + assessment.durationMinutes * 60 * 1000);
+    const expiryTime = new Date(timerStartedAt.getTime() + assessment.durationMinutes * 60 * 1000);
     if (now > expiryTime) {
       expired = true;
     }
@@ -130,7 +161,7 @@ export default async function AttemptPage({
 
   return (
     <AttemptShell
-      attempt={serializeAttempt(attempt)}
+      attempt={serializeAttempt(attempt, timerStartedAt)}
       assessment={serializeAssessment(assessment)}
       assessmentId={assessmentId}
       proctorSession={proctorSession}

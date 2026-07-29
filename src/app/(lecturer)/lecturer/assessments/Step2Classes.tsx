@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Search } from "lucide-react"
+import { Search, ShieldCheck, Wifi } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import type { Step2State, LecturerCourse } from "@/lib/assessment-types"
+import type { Step2State, LecturerCourse, TrustedNetworkOption } from "@/lib/assessment-types"
 
 interface Step2ClassesProps {
   state: Step2State
@@ -14,6 +13,7 @@ interface Step2ClassesProps {
     classes?: string
     location?: string
   }
+	trustedNetworks: TrustedNetworkOption[]
 }
 
 function SectionHeader({ label }: { label: string }) {
@@ -24,7 +24,7 @@ function SectionHeader({ label }: { label: string }) {
   )
 }
 
-export default function Step2Classes({ state, onChange, selectedCourse, errors }: Step2ClassesProps) {
+export default function Step2Classes({ state, onChange, selectedCourse, errors, trustedNetworks }: Step2ClassesProps) {
   const classes = selectedCourse?.classes ?? []
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -141,72 +141,7 @@ export default function Step2Classes({ state, onChange, selectedCourse, errors }
         {errors.classes && <p className="text-[11px] text-rose-500 mt-2">{errors.classes}</p>}
       </div>
 
-      {/* Location Restriction */}
-      <div className="rounded-sm border border-border bg-white p-5">
-        <SectionHeader label="Location Restriction" />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => onChange({ isLocationBound: false, location: "" })}
-            className={`flex items-start gap-3 p-3.5 rounded-sm border text-left transition-all ${
-              !state.isLocationBound
-                ? "border-primary bg-[#dce6f7]"
-                : "border-border bg-white hover:bg-[#f3f2f1]"
-            }`}
-          >
-            <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
-              !state.isLocationBound ? "border-primary" : "border-border"
-            }`}>
-              {!state.isLocationBound && <div className="h-2 w-2 rounded-full bg-primary" />}
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-[#1e293b]">Anywhere</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                Students can take this from any location.
-              </p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onChange({ isLocationBound: true })}
-            className={`flex items-start gap-3 p-3.5 rounded-sm border text-left transition-all ${
-              state.isLocationBound
-                ? "border-primary bg-[#dce6f7]"
-                : "border-border bg-white hover:bg-[#f3f2f1]"
-            }`}
-          >
-            <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
-              state.isLocationBound ? "border-primary" : "border-border"
-            }`}>
-              {state.isLocationBound && <div className="h-2 w-2 rounded-full bg-primary" />}
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-[#1e293b]">Location-Bound</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                Restrict to a specific campus hall or exam room.
-              </p>
-            </div>
-          </button>
-        </div>
-
-        {state.isLocationBound && (
-          <div className="mt-4 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Label htmlFor="location" className="text-[12px] text-muted-foreground">
-              Required Location <span className="text-rose-500">*</span>
-            </Label>
-            <Input
-              id="location"
-              value={state.location}
-              onChange={(e) => onChange({ location: e.target.value })}
-              placeholder="e.g. Lecture Hall A, Room 204"
-              className="h-9 rounded-sm border-border bg-white focus-visible:ring-primary/30 text-[13px]"
-            />
-            {errors.location && <p className="text-[11px] text-rose-500 mt-1">{errors.location}</p>}
-          </div>
-        )}
-      </div>
+      <div className="rounded-sm border border-border bg-white p-5"><SectionHeader label="Approved network"/><div className={`rounded-md border p-4 ${trustedNetworks.length === 0 ? "bg-slate-50" : "bg-white"}`}><div className="flex items-start gap-3"><div className="rounded-md bg-blue-50 p-2 text-primary"><Wifi size={17}/></div><div className="flex-1"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Require an approved campus network</p><p className="mt-0.5 text-xs text-muted-foreground">Students must connect through a network configured by an administrator.</p></div><button type="button" disabled={trustedNetworks.length === 0} onClick={() => onChange({ requireTrustedNetwork: !state.requireTrustedNetwork, trustedNetworkId: !state.requireTrustedNetwork ? trustedNetworks[0]?.id ?? null : null })} className={`relative h-6 w-11 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${state.requireTrustedNetwork ? "bg-primary" : "bg-slate-300"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${state.requireTrustedNetwork ? "left-6" : "left-1"}`}/></button></div>{trustedNetworks.length === 0 ? <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">Unavailable until an administrator configures an active trusted network.</p> : state.requireTrustedNetwork && <label className="mt-3 block text-xs font-medium">Approved network<select value={state.trustedNetworkId ?? ""} onChange={(e) => onChange({ trustedNetworkId: Number(e.target.value) })} className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm">{trustedNetworks.map((network) => <option key={network.id} value={network.id}>{network.name}</option>)}</select></label>} {state.requireTrustedNetwork && <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700"><ShieldCheck size={13}/> Enforced by the server before an attempt starts.</p>}</div></div></div></div>
     </div>
   )
 }

@@ -75,7 +75,7 @@ async function EditAssessmentData({ id }: { id: string }) {
   const assessmentId = Number(id)
   if (Number.isNaN(assessmentId)) notFound()
 
-  const [raw, profile] = await Promise.all([
+  const [raw, profile, trustedNetworks] = await Promise.all([
     prisma.assessment.findUnique({
       where: { id: assessmentId },
       include: {
@@ -115,6 +115,7 @@ async function EditAssessmentData({ id }: { id: string }) {
         },
       },
     }),
+    prisma.trustedNetwork.findMany({ where: { enabled: true }, select: { id: true, name: true, description: true }, orderBy: { name: "asc" } }),
   ])
 
   if (!raw || raw.lecturerId !== user.id) notFound()
@@ -148,8 +149,8 @@ async function EditAssessmentData({ id }: { id: string }) {
       classId: ac.classId,
       className: `${ac.class.name} (Level ${ac.class.level})`,
     })),
-    isLocationBound: raw.isLocationBound,
-    location: raw.location ?? "",
+    requireTrustedNetwork: raw.requireTrustedNetwork,
+    trustedNetworkId: raw.trustedNetworkId,
   }
 
   const mapQuestionToForm = (q: any) => ({
@@ -196,6 +197,7 @@ async function EditAssessmentData({ id }: { id: string }) {
       initialStep2={initialStep2}
       initialStep3={initialStep3}
       initialStep4={initialStep4}
+	  trustedNetworks={trustedNetworks}
     />
   )
 }

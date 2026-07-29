@@ -78,6 +78,7 @@ async function NewAssessmentData() {
     },
   })
 
+  const [trustedNetworks] = await Promise.all([prisma.trustedNetwork.findMany({ where: { enabled: true }, select: { id: true, name: true, description: true }, orderBy: { name: "asc" } })])
   const lecturerCourses: LecturerCourse[] = (profile?.courses ?? []).map((c: any) => ({
     id: c.id,
     code: c.code,
@@ -85,7 +86,7 @@ async function NewAssessmentData() {
     classes: c.classes,
   }))
 
-  return <AssessmentForm lecturerCourses={lecturerCourses} />
+  return <AssessmentForm lecturerCourses={lecturerCourses} trustedNetworks={trustedNetworks} />
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────

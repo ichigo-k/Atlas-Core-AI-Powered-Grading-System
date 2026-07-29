@@ -67,3 +67,36 @@ export function computeHash(value: string | null): string | null {
 export function computeRemaining(startedAt: Date, durationMinutes: number, now: Date): number {
   return startedAt.getTime() + durationMinutes * 60 * 1000 - now.getTime()
 }
+
+/**
+ * The instant the exam clock started for an attempt.
+ *
+ * `startedAt` is stamped when the attempt row is created, which happens during
+ * onboarding — before the student has done the device checks or seen a single
+ * question. `timerStartedAt` is stamped when they actually open the attempt
+ * page, and is what every duration/expiry calculation must use.
+ *
+ * Null `timerStartedAt` means the student has not reached the questions yet, so
+ * the clock has not started: callers should treat the attempt as not expired.
+ * `startedAt` is only used as a fallback for pre-existing attempts.
+ */
+export function effectiveTimerStart(attempt: {
+  startedAt: Date
+  timerStartedAt?: Date | null
+}): Date {
+  return attempt.timerStartedAt ?? attempt.startedAt
+}
+
+/**
+ * Whether a duration-limited attempt has run out of time. Returns false while
+ * the clock has not started yet (student still in onboarding).
+ */
+export function hasAttemptExpired(
+  attempt: { startedAt: Date; timerStartedAt?: Date | null },
+  durationMinutes: number | null,
+  now: Date,
+): boolean {
+  if (!durationMinutes) return false
+  if (!attempt.timerStartedAt) return false
+  return computeRemaining(attempt.timerStartedAt, durationMinutes, now) <= 0
+}
