@@ -311,7 +311,7 @@ export default async function StudentDashboardPage() {
                 </div>
                 <div className="divide-y divide-slate-100">
                   {recentResults.slice(0, 5).map((r: any) => {
-                    const color = gradeColor(r.score);
+                    const color = gradeColor(r.percent);
                     return (
                       <div key={r.id} className="grid gap-2 px-4 py-3 md:grid-cols-[1fr_140px_auto] md:items-center md:px-5 hover:bg-slate-50 transition-colors">
                         <div className="min-w-0">
@@ -321,11 +321,11 @@ export default async function StudentDashboardPage() {
                         {/* score bar — yellow fill */}
                         <div className="hidden md:block">
                           <div className="h-[5px] bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${Math.min(r.score, 100)}%`, background: "#ffb900" }} />
+                            <div className="h-full rounded-full" style={{ width: `${Math.min(r.percent, 100)}%`, background: "#ffb900" }} />
                           </div>
                         </div>
                         <div className="flex items-center gap-2 md:justify-end">
-                          <span className="text-[13px] font-bold tabular-nums text-[#1e293b]">{r.score.toFixed(1)}%</span>
+                          <span className="text-[13px] font-bold tabular-nums text-[#1e293b]">{r.percent.toFixed(1)}%</span>
                           <span
                             className="text-[11px] font-bold px-2 py-0.5 rounded-full border"
                             style={{ color, borderColor: color + "40", background: color + "12" }}

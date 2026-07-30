@@ -280,7 +280,11 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 							const style = typeStyles[assessment.type] ?? { bg: "#f1f5f9", text: "#475569" };
 							const rawScore = assessment.latestAttempt?.score ?? null;
 							const score = isCompleted ? (rawScore ?? 0) : rawScore;
-							const gradeColorVal = gradeColor(score ?? 0);
+							const percent =
+								score != null && assessment.totalMarks > 0
+									? (score / assessment.totalMarks) * 100
+									: null;
+							const gradeColorVal = gradeColor(percent ?? 0);
 
 							return (
 								<div
@@ -333,12 +337,12 @@ export default function AssessmentsClient({ assessments, courses }: Props) {
 											<div className="flex flex-col items-end gap-2">
 												<div className="flex items-center gap-2">
 													<p className="text-[14px] font-bold tabular-nums" style={{ color: gradeColorVal }}>
-														{score?.toFixed(1)}%
+														{percent?.toFixed(1)}%
 													</p>
 													<div className="h-1.5 w-20 rounded-full bg-slate-100 overflow-hidden">
 														<div
 															className="h-full rounded-full transition-all duration-700"
-															style={{ width: `${Math.min(score ?? 0, 100)}%`, background: gradeColorVal }}
+															style={{ width: `${Math.min(percent ?? 0, 100)}%`, background: gradeColorVal }}
 														/>
 													</div>
 												</div>

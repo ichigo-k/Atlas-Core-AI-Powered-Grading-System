@@ -35,7 +35,9 @@ type RecentResultItem = {
   courseTitle: string
   courseCode: string
   endsAt: Date
-  score: number   // 0 if student never submitted
+  score: number   // raw marks; 0 if student never submitted
+  totalMarks: number
+  percent: number // (score / totalMarks) * 100
   grade: string   // computed from score on read
 }
 
@@ -213,7 +215,10 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
   const averageScore = computeAverage(
     enriched
       .filter((a: any) => a.derivedStatus === 'completed')
-      .map((a: any) => a.attempts[0]?.score ?? 0),  // unsubmitted = 0
+      .map((a: any) => {
+        const raw = a.attempts[0]?.score ?? 0  // unsubmitted = 0
+        return a.totalMarks > 0 ? (raw / a.totalMarks) * 100 : 0
+      }),
   )
 
   const upcomingAssessments = sortAndLimit(
@@ -255,6 +260,8 @@ export async function getDashboardData(studentId: number): Promise<DashboardData
       courseCode: a.course.code,
       endsAt: a.endsAt,
       score,
+      totalMarks: a.totalMarks,
+      percent: a.totalMarks > 0 ? Math.round((score / a.totalMarks) * 10000) / 100 : 0,
       grade: computeGrade(score, a.totalMarks, scale),
     }
   })
