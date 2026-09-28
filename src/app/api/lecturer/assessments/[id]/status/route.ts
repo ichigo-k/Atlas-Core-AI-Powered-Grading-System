@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { sendEmailSafely } from "@/lib/email"
 
 // If grading has been stuck in GRADING for this long with no new GradingResult
 // rows, consider it stale and auto-reset. Default: 20 minutes.
@@ -172,10 +173,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     )
   }
 
-  const updated = await prisma.assessment.update({
+    const updated = await prisma.assessment.update({
     where: { id: assessmentId },
     data: { status: body.status },
-  })
+    })
+
+    if (body.status === "PUBLISHED" && current !== "PUBLISHED") {
+      const recipients = await prisma.assessment.findUnique({ where: { id: assessmentId }, select: { title: true, classes: { select: { class: { select: { students: { select: { personalEmail: true, user: { select: { name: true } } } } } } } } } })
+      await Promise.all(recipients?.classes.flatMap((ac: any) => ac.class.students.map((student: any) =>
+        sendEmailSafely(student.personalEmail, `New test available: ${recipients.title}`, `Hello ${student.user?.name || "Student"},\n\nA new test, "${recipients.title}", is available for your course. Log in to the GCTU Exam Portal to view the instructions and due date.`)
+      )) || [])
+    }
 
   return NextResponse.json(updated)
 }

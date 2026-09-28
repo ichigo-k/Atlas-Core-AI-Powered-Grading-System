@@ -89,6 +89,7 @@ model StudentProfile {
   program       Program? @relation(fields: [programId], references: [id])
   classId       Int?
   class         Class?   @relation(fields: [classId], references: [id])
+  personalEmail String?  @unique @map("personal_email")
 
   @@map("student_profiles")
 }

@@ -4,6 +4,7 @@ import type { Prisma, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { revalidatePath } from "next/cache";
 import { logAction } from "@/lib/audit";
+import { sendEmailSafely, brandedEmail } from "@/lib/email";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -172,7 +173,7 @@ export async function resetUserPasswordAction(userId: number) {
 
 		const user = await prisma.user.findUnique({
 			where: { id: userId },
-			select: { email: true, name: true },
+			select: { email: true, name: true, role: true, studentProfile: { select: { personalEmail: true } } },
 		});
 
 		if (!user) {
@@ -189,6 +190,8 @@ export async function resetUserPasswordAction(userId: number) {
 				mustChangePassword: true,
 			},
 		});
+		const recipient = user.studentProfile?.personalEmail || user.email;
+		await sendEmailSafely(recipient, "Your GCTU password was reset", `Hello ${user.name || "there"},\n\nAn administrator reset your GCTU Exam Portal password.\n\nTemporary password: ${temporaryPassword}\n\nYou will be required to set a new password the next time you sign in.`, brandedEmail("Your password was reset", `Hello ${user.name || "there"},\n\nAn administrator reset your GCTU Exam Portal password.\n\nTemporary password: ${temporaryPassword}\n\nYou will be required to set a new password the next time you sign in.`, { label: "Sign in to the portal", href: process.env.NEXTAUTH_URL || "http://localhost:3000" }));
 
 		await logAction(
 			"USER_PASSWORD_RESET",

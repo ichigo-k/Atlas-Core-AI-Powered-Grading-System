@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { logAction } from "@/lib/audit"
+import { sendEmailSafely } from "@/lib/email"
 
 async function getLecturerId(email: string) {
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
@@ -45,13 +46,13 @@ export async function POST(
     const updatedAssessment = await prisma.assessment.update({
       where: { id: assessmentId },
       data: { resultsReleased: true },
-      select: {
-        title: true,
-        classes: {
-          select: {
-            class: {
-              select: {
-                students: { select: { id: true } },
+        select: {
+          title: true,
+          classes: {
+            select: {
+              class: {
+                select: {
+                students: { select: { id: true, personalEmail: true, user: { select: { name: true } } } },
               },
             },
           },
@@ -75,6 +76,9 @@ export async function POST(
         })),
         skipDuplicates: false,
       });
+      await Promise.all(updatedAssessment.classes.flatMap((ac: any) => ac.class.students.map((student: any) =>
+        sendEmailSafely(student.personalEmail, `Results released: ${updatedAssessment.title}`, `Hello ${student.user?.name || "Student"},\n\nYour results for "${updatedAssessment.title}" have been released. Log in to the GCTU Exam Portal to view your result.\n\nGCTU Exam Portal`)
+      )));
     }
 
     await logAction(

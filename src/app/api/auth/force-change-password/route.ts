@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcrypt"
 import { logAction } from "@/lib/audit"
 import { cookies } from "next/headers"
+import { sendEmailSafely, brandedEmail } from "@/lib/email"
 const SESSION_COOKIE_NAMES = [
     "authjs.session-token",
     "__Secure-authjs.session-token",
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
-        const { newPassword } = await req.json()
+        const { newPassword, personalEmail } = await req.json()
 
         if (!newPassword || typeof newPassword !== "string") {
             return NextResponse.json({ error: "New password is required" }, { status: 400 })
@@ -27,10 +28,13 @@ export async function POST(req: Request) {
         if (newPassword.length < 8) {
             return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 })
         }
+        if (personalEmail !== null && personalEmail !== undefined && (typeof personalEmail !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalEmail))) {
+            return NextResponse.json({ error: "Enter a valid personal email address" }, { status: 400 })
+        }
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
-            select: { id: true, mustChangePassword: true },
+            select: { id: true, mustChangePassword: true, name: true, role: true, studentProfile: { select: { personalEmail: true } } },
         })
 
         if (!user) {
@@ -59,6 +63,10 @@ export async function POST(req: Request) {
                 mustChangePassword: false,
             },
         })
+        if (user.id) {
+            await prisma.studentProfile.updateMany({ where: { id: user.id }, data: { personalEmail: personalEmail?.trim() || null } })
+        }
+        await sendEmailSafely(personalEmail?.trim() || null, "Your GCTU account is ready", `Hello ${user.name || "Student"},\n\nYour password has been set successfully. You can now sign in to the GCTU Exam Portal and receive important academic updates by email.`, brandedEmail("Your account is ready", `Hello ${user.name || "Student"},\n\nYour password has been set successfully. You can now sign in to the GCTU Exam Portal and receive important academic updates by email.`, { label: "Open Exam Portal", href: process.env.NEXTAUTH_URL || "http://localhost:3000" }))
 
         await logAction(
             "FIRST_LOGIN_PASSWORD_CHANGED",

@@ -11,6 +11,7 @@ import { toast } from "sonner"
 export default function ForceChangePasswordClient({ alreadyChanged = false }: { alreadyChanged?: boolean }) {
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
+    const [personalEmail, setPersonalEmail] = useState("")
     const [showNew, setShowNew] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -41,7 +42,7 @@ export default function ForceChangePasswordClient({ alreadyChanged = false }: { 
             const res = await fetch("/api/auth/force-change-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ newPassword }),
+                body: JSON.stringify({ newPassword, personalEmail: personalEmail.trim() || null }),
             })
 
             if (!res.ok) {
@@ -108,6 +109,12 @@ export default function ForceChangePasswordClient({ alreadyChanged = false }: { 
                                 <p className="text-[12px] text-[#1e293b] leading-relaxed">
                                     Choose a strong password that you haven't used elsewhere. You'll use this to sign in going forward.
                                 </p>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="personalEmail" className="text-[12px] font-semibold text-[#1e293b] uppercase tracking-[0.04em]">Personal Email</Label>
+                                <Input id="personalEmail" type="email" value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} placeholder="Where we can reach you" className="h-[38px] rounded-sm" />
+                                <p className="text-[11px] text-muted-foreground">Used for test announcements, released results, reminders, password resets, and lecturer messages.</p>
                             </div>
 
                             {/* New Password */}
